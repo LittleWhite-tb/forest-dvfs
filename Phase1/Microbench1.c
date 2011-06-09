@@ -4,14 +4,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define CPU_BOUND_ITER (818822656)
 
 //corresponds to 1 gig of memory for the matrix scalar add
-#define MEM_BOUND_ITER 4217728
+#define MEM_BOUND_ITER 9217728
+
+#define NUM_UP_DOWN 25
 
 //used to get all the p-states
 int globalFrequency[20];
+int num_frequency=0;
+int assigned_cpu=0;
 int numcores;
 int opt;
 
@@ -35,52 +40,18 @@ void changeFreq(int core, int i)
 }
 
 
-//Will use this to get the frequencies available... right now we'll hardcode the array for guedron
+//Will use this to get the frequencies available from the kernel
 void readFreq()
 {
 	
-	/* For guedron 
-	globalFrequency[0]=2661000;
-	globalFrequency[1]=2660000;
-	globalFrequency[2]=2527000;
-	globalFrequency[3]=2394000;
-	globalFrequency[4]=2261000;
-	globalFrequency[5]=2128000;
-	globalFrequency[6]=1995000;
-	globalFrequency[7]=1862000;
-	globalFrequency[8]=1729000;
-	globalFrequency[9]=1596000;
-
-	*/
-
-	/*For my laptop*/
-	globalFrequency[0]=2533000;            
-	globalFrequency[1]=2399000;
-	globalFrequency[2]=2266000;
-	globalFrequency[3]=2133000;
-	globalFrequency[4]=1999000;
-	globalFrequency[5]=1866000;
-	globalFrequency[6]=1733000;
-	globalFrequency[7]=1599000;
-	globalFrequency[8]=1466000;
-	globalFrequency[9]=1333000;
-	globalFrequency[10]=1199000;
-	globalFrequency[11]=1066000;
-	globalFrequency[12]=933000;
-
-	/*
-	*/
-
-
 	
-	
-	/*
 	char freq_available[1024] ;
 	FILE * fp;
 	size_t len = 0;
 	ssize_t read;
-  	fp = fopen ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequuencies","r");
-  	if (fp)
+  	fp = popen ("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies","r");
+	
+  	if (fp==NULL)
  	{
 		printf("Failed to open cpufreq datafile\n");
 		exit(EXIT_FAILURE);
@@ -88,13 +59,28 @@ void readFreq()
 	
     	else
 	{
-		//read = fgets(freq_available, sizeof(freq_available), fp); 
-        	printf("Retrieved line of length %zu :\n", read);
-        	//printf("%s", freq_available);
+		read = fgets(freq_available, sizeof(freq_available), fp); 
+        	char * pch;
+		pch = strtok (freq_available," ");
+ 		while (pch != NULL)
+  		{
+  		  globalFrequency[num_frequency]=atoi(pch);
+		  if(globalFrequency[num_frequency]==0)
+		  {
+			break;
+		  }
+		  if(assigned_cpu==0)
+		  {
+		  	printf("Discovered P-state%d to be frequency %d\n",num_frequency,globalFrequency[num_frequency]);
+		  }
+		  num_frequency++;
+    		  pch = strtok (NULL, " ");
+  		 }
+
 	}
 	    	
-	fclose (fp);
-	*/
+	pclose (fp);
+	
 }
 
 
@@ -104,7 +90,7 @@ int main(int argc,char ** argv)
 
 
 	int ondemand=0;
-	int assigned_cpu=0;
+	
 	char Rest_root_dir[1024]="../";
 	readFreq();
 
@@ -153,36 +139,52 @@ int main(int argc,char ** argv)
 
 	printf("Starting up benchmark on CPU %d\n",current_cpu);
 
-	//Now we do something cpu bound
-	if(!ondemand)
-	{
-		changeFreq(current_cpu,0);
-	}	
-	int i;	
-	for(i=0;i<CPU_BOUND_ITER;i++)
-	{
-		DummyVec[0]=DummyVec[0]*DummyVec[0];
-		DummyVec[1]=DummyVec[1]*DummyVec[1];
-		DummyVec[2]=DummyVec[2]*DummyVec[2];
-		DummyVec[3]=DummyVec[3]*DummyVec[3];
-	}
-
-	printf("Switching to Memory Bound on CPU %d\n",current_cpu);
-	//Now we do something mem bound
 	
-	if(!ondemand)
-	{ 
-		changeFreq(current_cpu,6);
-	}
 
-	
-	int j;
-	for(j=0;j<10;j++)
+	int i;
+	for(i=0;i<NUM_UP_DOWN; i++)
+
 	{
-		for(i=0;i<MEM_BOUND_ITER;i++)
+		//Now we do something cpu bound
+		if(!ondemand)
 		{
-			BigVec[i]=BigVec[i]+1.0;
+			changeFreq(current_cpu,0);
+		}	
+		int i;	
+		for(i=0;i<CPU_BOUND_ITER;i++)
+		{
+			DummyVec[0]=DummyVec[0]*DummyVec[0];
+			DummyVec[1]=DummyVec[1]*DummyVec[1];
+			DummyVec[2]=DummyVec[2]*DummyVec[2];
+			DummyVec[3]=DummyVec[3]*DummyVec[3];
 		}
+
+		printf("Switching to Memory Bound on CPU %d\n",current_cpu);
+		//Now we do something mem bound
+		
+		if(!ondemand)
+		{ 
+			changeFreq(current_cpu,num_frequency-1);//we switch to the lowest frequency
+		}
+
+	
+		int j;
+		for(j=0;j<10;j++)
+		{
+			for(i=0;i<MEM_BOUND_ITER;i++)
+			{
+				BigVec[i]=BigVec[i]+1.0;
+			}
+		}
+	}
+
+
+	//set the policy back to make the cpu responsive again
+	if(!ondemand)
+	{
+		char policy[1024]="";
+		sprintf(policy,"echo ondemand > /sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor",current_cpu);
+		system(policy);
 	}
 	
 	
