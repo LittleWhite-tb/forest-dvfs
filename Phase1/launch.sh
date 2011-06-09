@@ -9,7 +9,7 @@ exit 1
 fi
 
 #making a fresh binary
-gcc -O3 -o Microbench1 Microbench1.c 
+make
 
 
 #getting the number of cores on the system
@@ -31,7 +31,7 @@ for ((i=0;i<NUMCORES;i++))
 
 do
 
-./Microbench1 -c$i &
+./Phase1 -c$i &
 
 done
 

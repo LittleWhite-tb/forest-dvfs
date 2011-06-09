@@ -1,0 +1,1 @@
+esrv --start --library esrv_simulated_device.so --diagnostic

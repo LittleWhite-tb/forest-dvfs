@@ -1,0 +1,1 @@
+esrv --start --device y210 --device_options "items=all vrange=300 arange=20" --interface_options "com=0 baud=9600 parity=n data=8 stop=1 xon=n dtr=y rts=n" --diagnostic

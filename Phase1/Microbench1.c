@@ -1,17 +1,6 @@
-#define _GNU_SOURCE
-#include <sched.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
 
-#define CPU_BOUND_ITER (818822656)
 
-//corresponds to 1 gig of memory for the matrix scalar add
-#define MEM_BOUND_ITER 9217728
-
-#define NUM_UP_DOWN 25
+#include "Microbench1.h"
 
 //used to get all the p-states
 int globalFrequency[20];
@@ -47,8 +36,6 @@ void readFreq()
 	
 	char freq_available[1024] ;
 	FILE * fp;
-	size_t len = 0;
-	ssize_t read;
   	fp = popen ("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies","r");
 	
   	if (fp==NULL)
@@ -59,7 +46,7 @@ void readFreq()
 	
     	else
 	{
-		read = fgets(freq_available, sizeof(freq_available), fp); 
+		fgets(freq_available, sizeof(freq_available), fp); 
         	char * pch;
 		pch = strtok (freq_available," ");
  		while (pch != NULL)
@@ -90,8 +77,6 @@ int main(int argc,char ** argv)
 
 
 	int ondemand=0;
-	
-	char Rest_root_dir[1024]="../";
 	readFreq();
 
 	
