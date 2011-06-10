@@ -31,7 +31,7 @@ for ((i=0;i<NUMCORES;i++))
 
 do
 
-./Phase1 -c$i &
+./Microbench1 -c$i &
 
 done
 

@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <dlfcn.h>
+#include "../power/timer.h"
 
 #define CPU_BOUND_ITER (818822656)
 

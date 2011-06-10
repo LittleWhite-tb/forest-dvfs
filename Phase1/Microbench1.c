@@ -8,6 +8,11 @@ int num_frequency=0;
 int assigned_cpu=0;
 int numcores;
 int opt;
+double energy_start,energy_stop;
+void * dlinit_func;
+void * dlclose_func;
+void * dlstart_func;
+void * dlstop_func;
 
 double DummyVec[4]={1.0,1.0,1.0,1.0};
 //a 1 gig vector definitely wont fit in cache
@@ -77,7 +82,7 @@ int main(int argc,char ** argv)
 
 
 	int ondemand=0;
-	readFreq();
+	
 
 	
    //parse options
@@ -109,9 +114,11 @@ int main(int argc,char ** argv)
            }
 
 
+	//get the frequencies available from cpufreq
+	readFreq();
+
 	//make sure affinity is set high for the cpu we should run on
-	
-	//
+
 	cpu_set_t set_affinity;
 	CPU_ZERO(&set_affinity);
 	CPU_SET(assigned_cpu,&set_affinity);
@@ -119,10 +126,36 @@ int main(int argc,char ** argv)
 	
 	int current_cpu;
 	current_cpu=sched_getcpu();
-	
-	
 
-	printf("Starting up benchmark on CPU %d\n",current_cpu);
+
+	//link in the power meter functions if you're cpu 1
+
+	if(assigned_cpu==0)
+	{
+		
+		void * dl;	
+	
+		dl = dlopen ("../power/timer.so", RTLD_NOW);
+		if (dl == NULL)
+		{
+		    printf("The power meter dynamic library could not be linked... please locate timer.so\n");
+		    exit(EXIT_FAILURE);
+		}
+	
+		dlinit_func=dlsym(dl,"timer_init");
+		dlstart_func=dlsym(dl,"timer_start");
+		dlstop_func=dlsym(dl,"timer_stop");
+		dlclose_func=dlsym(dl,"timer_close");
+		unsigned long long (* init_func)(void)=dlinit_func;
+		
+		double (* start_func)(void)=dlstart_func;
+		
+		init_func();
+		energy_start=start_func();
+		
+	}
+	
+	
 
 	
 
@@ -163,6 +196,17 @@ int main(int argc,char ** argv)
 		}
 	}
 
+
+	if(assigned_cpu==0)
+	{
+
+		unsigned long long (* close_func)(void)=dlclose_func;
+		double (* stop_func)(void)=dlstop_func;	
+		energy_stop=stop_func();
+		close_func();
+		//energy_stop=(*dlstop_func)();
+		//(*dlclose_func)();
+	}
 
 	//set the policy back to make the cpu responsive again
 	if(!ondemand)
