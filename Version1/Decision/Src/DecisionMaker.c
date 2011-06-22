@@ -16,39 +16,21 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef DECISIONMAKER_H
-#define DECISIONMAKER_H
+#include <assert.h>
 
-#include <Profilers.h>
+#include "DecisionMaker.h"
 
-typedef struct sProfReport
+void DecisionMaker()
 {
-	ProfDesc prof_id;
-	int proc_id;
-	ProfilerInfo data;
-} SProfReport;
+	
+}
 
-typedef struct tabFreq
+int Decision_give_report( SProfReport *)
 {
-	int* allFreq;
-	int nbFreq;
-} TabFreq;
+	
+}
 
-/**
- * @brief init the decision maker
- * @return the avaibles frequencies
- **/
-TabFreq* init();
+void decideAlgorithm()
+{
 
-/**
- * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined
- **/
-int Decision_give_report( SProfReport *);
-
-/**
- * @brief decide witch algorithm we have to process
- **/ 
-void decideAlgorithm();
-
-
-#endif 
+}
