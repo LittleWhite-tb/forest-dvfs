@@ -31,21 +31,23 @@ typedef struct sProfReport
 	ProfilerInfo data;
 } SProfReport;
 
+typedef void * DMContext ;//I need a context construct in the profiler... and this will become a handle later
+
 
 /**
  * @brief init the decision maker
  **/
-void* decisionInit (void);
+DMContext decisionInit (void);
 
 /**
  * @brief free all that has to be free
  */
-void decisionDestruct(void);
+void decisionDestruct(DMContext);
 
 /**
  * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
  * @param profiler fill the report to know what we are talking about
  **/
-int DecisionGiveReport (void *data, SProfReport *profiler);
+int decisionGiveReport (void *data, SProfReport *profiler);
 
 #endif 

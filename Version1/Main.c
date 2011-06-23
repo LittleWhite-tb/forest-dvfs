@@ -18,10 +18,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ThreadedProfiler.h>
 
 int
 main (void)
 {
     printf ("REST Start\n");
+
+    STPContext * handle;
+
+    handle=profilerInit();
+    sleep (1);
+    profilerDestroy(handle);
+
+    
     return EXIT_SUCCESS;
 }

@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef DECISIONPROCESS_H
 #define DECISIONPROCESS_H
 
+typedef int Core;
+
 /**
  * @brief decide witch algorithm we have to process
  **/ 

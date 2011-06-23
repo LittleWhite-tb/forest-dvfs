@@ -20,20 +20,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "DecisionMaker.h"
 
-void* decisionInit (void)
+DMContext decisionInit (void)
 {
-	freqData *freqAvaible = getAllAvailableFreq();
-	SProfReport sProfReport = null;
+	/*freqData *freqAvaible = getAllAvailableFreq();
+	SProfReport sProfReport = NULL;
 	
-	return sProfReport;
+	return sProfReport;*/
 }
 
-int DecisionGiveReport(void* data, SProfReport *)
+int decisionGiveReport(DMContext handle, SProfReport * report)
 {
-	return 0
+	//handle=alloc(blah blah blah)
+	return 0;
 }
 
-void decisionDestruct(void)
+void decisionDestruct(DMContext handle)
 {
 	/**free all stuff*/
 }

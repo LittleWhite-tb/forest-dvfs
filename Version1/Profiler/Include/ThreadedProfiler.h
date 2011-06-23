@@ -16,35 +16,39 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef H_PROFILERS
-#define H_PROFILERS
+#ifndef H_THREADEDPROFILER
+#define H_THREADEDPROFILER
 
-//Enumerations
-
-#define INSTRUMENTED_PROFILER 2
-#define THREADED_PROFILER 4
-
-typedef int ProfDesc ;
+#include <pthread.h>
 
 
-
-//Threaded Profiler structure
-
-typedef struct sThread_Profiler{
-			float bounded;//This variable is between 0 and 1 where 0 is compute bound and 1 is memory bound
-			int ticks;//This is the size of the report's window in cycles
-			int algorithm;//This just tells us what our new ProfDesc is and also what we are instrumenting
-			int nextTicks;//This is the requested size of the next report's window in cycles
-			}SThread_Profiler;
+#define LOWERTHRESHOLD (.9)
+#define UPPERTHRESHOLD (1.1)
+#define FIRSTSLEEP (200)  
+#define LONGESTSLEEP (1000000)
 
 
 
+typedef struct sTPContext{
+	 volatile int * killSig;  /**< @brief address of kill signal that we spin on*/
+	 pthread_t parent; /**< @brief tid used by papi to access the counters*/
+	} STPContext;   
 
-//definition for the DeicionMaker.h
+/**
+ * @brief initializes the profiler through a pthread_create
+* @return returns a pointer to the profile thread's context
+ **/
+STPContext profilerInit (void);
 
-typedef union ProfilerInfo {
-				 SThread_Profiler tp;
-				} ProfilerInfo;
-				
+
+/**
+
+ * @brief signals the profiler to destroy it's self
+ * @parameter takes the context of the profiling thread to send the kill signal
+ **/
+void profilerDestroy (STPContext);
+
+
+
 
 #endif
