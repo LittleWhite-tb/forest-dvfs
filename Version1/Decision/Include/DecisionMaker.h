@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2011 Exascale Compûting Research
+Copyright (C) 2011 Exascale Computing Research
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -20,7 +20,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define DECISIONMAKER_H
 
 #include <Profilers.h>
+#include <Frequency_Mod.h>
+#include <define.h>
 
+/**TODO doc*/
 typedef struct sProfReport
 {
 	ProfDesc prof_id;
@@ -28,27 +31,21 @@ typedef struct sProfReport
 	ProfilerInfo data;
 } SProfReport;
 
-typedef struct tabFreq
-{
-	int* allFreq;
-	int nbFreq;
-} TabFreq;
 
 /**
  * @brief init the decision maker
- * @return the avaibles frequencies
  **/
-TabFreq* init();
+void* decisionInit (void);
 
 /**
- * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined
- **/
-int Decision_give_report( SProfReport *);
+ * @brief free all that has to be free
+ */
+void decisionDestruct(void);
 
 /**
- * @brief decide witch algorithm we have to process
- **/ 
-void decideAlgorithm();
-
+ * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
+ * @param profiler fill the report to know what we are talking about
+ **/
+int DecisionGiveReport (void *data, SProfReport *profiler);
 
 #endif 

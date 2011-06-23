@@ -20,17 +20,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "DecisionMaker.h"
 
-void DecisionMaker()
+void* decisionInit (void)
 {
+	freqData *freqAvaible = getAllAvailableFreq();
+	SProfReport sProfReport = null;
 	
+	return sProfReport;
 }
 
-int Decision_give_report( SProfReport *)
+int DecisionGiveReport(void* data, SProfReport *)
 {
-	
+	return 0
 }
 
-void decideAlgorithm()
+void decisionDestruct(void)
 {
-
+	/**free all stuff*/
 }
