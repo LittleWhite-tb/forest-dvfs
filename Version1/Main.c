@@ -28,7 +28,10 @@ main (void)
     STPContext handle;
 
     handle=profilerInit();
-    sleep (1);
+
+    
+    printf("Main thread is going to sleep\n");	
+    sleep (5);
     profilerDestroy(handle);
 
     

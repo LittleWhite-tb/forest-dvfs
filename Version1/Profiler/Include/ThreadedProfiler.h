@@ -29,10 +29,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-typedef struct sTPContext{
-	 volatile int * killSig;  /**< @brief address of kill signal that we spin on*/
-	 pthread_t parent; /**< @brief tid used by papi to access the counters*/
-	} STPContext;   
+typedef struct sTPContext
+{
+	int  * volatile killSig;  /**< @brief address of kill signal that we spin on*/
+	pthread_t parent; /**< @brief tid used by papi to access the counters*/
+} STPContext;   
 
 /**
  * @brief initializes the profiler through a pthread_create
