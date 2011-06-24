@@ -30,12 +30,13 @@ typedef int ProfDesc ;
 
 //Threaded Profiler structure
 
-typedef struct sThread_Profiler{
+typedef struct sThread_Profiler
+{
 			float bounded;//This variable is between 0 and 1 where 0 is compute bound and 1 is memory bound
 			int ticks;//This is the size of the report's window in cycles
 			int algorithm;//This just tells us what our new ProfDesc is and also what we are instrumenting
 			int nextTicks;//This is the requested size of the next report's window in cycles
-			}SThread_Profiler;
+}SThread_Profiler;
 
 
 

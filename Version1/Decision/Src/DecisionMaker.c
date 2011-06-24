@@ -20,14 +20,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "DecisionMaker.h"
 
-DMContext decisionInit (void)
+void* decisionInit (void)
 {
 	FreqData *freqAvaible = getAllAvailableFreq();
 	
 	
-	SProfReport sProfReport = NULL;
+	SProfReport sProfReport;
 	
-	return sProfReport;
+	return NULL;
 }
 
 int decisionGiveReport(void *handle, SProfReport * report)
