@@ -22,19 +22,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 DMContext decisionInit (void)
 {
-	/*freqData *freqAvaible = getAllAvailableFreq();
+	FreqData *freqAvaible = getAllAvailableFreq();
+	
+	
 	SProfReport sProfReport = NULL;
 	
-	return sProfReport;*/
+	return sProfReport;
 }
 
-int decisionGiveReport(DMContext handle, SProfReport * report)
+int decisionGiveReport(void *handle, SProfReport * report)
 {
 	//handle=alloc(blah blah blah)
 	return 0;
 }
 
-void decisionDestruct(DMContext handle)
+void decisionDestruct(void* handle)
 {
 	/**free all stuff*/
 }

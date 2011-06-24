@@ -39,8 +39,6 @@ typedef struct core
 	float core_median_value;
 }Core;
 
-typedef void * DMContext ;//I need a context construct in the profiler... and this will become a handle later
-
 /**
  * @brief init the decision maker
  **/

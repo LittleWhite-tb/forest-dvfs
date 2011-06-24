@@ -26,6 +26,6 @@ typedef struct _freqData
 	int freqMax;         /**< @brief the highest available frequence*/
 	int freqMin;         /**< @brief the lowest available frequence*/
 	int numberOfFreq;    /**< @brief the number of available frequences*/
-}freqData;
+}FreqData;
 
 #endif

@@ -35,7 +35,7 @@ void changeFreq(int core, int i);
 /**
  * @brief get all the frequences available on the system
  * @return the frequences available on the system as some other information (frequences max, min and the number of available frequences*/
-freqData *getAllAvailableFreq();
+FreqData *getAllAvailableFreq();
 
 /**
  * @brief return the frequences value of the specified core
