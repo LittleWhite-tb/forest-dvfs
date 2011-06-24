@@ -37,12 +37,12 @@ typedef void * DMContext ;//I need a context construct in the profiler... and th
 /**
  * @brief init the decision maker
  **/
-DMContext decisionInit (void);
+void * decisionInit (void);
 
 /**
  * @brief free all that has to be free
  */
-void decisionDestruct(DMContext);
+void decisionDestruct(void *);
 
 /**
  * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do

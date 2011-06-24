@@ -25,7 +25,7 @@ main (void)
 {
     printf ("REST Start\n");
 
-    STPContext * handle;
+    STPContext handle;
 
     handle=profilerInit();
     sleep (1);

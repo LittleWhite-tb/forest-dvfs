@@ -35,13 +35,14 @@ static __inline__ unsigned long long getticks(void)
 
 /**
  * @brief core runtime routine
+ * @parameter pointer to my parents data
  **/
 
 void * profilerThread(void * ContextPtr)
 {
 	volatile int killSignal=0;
 	STPContext * parentAddr= (STPContext *) ContextPtr;
-	DMContext myDM;
+	void * myDM;
 	SProfReport myReport;
 	pthread_t parentTid=parentAddr->parent;
 	int algorithm=0;

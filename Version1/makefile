@@ -4,9 +4,9 @@ MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))
 PROFILER_OBJ := $(patsubst Profiler/Src/%.c,obj/%.o,$(wildcard Profiler/Src/*.c))
 DECISION_OBJ := $(patsubst Decision/Src/%.c,obj/%.o,$(wildcard Decision/Src/*.c))
 FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Src/*.c))
-LIBS = -lpthread 
+LIBS = -lpthread -lpapi
 
-OPT_INCLUDE = -IProfiler/Include -IDecision/Include -IFreqChange/Include
+OPT_INCLUDE = -IProfiler/Include -IDecision/Include -IFreqChange/Include -I/usr/local/include
 OPT = -O3 -Wall -Wextra -g $(OPT_INCLUDE) 
 
 FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ)
