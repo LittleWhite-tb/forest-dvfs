@@ -9,7 +9,7 @@ TIMER_LIB = ../timer/timer.so
 POWER_LIB = ../power/timer.so
 
 
-all: $(EXE) $(TIMER_LIB) $(POWER_LIB)
+all: $(TIMER_LIB) $(POWER_LIB) $(EXE)
 
 $(EXE):	$(FULL_OBJ)
 	$(CC) -o $(EXE) Microbench1.c $(OPT) $(LIBS)
