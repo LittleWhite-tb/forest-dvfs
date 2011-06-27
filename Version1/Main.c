@@ -92,7 +92,7 @@ main (void)
 
 		for(j=0;j<memBoundIter;j++)
 		{
-			memcpy(&BigVec[0],&BigVec[memBoundFootprint/2],memBoundFootprint/2*sizeof(*BigVec));
+			//memcpy(&BigVec[0],&BigVec[memBoundFootprint/2],memBoundFootprint/2*sizeof(*BigVec));
 		}
 		
 	}
