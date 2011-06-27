@@ -20,6 +20,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <ThreadedProfiler.h>
 
+
+#define MEM_BOUND_ITER (mem_iters)
+#define MEM_BOUND_FOOTPRINT (4*1024*1024)
+
+double BigVec[MEM_BOUND_FOOTPRINT];
+long mem_iters=(11192);
+
 int
 main (void)
 {
@@ -27,11 +34,19 @@ main (void)
 
     STPContext * handle;
 
-    handle=profilerInit();
+    SFuncsToUse profFuncs={decisionInit,decisionDestruct, decisionGiveReport};
 
-    
-    printf("Main thread is going to sleep\n");	
-    sleep (5);
+    handle=profilerInit(profFuncs);
+
+   int j;
+   int index;
+   int k;
+   double temp[8];
+   for(j=0;j<MEM_BOUND_ITER;j++)
+   {
+	memcpy(&BigVec[0],&BigVec[MEM_BOUND_FOOTPRINT/2],MEM_BOUND_FOOTPRINT/2*sizeof(*BigVec));
+				
+    }
     profilerDestroy(handle);
 
     

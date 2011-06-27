@@ -49,17 +49,17 @@ static __inline__ unsigned long long getticks ( void )
 void * profilerThread (void * ContextPtr)
 {
 	volatile int killSignal=0;//kill signal used to have destructor function from other thread kill this thread
-	STPContext * parentAddr= (STPContext *) ContextPtr;//handle to data needed from other thread
+	STPContext * myHandle= (STPContext *) ContextPtr;//handle to data needed from other thread
 	void * myDM;//handle to Decision Maker context
 	SProfReport myReport;
-	PAPI_thread_id_t parentTid=parentAddr->parent;
+	PAPI_thread_id_t parentTid=myHandle->parent;
 	int EventSet = PAPI_NULL;
 
 
 
 	int algorithm=0;
 	int myWindow=FIRSTSLEEP;
-	int mycore=parentAddr->core;
+	int mycore=myHandle->core;
 	float lastBoundedValue;
 	float privateBounded;
 	long_long values[2];
@@ -86,7 +86,8 @@ void * profilerThread (void * ContextPtr)
 
 	//first we initialize our decision maker
 	
-	myDM=decisionInit ();
+	void * (* myInit)(void)=myHandle->myFuncs.initFunc;
+	myDM=myInit();
 
 	/*@todo: add all the papi stuff*/
 	
@@ -107,7 +108,7 @@ void * profilerThread (void * ContextPtr)
 
 
 	//we send back out kill signal address to the other thread to let it continue running
-	parentAddr->killSig=&killSignal;
+	myHandle->killSig=&killSignal;
 
 	
 	PAPI_start(EventSet);
@@ -122,7 +123,7 @@ void * profilerThread (void * ContextPtr)
 	while (killSignal==0)
 	{
 		
-
+		int (* myReporter) (void *, SProfReport *)=myHandle->myFuncs.reportFunc;
 		PAPI_accum(EventSet,values);
 
 		#ifdef PRINT_DEBUG
@@ -140,6 +141,8 @@ void * profilerThread (void * ContextPtr)
 			//if it didn't hit the L2 at all it must be super compute bound
 			privateBounded=0.0;
 		}
+
+		//reset my counters
 		values[0]=0;
 		values[1]=0;
 
@@ -156,7 +159,7 @@ void * profilerThread (void * ContextPtr)
 		#endif
 
 
-		if (decisionGiveReport (myDM, &myReport))
+		if (myReporter (myDM, &myReport))
 		{
 		  	myWindow=myReport.data.tp.nextTicks;
 		   	algorithm=myReport.data.tp.algorithm;
@@ -179,7 +182,8 @@ void * profilerThread (void * ContextPtr)
 		startTime=getticks ();
 		usleep (myWindow);
 	}
-	decisionDestruct (myDM);
+	void (* myDestroyer)(void *)=myHandle->myFuncs.destroyFunc;
+	myDestroyer (myDM);
 }
 	
 
@@ -188,7 +192,7 @@ void * profilerThread (void * ContextPtr)
 	
 
 
-STPContext * profilerInit (void)
+STPContext * profilerInit (SFuncsToUse funcPtrs)
 {
 
 	
@@ -217,6 +221,7 @@ STPContext * profilerInit (void)
 	handle->killSig=NULL;
 	handle->core=current_cpu;
 	handle->parent=PAPI_thread_id();
+	handle->myFuncs=funcPtrs;
 
 	assert(pthread_create (&(handle->join_id),NULL,profilerThread,handle)==0);
 
