@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include <rdtsc.h>
 
-//#define PRINT_DEBUG
+#define PRINT_DEBUG
 
 static __inline__ unsigned long long getticks ( void )
 {
@@ -62,6 +62,8 @@ void * profilerThread (void * ContextPtr)
 	int mycore=parentAddr->core;
 	float lastBoundedValue;
 	float privateBounded;
+	long_long values[2];
+
 	unsigned long long startTime, endTime;
 	
 
@@ -90,14 +92,14 @@ void * profilerThread (void * ContextPtr)
 	
 		
 	/* Check to see if the preset, PAPI_L2_TCH and PAPI_L2_TCA exists */
-	if ((PAPI_query_event (PAPI_L2_TCH) != PAPI_OK) && (PAPI_query_event (PAPI_L2_TCA) != PAPI_OK)) 
+	if ((PAPI_query_event (PAPI_L2_TCM) != PAPI_OK) && (PAPI_query_event (PAPI_L2_TCA) != PAPI_OK)) 
 	{
 		fprintf (stderr,"PAPI counters aren't sufficient to measure boundedness!\n");
 		exit(1);
 	}
 
 	PAPI_create_eventset ( &EventSet );
-	PAPI_add_event (EventSet,PAPI_L2_TCH);
+	PAPI_add_event (EventSet,PAPI_L2_TCM);
 	PAPI_add_event (EventSet,PAPI_L2_TCA);
 
 	//This ensures that papi counters only reads the parent thread counters
@@ -106,7 +108,9 @@ void * profilerThread (void * ContextPtr)
 
 	//we send back out kill signal address to the other thread to let it continue running
 	parentAddr->killSig=&killSignal;
+
 	
+	PAPI_start(EventSet);
 	startTime=getticks ();
 	
 
@@ -117,9 +121,27 @@ void * profilerThread (void * ContextPtr)
 	usleep (myWindow);
 	while (killSignal==0)
 	{
-		/*@todo do some papi stuff for now it's statically set at .4*/
+		
 
-		privateBounded=.4;
+		PAPI_accum(EventSet,values);
+
+		#ifdef PRINT_DEBUG
+		
+		printf ("L2 Cache misses is %lld and L2 Cache Accesses is %lld\n",values[0],values[1]);
+		
+		#endif		
+
+		if(values[1]!=0)
+		{
+			privateBounded=(float)values[0]/(float)values[1];
+		}
+		else
+		{
+			//if it didn't hit the L2 at all it must be super compute bound
+			privateBounded=0.0;
+		}
+		values[0]=0;
+		values[1]=0;
 
 		//fill in the report
 		myReport.data.tp.bounded=privateBounded;
