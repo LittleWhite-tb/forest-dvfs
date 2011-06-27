@@ -24,10 +24,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string.h>
 #include <math.h>
 
+#define MEM_BOUND_ITER (mem_iters)
+#define MEM_BOUND_FOOTPRINT (4*1024*1024)
+
+double BigVec[MEM_BOUND_FOOTPRINT];
+long mem_iters=(11192);
+
 int
 main (void)
 {
-	STPContext handle;
+	STPContext *handle;
+	SFuncsToUse profFuncs={decisionInit,decisionDestruct, decisionGiveReport};
 
     double DummyVec1[12]={1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
     double DummyVec2[12]={1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
@@ -36,10 +43,6 @@ main (void)
     int expected_loop_interval=1000;
     long updown_mem_product=5000;
     long cpu_2_mem_ratio=3793110;
-
-
-	unsigned long long memtime=0;
-	unsigned long long cputime=0;
 	
 	long long cpuBoundIter = 818822656;
 	long long memBoundIter = 9217728;
@@ -49,6 +52,8 @@ main (void)
 	
 	double BigVec[4*1024*1024];
 	expected_loop_interval = 1000;
+	
+	
 	//calculate loop bounds
 	numUpDown = (60*1000)/(expected_loop_interval*2);
 	//once we have number of outer loops we use the product to find the memory loop bounds
@@ -57,7 +62,7 @@ main (void)
 
 	//now start!
     printf ("REST Start\n");
-    handle=profilerInit();
+    handle=profilerInit(profFuncs);
 
 	int i;
 	for(i=0; i < numUpDown; i++)
@@ -92,8 +97,10 @@ main (void)
 		
 	}
     
+
     profilerDestroy(handle);
 
  
     return EXIT_SUCCESS;
 }
+
