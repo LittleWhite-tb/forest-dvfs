@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define INSTRUMENTED_PROFILER 2
 #define THREADED_PROFILER 4
 
-typedef int ProfDesc ; /**< @brief this is a profile descriptor... currently an int but descriptor may become more complicated later
+typedef int ProfDesc ; /**< @brief this is a profile descriptor... currently an int but descriptor may become more complicated later*/
 
 
 

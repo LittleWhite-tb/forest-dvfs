@@ -31,14 +31,6 @@ typedef struct sProfReport
 	ProfilerInfo data;
 } SProfReport;
 
-typedef struct core
-{
-	int core_nb;
-	int* threads;
-	int nb_thread;
-	float core_median_value;
-}Core;
-
 /**
  * @brief init the decision maker
  **/
