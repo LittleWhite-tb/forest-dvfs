@@ -7,7 +7,7 @@ FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Sr
 LIBS = -lpthread -lpapi
 
 OPT_INCLUDE = -IProfiler/Include -IDecision/Include -IFreqChange/Include -I/usr/local/include
-OPT = -O3 -Wall -Wextra -g $(OPT_INCLUDE) 
+OPT = -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) 
 
 FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ)
 
