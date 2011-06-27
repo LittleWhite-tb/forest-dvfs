@@ -18,10 +18,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ThreadedProfiler.h>
 
 int
 main (void)
 {
     printf ("REST Start\n");
+
+    STPContext handle;
+
+    handle=profilerInit();
+
+    
+    printf("Main thread is going to sleep\n");	
+    sleep (5);
+    profilerDestroy(handle);
+
+    
     return EXIT_SUCCESS;
 }

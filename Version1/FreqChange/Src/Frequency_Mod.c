@@ -85,7 +85,7 @@ void changeFreq(int core, int i)
 }
 
 //Will use this to get the frequencies available from the kernel
-freqData *getAllAvailableFreq()
+FreqData *getAllAvailableFreq()
 {
 	int i;
 	
@@ -117,7 +117,7 @@ freqData *getAllAvailableFreq()
 			pch = strtok (NULL, " ");
 		}
 	}
-	freqData *tmp = malloc(sizeof(freqData));
+	FreqData *tmp = malloc(sizeof(FreqData));
 	tmp->availablefreqs = (int*) malloc(num_frequency * sizeof(int));
 	for(i=0;i<num_frequency;i++)
 	{

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2011 Exascale Research Center
+Copyright (C) 2011 Exascale Compûting Research
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -16,16 +16,38 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef _DEFINE_H_
-#define _DEFINE_H_
+#include <assert.h>
 
-/**@brief data structure containing all the needed information for the decision system*/
-typedef struct _freqData
+#include "DecisionMaker.h"
+
+/**@todo make it less dirty*/
+
+void* decisionInit (void)
 {
-	int *availablefreqs; /**< @brief the available frequences on the system*/
-	int freqMax;         /**< @brief the highest available frequence*/
-	int freqMin;         /**< @brief the lowest available frequence*/
-	int numberOfFreq;    /**< @brief the number of available frequences*/
-}FreqData;
+	FreqData *freqAvaible = getAllAvailableFreq();
+	
+	return freqAvaible;
+}
 
-#endif
+int decisionGiveReport(void *handle, SProfReport *report)
+{
+	FreqData *freqAvaible = handle;
+	
+	int *avaibleFreq =  freqAvaible->availablefreqs;
+	
+	printf("%d\n", report->proc_id);
+	
+	if(report->prof_id == THREADED_PROFILER)
+	{
+		(void)avaibleFreq[(int)(report->data.tp.bounded * freqAvaible->numberOfFreq)];
+	}
+	
+	
+	return 0;
+}
+
+void decisionDestruct(void* handle)
+{
+	if(handle != NULL)
+		free(handle);
+}
