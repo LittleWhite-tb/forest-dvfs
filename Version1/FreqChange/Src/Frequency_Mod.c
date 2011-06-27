@@ -31,25 +31,57 @@ void changeFreq(int core, int i)
 	char userSpace[1024]="";
 	char num[128];
 	getAllAvailableFreq();
-	
-	strcat(userSpace,"echo userspace > /sys/devices/system/cpu/cpu");
-	sprintf(num,"%d",core);
-	strcat(userSpace,num);
-	strcat(userSpace,"/cpufreq/scaling_governor");
-	
-	system(userSpace);
-	
-	sprintf(num,"%d",globalFrequency[i]);
-	strcat(Freq,"echo ");
-	strcat(Freq, num);
-	strcat(Freq," > /sys/devices/system/cpu/cpu");
-	sprintf(num,"%d",core);
-	strcat(Freq,num);
-	strcat(Freq,"/cpufreq/scaling_setspeed");
-	
-	system(Freq);
-	
-	printf("Changing my freq on core (%d) to (%d)\n",core,globalFrequency[i]);
+	if(core == -1)
+	{
+		int k,j;
+		for(j=0;j<12;j++)
+		{
+			for( k=0;k<1024;k++)
+			{
+				Freq[k]='\0';
+				userSpace[k]='\0';
+			}
+			strcat(userSpace,"echo userspace > /sys/devices/system/cpu/cpu");
+			sprintf(num,"%d",j);
+			strcat(userSpace,num);
+			strcat(userSpace,"/cpufreq/scaling_governor");
+			
+			system(userSpace);
+			
+			sprintf(num,"%d",globalFrequency[i]);
+			strcat(Freq,"echo ");
+			strcat(Freq, num);
+			strcat(Freq," > /sys/devices/system/cpu/cpu");
+			sprintf(num,"%d",j);
+			strcat(Freq,num);
+			strcat(Freq,"/cpufreq/scaling_setspeed");
+			
+			system(Freq);
+			
+			printf("Changing my freq on core (%d) to (%d)\n",j,globalFrequency[i]);
+		}
+	}
+	else
+	{	
+		strcat(userSpace,"echo userspace > /sys/devices/system/cpu/cpu");
+		sprintf(num,"%d",core);
+		strcat(userSpace,num);
+		strcat(userSpace,"/cpufreq/scaling_governor");
+		
+		system(userSpace);
+		
+		sprintf(num,"%d",globalFrequency[i]);
+		strcat(Freq,"echo ");
+		strcat(Freq, num);
+		strcat(Freq," > /sys/devices/system/cpu/cpu");
+		sprintf(num,"%d",core);
+		strcat(Freq,num);
+		strcat(Freq,"/cpufreq/scaling_setspeed");
+		
+		system(Freq);
+		
+		printf("Changing my freq on core (%d) to (%d)\n",core,globalFrequency[i]);
+	}
 }
 
 //Will use this to get the frequencies available from the kernel
@@ -131,3 +163,8 @@ int getTheFreqById(int procId)
 	return curFreq;
 }
 
+int main()
+{
+	changeFreq(-1, 3);
+	return 0;
+}

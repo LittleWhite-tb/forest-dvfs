@@ -20,23 +20,34 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "DecisionMaker.h"
 
+/**@todo make it less dirty*/
+
 void* decisionInit (void)
 {
 	FreqData *freqAvaible = getAllAvailableFreq();
 	
-	
-	SProfReport sProfReport;
-	
-	return NULL;
+	return freqAvaible;
 }
 
-int decisionGiveReport(void *handle, SProfReport * report)
+int decisionGiveReport(void *handle, SProfReport *report)
 {
-	//handle=alloc(blah blah blah)
+	FreqData *freqAvaible = handle;
+	
+	int *avaibleFreq =  freqAvaible->availablefreqs;
+	
+	printf("%d\n", report->proc_id);
+	
+	if(report->prof_id == THREADED_PROFILER)
+	{
+		(void)avaibleFreq[(int)(report->data.tp.bounded * freqAvaible->numberOfFreq)];
+	}
+	
+	
 	return 0;
 }
 
 void decisionDestruct(void* handle)
 {
-	/**free all stuff*/
+	if(handle != NULL)
+		free(handle);
 }
