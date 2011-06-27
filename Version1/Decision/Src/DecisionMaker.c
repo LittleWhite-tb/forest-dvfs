@@ -39,9 +39,10 @@ int decisionGiveReport(void *handle, SProfReport *report)
 	
 	if(report->prof_id == THREADED_PROFILER)
 	{
-		(void)avaibleFreq[(int)(report->data.tp.bounded * freqAvaible->numberOfFreq)];
+		changeFreq(-1,avaibleFreq[(int)(report->data.tp.bounded * freqAvaible->numberOfFreq)]);
 	}
 	
+	system("cat /proc/cpuinfo | grep -i 'processor' | wc -l");
 	
 	return 0;
 }

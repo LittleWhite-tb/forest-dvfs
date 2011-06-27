@@ -162,9 +162,3 @@ int getTheFreqById(int procId)
 	pclose (fp);
 	return curFreq;
 }
-
-int main()
-{
-	changeFreq(-1, 3);
-	return 0;
-}
