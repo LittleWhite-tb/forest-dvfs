@@ -1,5 +1,4 @@
 #ifndef MICROBENCH1_H
-
 #define MICROBENCH1_H
 
 #define _GNU_SOURCE
@@ -7,16 +6,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include <dlfcn.h>
+#include <assert.h>
+#include "rdtsc.h"
 #include "../power/timer.h"
 
-#define CPU_BOUND_ITER (818822656)
+#define CPU_BOUND_ITER (cpu_iters)
 
-#define MEM_BOUND_ITER 9217728
+#define MEM_BOUND_ITER (mem_iters)
 
-#define NUM_UP_DOWN 25
+#define MEM_BOUND_FOOTPRINT (4*1024*1024)
+
+#define NUM_UP_DOWN (outer_loop_bound)
+
+#define round(x) ((x)>=0?(long)((x)+0.5):(long)((x)-0.5))
+
 
 #endif
