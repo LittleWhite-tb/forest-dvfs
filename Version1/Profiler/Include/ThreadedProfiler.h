@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define H_THREADEDPROFILER
 
 #include <pthread.h>
+#include <papi.h>
 
 
 #define LOWERTHRESHOLD (.9)
@@ -33,22 +34,23 @@ typedef struct sTPContext
 {
 	int  * volatile killSig;  /**< @brief address of kill signal that we spin on*/
 	int core;	/**< @brief physical core number to change its frequency */
-	pthread_t parent; /**< @brief tid used by papi to access the counters*/
+	PAPI_thread_id_t parent; /**< @brief tid used by papi to access the counters*/
+	pthread_t join_id;   /**<  @brief this tid is used for the join at the end of the program since stack allocated variables can be mangled*/
 } STPContext;   
 
 /**
  * @brief initializes the profiler through a pthread_create
-* @return returns the profiler thread's context
+* @return returns a pointer to the profiler thread's context
  **/
-STPContext profilerInit (void);
+STPContext * profilerInit (void);
 
 
 /**
 
  * @brief signals the profiler to destroy it's self
- * @param STPContext takes the context of the profiling thread to send the kill signal
+ * @param context takes the context of the profiling thread to send the kill signal
  **/
-void profilerDestroy (STPContext);
+void profilerDestroy (STPContext *context);
 
 
 
