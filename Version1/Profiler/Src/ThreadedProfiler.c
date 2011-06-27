@@ -16,62 +16,106 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+
+
 #include <Profilers.h>
 #include <ThreadedProfiler.h>
 #include <DecisionMaker.h>
 
+#define _GNU_SOURCE
+#include <sched.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <papi.h>
+#include <assert.h>
 #include <rdtsc.h>
 
-static __inline__ unsigned long long getticks(void)
+//#define PRINT_DEBUG
+
+static __inline__ unsigned long long getticks ( void )
 {
    unsigned long long ret;
-   rdtscll(ret);
+   rdtscll (ret);
    return ret;
 }
 
 
 /**
  * @brief core runtime routine
- * @parameter pointer to my parents data
+ * @param ContextPtr pointer to my parents data
  **/
 
-void * profilerThread(void * ContextPtr)
+void * profilerThread (void * ContextPtr)
 {
-	volatile int killSignal=0;
-	STPContext * parentAddr= (STPContext *) ContextPtr;
-	void * myDM;
+	volatile int killSignal=0;//kill signal used to have destructor function from other thread kill this thread
+	STPContext * parentAddr= (STPContext *) ContextPtr;//handle to data needed from other thread
+	void * myDM;//handle to Decision Maker context
 	SProfReport myReport;
-	pthread_t parentTid=parentAddr->parent;
+	PAPI_thread_id_t parentTid=parentAddr->parent;
+	int EventSet = PAPI_NULL;
+
+
+
 	int algorithm=0;
 	int myWindow=FIRSTSLEEP;
+	int mycore=parentAddr->core;
 	float lastBoundedValue;
 	float privateBounded;
-
 	unsigned long long startTime, endTime;
 	
 
+	#ifdef PRINT_DEBUG
+	int myKHZ;
+	FILE * fp;
+	char freq_string[1024];
+	
+	fp = popen ("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies | cut -f2 -d\" \"","r");
+	fgets (freq_string, sizeof (freq_string), fp);
+	myKHZ=atoi (freq_string);
+	printf("My frequency is %d KHZ\n",myKHZ);
+
+	#endif
+
+
+
 	myReport.prof_id=THREADED_PROFILER;
-	myReport.proc_id=parentTid;
+	myReport.proc_id=mycore;
 
 	//first we initialize our decision maker
 	
-	myDM=decisionInit();
-
-	//we initialize papi
-	PAPI_library_init(PAPI_VER_CURRENT);
-
-	//we send back out context to the other thread to let it continue running
-	parentAddr->killSig=&killSignal;
-	
-	startTime=getticks();
+	myDM=decisionInit ();
 
 	/*@todo: add all the papi stuff*/
 	
-	usleep(myWindow);
-	while(killSignal==0)
+		
+	/* Check to see if the preset, PAPI_L2_TCH and PAPI_L2_TCA exists */
+	if ((PAPI_query_event (PAPI_L2_TCH) != PAPI_OK) && (PAPI_query_event (PAPI_L2_TCA) != PAPI_OK)) 
+	{
+		fprintf (stderr,"PAPI counters aren't sufficient to measure boundedness!\n");
+		exit(1);
+	}
+
+	PAPI_create_eventset ( &EventSet );
+	PAPI_add_event (EventSet,PAPI_L2_TCH);
+	PAPI_add_event (EventSet,PAPI_L2_TCA);
+
+	//This ensures that papi counters only reads the parent thread counters
+	PAPI_attach (EventSet, parentTid);
+
+
+	//we send back out kill signal address to the other thread to let it continue running
+	parentAddr->killSig=&killSignal;
+	
+	startTime=getticks ();
+	
+
+	
+
+
+	
+	usleep (myWindow);
+	while (killSignal==0)
 	{
 		/*@todo do some papi stuff for now it's statically set at .4*/
 
@@ -81,10 +125,16 @@ void * profilerThread(void * ContextPtr)
 		myReport.data.tp.bounded=privateBounded;
 		endTime=getticks();	
 		myReport.data.tp.ticks=endTime-startTime;
+
+
 		//give the report
-		printf("Debug: giving a report with bounded = %f, actual window=%d, expected the window to be %d\n",myReport.data.tp.bounded,
-				myReport.data.tp.ticks,myWindow);
-		if(decisionGiveReport (myDM, &myReport))
+		#ifdef PRINT_DEBUG
+		printf ("Debug: giving a report with bounded = %f, actual window=%f, expected the window to be %d\n",myReport.data.tp.bounded,
+				(float)myReport.data.tp.ticks * 1000 / (float) myKHZ,myWindow);//this math puts it in microsecond since we are usleeping now
+		#endif
+
+
+		if (decisionGiveReport (myDM, &myReport))
 		{
 		  	myWindow=myReport.data.tp.nextTicks;
 		   	algorithm=myReport.data.tp.algorithm;
@@ -93,22 +143,21 @@ void * profilerThread(void * ContextPtr)
 		else
 		{
 		    //self regulate
-		    if((lastBoundedValue/privateBounded)<LOWERTHRESHOLD || (lastBoundedValue/privateBounded)>UPPERTHRESHOLD)
+		    if( (lastBoundedValue/privateBounded)<LOWERTHRESHOLD || (lastBoundedValue/privateBounded)>UPPERTHRESHOLD)
 		    {
 			myWindow=FIRSTSLEEP;
 		    }
 		    else
 		    {
 			myWindow*=2;
-			myWindow=(myWindow>LONGESTSLEEP)?LONGESTSLEEP:myWindow;
+			myWindow= (myWindow>LONGESTSLEEP)?LONGESTSLEEP:myWindow;
 		    }
 		}
 		lastBoundedValue=privateBounded;
-		startTime=getticks();
-		usleep(myWindow);
+		startTime=getticks ();
+		usleep (myWindow);
 	}
-	decisionDestruct(myDM);
-	killSignal=0;
+	decisionDestruct (myDM);
 }
 	
 
@@ -117,24 +166,53 @@ void * profilerThread(void * ContextPtr)
 	
 
 
-STPContext profilerInit (void)
+STPContext * profilerInit (void)
 {
 
-	pthread_t dummy;
+	
 	STPContext childContext;
-	childContext.killSig=NULL;
-	childContext.parent=pthread_self();
-	pthread_create(&dummy,NULL,profilerThread,&childContext);
-	while (childContext.killSig==NULL){}//wait for my child to init
-	return childContext;
+	int current_cpu, retval;
+	STPContext * handle;
+
+
+	//make sure affinity is set high for the cpu we should run on
+
+	current_cpu=sched_getcpu ();
+
+	//we initialize papi
+	retval=PAPI_library_init (PAPI_VER_CURRENT);
+	if (retval != PAPI_VER_CURRENT) 
+	{
+		fprintf (stderr,"PAPI library init error!\n");
+		exit (1);
+	}
+	// register the thread specificier
+	PAPI_thread_init (pthread_self);
+
+	handle= malloc(sizeof( * handle));
+	assert ( handle != NULL );
+
+	handle->killSig=NULL;
+	handle->core=current_cpu;
+	handle->parent=PAPI_thread_id();
+
+	assert(pthread_create (&(handle->join_id),NULL,profilerThread,handle)==0);
+
+	while (handle->killSig==NULL){}//wait for my child to init
+	return handle;
 }
 	
 
-void profilerDestroy (STPContext prof)
+void profilerDestroy (STPContext * prof)
 {
-	*(prof.killSig)=1;
+	*(prof->killSig)=1;
+	void* dummy;
 	printf("Now waiting on my prof thread\n");
-	while(*(prof.killSig)!=0){}//wait for profiler to die
+	pthread_join(prof->join_id,&dummy);//wait for profiler to die
+	
+	//clean up my context
+	free( prof);
+
 	printf("Waiting is over! Goodbye!\n");
 }
 	
