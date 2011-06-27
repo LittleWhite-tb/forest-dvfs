@@ -98,7 +98,7 @@ benchmark (void)
 }
 
 int
-main (void)
+main (int argc, char **argv)
 {
 	STPContext *handle;
 	SFuncsToUse profFuncs={decisionInit,decisionDestruct, decisionGiveReport};
@@ -106,8 +106,12 @@ main (void)
     //Set logger
     Log_setOutput (stderr);
 	
-	//now start!
+    if (argc > 1)
+        Log_setVerbosity (50000);
+
+    //now start!
     Log_output (0, "REST Start\n");
+
     handle = profilerInit (profFuncs);
 
     benchmark ();
