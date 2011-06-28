@@ -21,7 +21,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <pthread.h>
 #include <papi.h>
-#include <DecisionMaker.h>
 
 
 #define LOWERTHRESHOLD (.9)
@@ -40,7 +39,7 @@ typedef struct sFuncsToUse
 
 typedef struct sTPContext
 {
-	int  * volatile killSig;  /**< @brief address of kill signal that we spin on*/
+	int  volatile * killSig;  /**< @brief address of kill signal that we spin on*/
 	int core;	/**< @brief physical core number to change its frequency */
 	PAPI_thread_id_t parent; /**< @brief tid used by papi to access the counters*/
 	pthread_t join_id;   /**<  @brief this tid is used for the join at the end of the program since stack allocated variables can be mangled*/
