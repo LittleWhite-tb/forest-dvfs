@@ -25,29 +25,36 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 void* decisionInit (void)
 {
 	FreqData *freqAvaible = getAllAvailableFreq();
+	SavedData *savedData = malloc(sizeof(SavedData));
 	
-	return freqAvaible;
+	savedData->freqAvaible.nbFreq = freqAvaible->numberOfFreq;
+	savedData->freqAvaible.freq = freqAvaible->availablefreqs;
+	
+	return savedData;
 }
 
-int decisionGiveReport(void *handle, SProfReport *report)
+int decisionGiveReport (void *handle, SProfReport *report)
 {
-	FreqData *freqAvaible = handle;
+	SavedData *savedData = handle;
 	
-	int *avaibleFreq =  freqAvaible->availablefreqs;
-	
-	printf("%d\n", report->proc_id);
-	
-	if(report->prof_id == THREADED_PROFILER)
+	if (report->prof_id == THREADED_PROFILER)
 	{
-		(void)avaibleFreq[(int)(report->data.tp.bounded * freqAvaible->numberOfFreq)];
+		changeFreq ( -1, (int) (report->data.tp.bounded * savedData->freqAvaible.nbFreq));
 	}
-	
 	
 	return 0;
 }
 
 void decisionDestruct(void* handle)
 {
-	if(handle != NULL)
+	SavedData *savedData = handle;
+	
+	if (handle != NULL)
+	{
+		free(savedData->freqAvaible.freq);
+		savedData->freqAvaible.freq = NULL;
 		free(handle);
+	}
+	
+	handle = NULL;
 }

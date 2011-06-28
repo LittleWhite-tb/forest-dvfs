@@ -23,13 +23,27 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <Frequency_Mod.h>
 #include <define.h>
 
-/**TODO doc*/
+/**@struct profiler report that it will fill*/
 typedef struct sProfReport
 {
-	ProfDesc prof_id;
-	int proc_id;
-	ProfilerInfo data;
+	ProfDesc prof_id; /**< @brief the id of the profiler*/
+	int proc_id; /**< @brief the id of the processor*/
+	ProfilerInfo data; /**< @brief struct of data relative to the profiler*/
 } SProfReport;
+
+/**@struct the avaibles frequencies*/
+typedef struct freqAvaible
+{
+	int *freq; /**< @brief all the frequencies avaibles*/
+	int nbFreq; /**< @brief number of frequencies avaibles*/
+} FreqAvaible;
+
+/**@struct data to be saved*/
+typedef struct savedData
+{
+	int currentFreq; /**< @brief the currentFrequency*/
+	FreqAvaible freqAvaible; /**@brief structure that contain frequencies and how many*/
+} SavedData;
 
 /**
  * @brief init the decision maker
@@ -39,7 +53,7 @@ void * decisionInit (void);
 /**
  * @brief free all that has to be free
  */
-void decisionDestruct(void *);
+void decisionDestruct (void *);
 
 /**
  * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
