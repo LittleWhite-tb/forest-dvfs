@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Log.h"
 #include "ThreadedProfiler.h"
+#include "DecisionMaker.h"
 
 #define MEM_BOUND_FOOTPRINT (4*1024*1024)
 

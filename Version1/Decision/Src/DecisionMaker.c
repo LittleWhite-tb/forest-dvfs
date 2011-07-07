@@ -36,10 +36,16 @@ void* decisionInit (void)
 int decisionGiveReport (void *handle, SProfReport *report)
 {
 	SavedData *savedData = handle;
+	int newFrequency = (int) (report->data.tp.bounded * savedData->freqAvaible.nbFreq);
 	
 	if (report->prof_id == THREADED_PROFILER)
 	{
-		changeFreq ( -1, (int) (report->data.tp.bounded * savedData->freqAvaible.nbFreq));
+		if(newFrequency != savedData->currentFreq)
+		{
+			Log_output(0, "changing frequency %d\n", newFrequency);
+			changeFreq ( -1, newFrequency);
+			savedData->currentFreq = newFrequency;
+		}
 	}
 	
 	return 0;
