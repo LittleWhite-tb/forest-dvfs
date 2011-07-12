@@ -20,8 +20,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "DecisionMaker.h"
 
-/**@todo make it less dirty*/
-
 void* decisionInit (void)
 {
 	SFreqData *freqData = init_cpufreq ();

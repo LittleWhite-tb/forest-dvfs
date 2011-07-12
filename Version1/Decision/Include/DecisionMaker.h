@@ -33,20 +33,6 @@ typedef struct sProfReport
 	ProfilerInfo data; /**< @brief struct of data relative to the profiler*/
 } SProfReport;
 
-/**@struct the avaibles frequencies*/
-typedef struct freqAvaible
-{
-	int *freq; /**< @brief all the frequencies avaibles*/
-	int nbFreq; /**< @brief number of frequencies avaibles*/
-} FreqAvaible;
-
-/**@struct data to be saved*/
-typedef struct savedData
-{
-	int currentFreq; /**< @brief the currentFrequency*/
-	FreqAvaible freqAvaible; /**@brief structure that contain frequencies and how many*/
-} SavedData;
-
 /**
  * @brief init the decision maker
  **/
