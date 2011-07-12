@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2011 Exascale Research Center
+Copyright (C) 2011 Exascale Computing Research
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -16,16 +16,20 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef _DEFINE_H_
-#define _DEFINE_H_
+#ifndef DECISIONPROCESS_H
+#define DECISIONPROCESS_H
 
-/**@brief data structure containing all the needed information for the decision system*/
-typedef struct _freqData
-{
-	int *availablefreqs; /**< @brief the available frequences on the system*/
-	int freqMax;         /**< @brief the highest available frequence*/
-	int freqMin;         /**< @brief the lowest available frequence*/
-	int numberOfFreq;    /**< @brief the number of available frequences*/
-}FreqData;
+typedef int Core;
 
-#endif
+/**
+ * @brief decide witch algorithm we have to process
+ **/ 
+void decisionAlgorithm ();
+
+/**
+ * @brief compute the median in one core
+ * @param the core on which we want the median
+ */
+float compute_median_core(Core core);
+
+#endif 
