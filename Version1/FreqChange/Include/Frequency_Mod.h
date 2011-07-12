@@ -16,36 +16,57 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef FREQUENCY_MOD_H
-#define FREQUENCY_MOD_H
+#ifndef H_FREQUENCY_MOD
+#define H_FREQUENCY_MOD
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "define.h"
 
-#define NUM_STATIC_FREQ 20
+#define NUM_STATIC_FREQ 30
+
+
+/**@brief data structure containing all the needed information for the decision system*/
+typedef struct sfreqData
+{
+	int freqMax;         /**< @brief the highest available frequence*/
+	int freqMin;         /**< @brief the lowest available frequence*/
+	int numFreq;    /**< @brief the number of available frequences*/
+	int numCores;	    /**< @brief the number of available cores*/
+	FILE **setFile;	/**< @brief pointer to an array of File descriptors of size numCores used to change frequency */
+	int *currentFreqs;/**< @brief pointer to an array of size numCores of ints that holds the currentFrequency for */
+	int *availableFreqs; /**< @brief the available frequences on the system of size numFreq*/
+		
+}SFreqData;
+
+
+
+/**
+ * @brief allocates contexts, queries the system for number of frequncies and number of cores, opens up descriptors for 
+ * @return handle to all information the frequency changer will need to change frequencies*/
+SFreqData * init_cpufreq ( void );
+
 
 /**
  * @brief change the frequence of a specified core
+ * @param context with data needed to make change
  * @param core the core id we wish to use
  * @param i is the frequence index we wish to set*/
-void changeFreq(int core, int i);
+void changeFreq (SFreqData * context, int core, int i);
 
 /**
- * @brief get all the frequences available on the system
- * @return the frequences available on the system as some other information (frequences max, min and the number of available frequences*/
-FreqData *getAllAvailableFreq();
+ * @brief change the frequence of a specified core
+ * @return index in the frequency table which holds the frequency
+ * @param context with data needed to read freq
+ * @param core the core id we wish to use*/
+
+int readFreq (SFreqData * context, int core);
+
 
 /**
- * @brief return the frequences value of the specified core
- * @param the proc id we wish to use
- * @return the current frequence*/
-int getTheFreqById(int procId);
+ * @brief frees contexts and closes all files used by frequency changer
+ * @return handle to all information the frequency changer will need to change frequencies*/
+void destroy_cpufreq (SFreqData * context);
 
 
 
-extern int globalFrequency[ NUM_STATIC_FREQ];
-extern int num_frequency;
 
 #endif
