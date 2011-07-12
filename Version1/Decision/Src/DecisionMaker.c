@@ -17,6 +17,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 #include <assert.h>
+#include <math.h>
+#include <Profilers.h>
+#include <Frequency_Mod.h>
+#include <define.h>
+#include <Log.h>
 
 #include "DecisionMaker.h"
 
@@ -29,7 +34,7 @@ void* decisionInit (void)
 int decisionGiveReport (void *handle, SProfReport *report)
 {
 	SFreqData *freqData = handle;
-	int newFrequency = (int) (report->data.tp.bounded * freqData->numFreq);
+	int newFrequency = round((int) (report->data.tp.bounded * freqData->numFreq));
 	
 	if (report->prof_id == THREADED_PROFILER)
 	{
