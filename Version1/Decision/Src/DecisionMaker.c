@@ -24,27 +24,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 void* decisionInit (void)
 {
-	FreqData *freqAvaible = getAllAvailableFreq();
-	SavedData *savedData = malloc(sizeof(SavedData));
-	
-	savedData->freqAvaible.nbFreq = freqAvaible->numberOfFreq;
-	savedData->freqAvaible.freq = freqAvaible->availablefreqs;
-	
-	return savedData;
+	SFreqData *freqData = init_cpufreq ();
+	return freqData;
 }
 
 int decisionGiveReport (void *handle, SProfReport *report)
 {
-	SavedData *savedData = handle;
-	int newFrequency = (int) (report->data.tp.bounded * savedData->freqAvaible.nbFreq);
+	SFreqData *freqData = handle;
+	int newFrequency = (int) (report->data.tp.bounded * freqData->numFreq);
 	
 	if (report->prof_id == THREADED_PROFILER)
 	{
-		if(newFrequency != savedData->currentFreq)
+		//Too change: 0 only for now
+		if(newFrequency != readFreq(freqData, 0))
 		{
 			Log_output(0, "changing frequency %d\n", newFrequency);
-			changeFreq ( -1, newFrequency);
-			savedData->currentFreq = newFrequency;
+			changeFreq (freqData, -1, newFrequency);
 		}
 	}
 	
@@ -53,13 +48,11 @@ int decisionGiveReport (void *handle, SProfReport *report)
 
 void decisionDestruct(void* handle)
 {
-	SavedData *savedData = handle;
+	SFreqData *sFreqData = handle;
 	
 	if (handle != NULL)
 	{
-		free(savedData->freqAvaible.freq);
-		savedData->freqAvaible.freq = NULL;
-		free(handle);
+		destroy_cpufreq(sFreqData);
 	}
 	
 	handle = NULL;
