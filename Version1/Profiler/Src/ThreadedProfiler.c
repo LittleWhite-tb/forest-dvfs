@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include <rdtsc.h>
 #include <Log.h>
+#include <stdlib.h>
 
 
 #if 0
@@ -65,8 +66,8 @@ void * profilerThread (void * ContextPtr)
 	/*Papi related variables*/
 	PAPI_thread_id_t parentTid=myHandle->parent;//thread id used to pin
 	int EventSet = PAPI_NULL;
-	long_long values[4]= {0,0,0,0};
-	int codes[3]={PAPI_TOT_CYC,PAPI_L2_DCM,PAPI_L2_DCA};
+	long_long values[2]= {0,0};
+	int codes[2];
 	int ret_code;
 
 	/*Algorithm related variables*/
@@ -94,13 +95,27 @@ void * profilerThread (void * ContextPtr)
 	void * (* myInit)(void)=myHandle->myFuncs.initFunc;
 	myDM=myInit();
 
-	/* Check to see if the PAPI presets are available */
-	if ((PAPI_query_event (PAPI_L2_DCM) != PAPI_OK) || (PAPI_query_event (PAPI_L2_DCA) != PAPI_OK) || 
-		 (PAPI_query_event (PAPI_TOT_CYC) != PAPI_OK)) 
+
+
+	if (PAPI_event_name_to_code("SQ_FULL_STALL_CYCLES", &codes[0]) != PAPI_OK) 
+	{
+		Log_output(0,"PAPI even_name_to_code failed!\n");
+		exit(1);
+	}
+
+	if (PAPI_event_name_to_code("UNHALTED_CORE_CYCLES", &codes[1]) != PAPI_OK) 
+	{
+		Log_output(0,"PAPI even_name_to_code failed!\n");
+		exit(1);
+	}
+
+	/* Check to see if the PAPI natives are available */
+	if ((PAPI_query_event (codes[0]) != PAPI_OK) || (PAPI_query_event (codes[1]) != PAPI_OK)) 
 	{
 		Log_output(0,"PAPI counters aren't sufficient to measure boundedness!\n");
 		exit(1);
 	}
+
 	ret_code=PAPI_create_eventset ( &EventSet );
 	if(PAPI_OK != ret_code)
 	{
@@ -108,7 +123,7 @@ void * profilerThread (void * ContextPtr)
 		exit(1);
 
 	}
-	ret_code=PAPI_add_events (EventSet,codes, 3);
+	ret_code=PAPI_add_events (EventSet,codes, 2);
 	if(PAPI_OK != ret_code)
 	{
 		Log_output(0,"Adding the PAPI add eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
@@ -143,7 +158,7 @@ void * profilerThread (void * ContextPtr)
 	{
 		
 		int (* myReporter) (void *, SProfReport *)=myHandle->myFuncs.reportFunc;
-		float val1, val2, val3;
+		float val1, val2;
 
 		//get PAPI info from counters		
 		if(PAPI_OK != PAPI_accum(EventSet,values))
@@ -151,28 +166,26 @@ void * profilerThread (void * ContextPtr)
 			Log_output(5," PAPI accum failed: %s\n",PAPI_strerror(ret_code));
 		}
 		#ifdef PRINT_DEBUG
-			printf ("Total Cycles is %lld\n",values[0]);
-			printf ("L2 Cache misses is %lld and L2 Cache Accesses is %lld\n",values[1],values[2]);
+			printf ("Total Cycles is %lld\n",values[1]);
+			printf ("Super Queue was full %lld\n",values[0]);
 		#endif		
 
 		//generate the bounded variable
-		if(values[0]==0 || values[2]==0)//no divide by zeros!
+		if(values[0]==0 || values[1]==0)//no divide by zeros!
 		{
 			privateBounded=0.0;
 		}
 		else
 		{
 			val1=values[0];
-			val2=values[1];
-			val3=values[2];		
-			privateBounded=val3/val1 * val2/val3;
+			val2=values[1];	
+			privateBounded=2*val1/val2;
+			privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 		}
 
 		//reset my counters
 		values[0]=0;
 		values[1]=0;
-		values[2]=0;
-		values[3]=0;
 
 		//fill in the report
 		myReport.data.tp.bounded=privateBounded;

@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <signal.h>
+#include <Log.h>
 #include "Frequency_Mod.h"
 
 
@@ -75,6 +77,7 @@ SFreqData * init_cpufreq (void)
 	int globalFrequency[NUM_STATIC_FREQ];//this is a place to temporarily store all the values until we alloc on the heap
 	int num_frequency=0;//another temp holder
 	int num_cores=0;
+	int ret;
 	
 
 	//find all the frequencies and record them
@@ -167,8 +170,16 @@ SFreqData * init_cpufreq (void)
 		sprintf(char_buff,"echo userspace > /sys/devices/system/cpu/cpu");
 		sprintf(num,"%d",i);
 		strcat(char_buff,num);
-		strcat(char_buff,"cpufreq/scaling_governor");
-		system(char_buff);
+		strcat(char_buff,"/cpufreq/scaling_governor");
+		ret = system(char_buff);
+
+    		if (WIFSIGNALED(ret) &&
+        		(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
+            	{
+			Log_output(0,"System call failed! WHAT!?\n");
+			exit(1);		
+		}
+
 		//now open the file descriptor
 		sprintf(char_buff,"/sys/devices/system/cpu/cpu");
 		sprintf(num,"%d",i);
@@ -200,8 +211,9 @@ int readFreq (SFreqData * context, int procId)
 }
 
 
-void changeFreq (SFreqData * context, int i, int core)
+void changeFreq (SFreqData * context, int core, int i)
 {
+
 
 	if(core == -1)//this means change all the cores
 	{
@@ -227,8 +239,10 @@ void changeFreq (SFreqData * context, int i, int core)
 void destroy_cpufreq (SFreqData * context)
 {
 	int j;
+	int ret;
 	char char_buff[1024]="";
 	char num[10]="";
+
 	for(j=0;j<(context->numCores);j++)
 	{	
 		fclose(context->setFile[j]);//first close our file descriptors;
@@ -236,8 +250,16 @@ void destroy_cpufreq (SFreqData * context)
 		sprintf(char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
 		sprintf(num,"%d",j);
 		strcat(char_buff,num);
-		strcat(char_buff,"cpufreq/scaling_governor");
-		system(char_buff);
+		strcat(char_buff,"/cpufreq/scaling_governor");
+		ret = system(char_buff);
+
+    		if (WIFSIGNALED(ret) &&
+        		(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
+            	{
+			Log_output(0,"System call failed! WHAT!?\n");
+			exit(1);		
+		}
+
 	}
 	free(context->setFile);
 	free(context->availableFreqs);

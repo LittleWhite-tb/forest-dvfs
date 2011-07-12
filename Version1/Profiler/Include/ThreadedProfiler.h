@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define LOWERTHRESHOLD (.9)
 #define UPPERTHRESHOLD (1.1)
-#define FIRSTSLEEP (200)  
+#define FIRSTSLEEP (20000)  
 #define LONGESTSLEEP (1000000)
 
 
