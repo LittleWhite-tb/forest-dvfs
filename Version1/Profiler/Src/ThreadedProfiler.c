@@ -208,7 +208,7 @@ void * profilerThread (void * ContextPtr)
 		else
 		{
 			//self regulate
-			if( (lastBoundedValue/privateBounded)<LOWERTHRESHOLD || (lastBoundedValue/privateBounded)>UPPERTHRESHOLD)
+			if(abs(lastBoundedValue - privateBounded)>THRESHOLD) 
 			{
 				myWindow=FIRSTSLEEP;
 			}

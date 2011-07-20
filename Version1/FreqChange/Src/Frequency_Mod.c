@@ -22,7 +22,27 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <errno.h>
 #include <signal.h>
 #include <Log.h>
+#include <sys/wait.h>
+
+#include "rdtsc.h"
 #include "Frequency_Mod.h"
+
+#define NUMSAMPLES 100000
+static __inline__ unsigned long long getticks(void)
+{
+   unsigned long long ret;
+   rdtscll(ret);
+   return ret;
+}
+
+struct samples
+{
+	long long time;
+	int freq;
+	int core;
+};
+struct samples sampler[NUMSAMPLES];
+int thissample=0;
 
 
 
@@ -214,12 +234,23 @@ int readFreq (SFreqData * context, int procId)
 void changeFreq (SFreqData * context, int core, int i)
 {
 
-
 	if(core == -1)//this means change all the cores
 	{
 		int j;
 		for(j=0;j<(context->numCores);j++)
 		{	
+			sampler[thissample].time=getticks();
+			sampler[thissample].freq=i;
+			sampler[thissample].core=j;
+			thissample++;
+			if(thissample > NUMSAMPLES)
+			{
+			thissample=NUMSAMPLES;
+			}
+
+
+
+
 			fseek(context->setFile[j],0,SEEK_SET);
 			fprintf(context->setFile[j],"%d\n",context->availableFreqs[i]);
 			fflush(context->setFile[j]);
@@ -228,6 +259,17 @@ void changeFreq (SFreqData * context, int core, int i)
 	}
 	else//just the core the decision maker wants
 	{	
+		sampler[thissample].time=getticks();
+		sampler[thissample].freq=i;
+		sampler[thissample].core=core;
+		thissample++;
+		if(thissample > NUMSAMPLES)
+		{
+			thissample=NUMSAMPLES;
+		}
+
+
+
 		fseek(context->setFile[core],0,SEEK_SET);
 		fprintf(context->setFile[core],"%d\n",context->availableFreqs[i]);
 		fflush(context->setFile[core]);
@@ -265,6 +307,21 @@ void destroy_cpufreq (SFreqData * context)
 	free(context->availableFreqs);
 	free(context->currentFreqs);
 	free(context);
+
+	FILE * dumpfile;
+	dumpfile=fopen("frequency_dump.txt","a");
+	
+	fprintf(dumpfile,"Time, Core, Frequency\n");
+
+	int i;
+
+	for (i=0;i<thissample;i++ )
+	{
+		fprintf(dumpfile,"%lld, %d, %d\n",sampler[i].time,sampler[i].core,sampler[i].freq);	
+	}
+	fclose(dumpfile);
+
+
 }
 
 

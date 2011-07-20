@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef DECISIONMAKER_H
 #define DECISIONMAKER_H
 
+#include "Profilers.h"
+
 /**@struct profiler report that it will fill*/
 typedef struct sProfReport
 {

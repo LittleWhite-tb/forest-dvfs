@@ -34,7 +34,7 @@ void* decisionInit (void)
 int decisionGiveReport (void *handle, SProfReport *report)
 {
 	SFreqData *freqData = handle;
-	int newFrequency = round((int) (report->data.tp.bounded * freqData->numFreq));
+	int newFrequency = round((int) (report->data.tp.bounded * (freqData->numFreq-1)));
 	
 	if (report->prof_id == THREADED_PROFILER)
 	{

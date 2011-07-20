@@ -5,32 +5,32 @@ PROFILER_OBJ := $(patsubst Profiler/Src/%.c,obj/%.o,$(wildcard Profiler/Src/*.c)
 COMMON_OBJ := $(patsubst Common/Src/%.c,obj/%.o,$(wildcard Common/Src/*.c))
 DECISION_OBJ := $(patsubst Decision/Src/%.c,obj/%.o,$(wildcard Decision/Src/*.c))
 FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Src/*.c))
-LIBS = -lpthread -lpapi
+LIBS = -lpthread -lpapi -ldl
 
 OPT_INCLUDE = -IProfiler/Include -IDecision/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include
-OPT = -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) 
+OPT = -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
 
 FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
 
 all: $(EXE)
 
 $(EXE):	$(FULL_OBJ)
-	gcc -o $(EXE) $(FULL_OBJ) $(OPT) $(LIBS)
+	gcc -o $(EXE) $(FULL_OBJ) $(OPT) $(CFLAGS) $(LIBS)
 
 $(PROFILER_OBJ):obj/%.o: Profiler/Src/%.c Profiler/Include/%.h 
-	gcc -c $< -o $@ $(OPT)$(LIBS)
+	gcc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(COMMON_OBJ):obj/%.o: Common/Src/%.c Common/Include/%.h 
-	gcc -c $< -o $@ $(OPT)$(LIBS)
+	gcc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(DECISION_OBJ):obj/%.o: Decision/Src/%.c Decision/Include/%.h 
-	gcc -c $< -o $@ $(OPT) $(LIBS)
+	gcc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(FREQCHANGE_OBJ):obj/%.o: FreqChange/Src/%.c FreqChange/Include/%.h 
-	gcc -c $< -o $@ $(OPT) $(LIBS)
+	gcc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(MAIN_OBJ):obj/%.o: %.c %.h
-	gcc -c $< -o $@ $(OPT) $(LIBS)
+	gcc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 clean:
 	rm $(OBJ) $(EXE) obj/*o tmp Log.txt doxygen_warn `find . -name "*~"` output/* *out 2> /dev/null || echo "Done cleaning"
