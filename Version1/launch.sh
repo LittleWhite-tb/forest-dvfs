@@ -10,10 +10,16 @@ fi
 
 #choose which microbench to launch
 
-export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+#add papi to your library path
+LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+#load the powermeter shared library into the loader path (must be done while in sudo)
+LD_LIBRARY_PATH="$CURRENT_DIR/../power/esrv:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH
+
+echo "Changed ld_libary_path to $LD_LIBRARY_PATH"
 
 #making a fresh binary
-
 TARGET=$1
 make clean
 make
@@ -25,10 +31,12 @@ NUMCORESTEMP=$(cat /proc/cpuinfo | grep "processor" | wc -l)
 NUMCORES=$(($NUMCORESTEMP))
 #used to be $NUMCORESTEMP-1
 
-NUMFREQS=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies | wc -w)
-#FREQS=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies)
 
-#run the experiment
+
+NUMFREQS=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies | wc -w)
+
+
+#Get the specific frequencies
 for ((i=0;i<NUMFREQS;i++))
 
 do
@@ -74,19 +82,12 @@ function on_controlc
 
 trap 'on_controlc' SIGINT
 
-
+#run the experiment!
 echo "Running the benchmark on $NUMCORES cores"
 
 CURRENT_DIR=$(pwd)
 
-#load the powermeter shared library into the loader path (must be done while in sudo)
-LD_LIBRARY_PATH="$CURRENT_DIR/../power/esrv:$LD_LIBRARY_PATH"
-export LD_LIBRARY_PATH
 
-INTERVALS=( .1 1 2 4 6 8 16 32 64 128)
-#
-
-echo "Changed ld_libary_path to $LD_LIBRARY_PATH"
 #:<<COMMENTINGSOME
 echo "Doing Memorybound only loop on all frequencies to characterize machine"
 
@@ -126,6 +127,11 @@ do
 	rm /tmp/rest
 
 done
+
+
+#Frequencies scanned... now confirm all rest configurations
+
+
 
 echo "Running experiment using REST-TOGETHER-UTOPIA setting in memory bound state"
 
@@ -235,6 +241,9 @@ done
 
 
 
+
+
+
 echo "Doing Computebound only loop on all frequencies to characterize machine"
 
 for ((j=0;j<NUMFREQS;j++))
@@ -274,6 +283,9 @@ do
 	rm /tmp/rest
 
 done
+
+
+#Frequencies scanned... now confirm all rest configurations
 
 echo "Running experiment using REST-TOGETHER-UTOPIA setting in cpu bound state"
 
@@ -380,9 +392,21 @@ wait "${PID[${i}]}"
 
 done
 
-
-
 #COMMENTINGSOME
+
+
+
+echo "Compute Bound and Memory Bound testing complete!"
+
+
+
+#NOW we scan across different intervals
+
+#setup which intervals we will test
+INTERVALS=( .1 1 2 4 6 8 16 32 64 128)
+
+
+
 
 for k in "${INTERVALS[@]}"
 do

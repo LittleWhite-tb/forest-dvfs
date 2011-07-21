@@ -22,9 +22,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdio.h>
 
 #define NUM_STATIC_FREQ 30
+#define NUMSAMPLES 100000
 
 
-/**@brief data structure containing all the needed information for the decision system*/
+/**@brief structure which hold frequency, core, and time information*/
+struct samples
+{
+	long long time;/**@brief the time in ticks from RDTSC*/
+	int freq;/**@brief frequency given as an index in the index table*/
+	int core;/**@brief core id between 0 and numCores*/
+};
+
+
+/**@brief data structure containing all the needed information for changing and tracking the frequencies and cores of the system*/
 typedef struct sfreqData
 {
 	int freqMax;         /**< @brief the highest available frequence*/
@@ -34,6 +44,9 @@ typedef struct sfreqData
 	FILE **setFile;	/**< @brief pointer to an array of File descriptors of size numCores used to change frequency */
 	int *currentFreqs;/**< @brief pointer to an array of size numCores of ints that holds the currentFrequency for */
 	int *availableFreqs; /**< @brief the available frequences on the system of size numFreq*/
+	int thisSample;	/**< @brief tracks where we are in our sample array*/
+	struct samples sampler[NUMSAMPLES]; /**< @brief a sample array for profiling the frequency changer's actions*/
+	
 		
 }SFreqData;
 
