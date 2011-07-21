@@ -28,7 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define LONGESTSLEEP (128000)
 
 
-/**< @brief pointer table which is passed to the profiler to tell it who to initialize, report to, and destroy*/
+/** 
+ * @struct sFuncsToUse
+ * @brief pointer table which is passed to the profiler to tell it who to initialize, report to, and destroy
+ */
 typedef struct sFuncsToUse
 {
 	void * initFunc;  /**< @brief function to use when you call the init*/

@@ -25,7 +25,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define NUMSAMPLES 100000
 
 
-/**@brief structure which hold frequency, core, and time information*/
+/**
+ * @struct samples
+ * @brief structure which hold frequency, core, and time information
+ */
 struct samples
 {
 	long long time;/**@brief the time in ticks from RDTSC*/
@@ -34,7 +37,10 @@ struct samples
 };
 
 
-/**@brief data structure containing all the needed information for changing and tracking the frequencies and cores of the system*/
+/**
+ * @struct sfreqData
+ * @brief data structure containing all the needed information for changing and tracking the frequencies and cores of the system
+ */ 
 typedef struct sfreqData
 {
 	int freqMax;         /**< @brief the highest available frequence*/
