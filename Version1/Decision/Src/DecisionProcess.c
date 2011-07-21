@@ -24,10 +24,3 @@ void decisionAlgorithm ()
 {
 
 }
-
-float compute_median_core(Core core)
-{
-	(void) core;
-	
-	return 0;
-}
