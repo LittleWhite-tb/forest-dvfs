@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define NUM_STATIC_FREQ 30
 
 
-/**@brief data structure containing all the needed information for the decision system*/
+/**@struct data structure containing all the needed information for changing and tracking the frequencies and cores of the system*/
 typedef struct sfreqData
 {
 	int freqMax;         /**< @brief the highest available frequence*/
