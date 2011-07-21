@@ -47,7 +47,7 @@ int thissample=0;
 
 
 //this function is implemented with a high overhead! So we Only read the frequency once and then store it somewhere.
-int helperReadFreq (int procId)
+int helperReadFreq (SFreqData * context, int procId)
 {
 	char bashCmd[1024]="";
 	char core[3];
@@ -58,7 +58,7 @@ int helperReadFreq (int procId)
 	strcat(bashCmd,"/cpufreq/cpuinfo_cur_freq");
 	
 	char currentFreq[10];
-	int curFreq;
+	int curFreq,i;
 	FILE * fp;
 	
   	fp = popen (bashCmd,"r");
@@ -81,7 +81,14 @@ int helperReadFreq (int procId)
 		
 	}
 	pclose (fp);
-	return curFreq;
+	for(i=0; i < context->numFreq ; i++)
+	{
+		if (curFreq==context->availableFreqs[i])
+			return i;	
+	}
+	Log_output(0,"Error: no match between available frequencies and current frequency of processor %d\n",procId);
+	exit(1);
+	return -1;
 	
 }
 
@@ -218,7 +225,7 @@ SFreqData * init_cpufreq (void)
 
 	for(i=0; i<num_cores;i++)
 	{
-		handle->currentFreqs[i]=helperReadFreq(i);
+		handle->currentFreqs[i]=helperReadFreq(handle, i);
 	}	
 
 	return handle;	
