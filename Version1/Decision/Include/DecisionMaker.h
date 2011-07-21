@@ -16,8 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef DECISIONMAKER_H
-#define DECISIONMAKER_H
+#ifndef H_DECISIONMAKER
+#define H_DECISIONMAKER
 
 #include "Profilers.h"
 
