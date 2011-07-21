@@ -238,9 +238,9 @@ void changeFreq (SFreqData * context, int core, int i)
 		int j;
 		for(j=0;j<(context->numCores);j++)
 		{	
-			context->sampler[thisSample].time=getticks();
-			context->sampler[thisSample].freq=i;
-			context->sampler[thisSample].core=j;
+			context->sampler[context->thisSample].time=getticks();
+			context->sampler[context->thisSample].freq=i;
+			context->sampler[context->thisSample].core=j;
 			context->thisSample++;
 			if(context->thisSample > NUMSAMPLES)
 			{
@@ -258,9 +258,9 @@ void changeFreq (SFreqData * context, int core, int i)
 	}
 	else//just the core the decision maker wants
 	{	
-		context->sampler[thisSample].time=getticks();
-		context->sampler[thisSample].freq=i;
-		context->sampler[thisSample].core=core;
+		context->sampler[context->thisSample].time=getticks();
+		context->sampler[context->thisSample].freq=i;
+		context->sampler[context->thisSample].core=core;
 		context->thisSample++;
 		if(context->thisSample > NUMSAMPLES)
 		{
