@@ -27,22 +27,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "rdtsc.h"
 #include "Frequency_Mod.h"
 
-#define NUMSAMPLES 100000
+
 static __inline__ unsigned long long getticks(void)
 {
    unsigned long long ret;
    rdtscll(ret);
    return ret;
 }
-
-struct samples
-{
-	long long time;
-	int freq;
-	int core;
-};
-struct samples sampler[NUMSAMPLES];
-int thissample=0;
 
 
 
@@ -186,6 +177,7 @@ SFreqData * init_cpufreq (void)
 	handle->numCores=num_cores;
 	handle->freqMax=globalFrequency[0];
 	handle->freqMin=globalFrequency[num_frequency-1];
+	handle->thisSample=0;
 	for(i=0; i<num_frequency;i++)
 	{
 		handle->availableFreqs[i]=globalFrequency[i];//copy frequencies into data structure
@@ -246,13 +238,13 @@ void changeFreq (SFreqData * context, int core, int i)
 		int j;
 		for(j=0;j<(context->numCores);j++)
 		{	
-			sampler[thissample].time=getticks();
-			sampler[thissample].freq=i;
-			sampler[thissample].core=j;
-			thissample++;
-			if(thissample > NUMSAMPLES)
+			context->sampler[thisSample].time=getticks();
+			context->sampler[thisSample].freq=i;
+			context->sampler[thisSample].core=j;
+			context->thisSample++;
+			if(context->thisSample > NUMSAMPLES)
 			{
-			thissample=NUMSAMPLES;
+			context->thisSample=NUMSAMPLES;
 			}
 
 
@@ -266,13 +258,13 @@ void changeFreq (SFreqData * context, int core, int i)
 	}
 	else//just the core the decision maker wants
 	{	
-		sampler[thissample].time=getticks();
-		sampler[thissample].freq=i;
-		sampler[thissample].core=core;
-		thissample++;
-		if(thissample > NUMSAMPLES)
+		context->sampler[thisSample].time=getticks();
+		context->sampler[thisSample].freq=i;
+		context->sampler[thisSample].core=core;
+		context->thisSample++;
+		if(context->thisSample > NUMSAMPLES)
 		{
-			thissample=NUMSAMPLES;
+			context->thisSample=NUMSAMPLES;
 		}
 
 
@@ -310,11 +302,8 @@ void destroy_cpufreq (SFreqData * context)
 		}
 
 	}
-	free(context->setFile);
-	free(context->availableFreqs);
-	free(context->currentFreqs);
-	free(context);
 
+	//dump our samples to file
 	FILE * dumpfile;
 	dumpfile=fopen("frequency_dump.txt","a");
 	
@@ -322,11 +311,19 @@ void destroy_cpufreq (SFreqData * context)
 
 	int i;
 
-	for (i=0;i<thissample;i++ )
+	for (i=0;i<context->thisSample;i++ )
 	{
-		fprintf(dumpfile,"%lld, %d, %d\n",sampler[i].time,sampler[i].core,sampler[i].freq);	
+		fprintf(dumpfile,"%lld, %d, %d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
 	}
 	fclose(dumpfile);
+
+	//free up our memory
+	free(context->setFile);
+	free(context->availableFreqs);
+	free(context->currentFreqs);
+	free(context);
+
+	
 
 
 }

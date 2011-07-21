@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Profilers.h"
 
-/**@struct profiler report that it will fill*/
+/**< @brief profiler report that it will fill*/
 typedef struct sProfReport
 {
 	ProfDesc prof_id; /**< @brief the id of the profiler*/
@@ -41,7 +41,8 @@ void decisionDestruct (void *);
 
 /**
  * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
- * @param profiler fill the report to know what we are talking about
+ * @param profiler the report to give
+ * @param data a handle to the Decision Maker context
  **/
 int decisionGiveReport (void *data, SProfReport *profiler);
 

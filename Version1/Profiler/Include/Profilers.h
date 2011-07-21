@@ -29,7 +29,7 @@ typedef int ProfDesc ; /**< @brief this is a profile descriptor... currently an 
 
 
 //Threaded Profiler structure
-/**@struct structure that holds reporting and feedback information*/
+/**< @brief structure that holds reporting and feedback information specifically for the threaded profiler implementation*/
 typedef struct sThread_Profiler
 {
 			float bounded;/**< @brief This variable is between 0 and 1 where 0 is compute bound and 1 is memory bound*/
@@ -42,7 +42,7 @@ typedef struct sThread_Profiler
 
 
 //definition for the DeicionMaker.h
-/**@struct union that could be any of many different future reporting structures... selected based on prof_id in SProfReport*/
+/**< @brief union that could be any of many different future reporting structures... selected based on prof_id in SProfReport*/
 typedef union ProfilerInfo {
 				 SThread_Profiler tp;
 				} ProfilerInfo;

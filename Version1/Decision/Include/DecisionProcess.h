@@ -22,13 +22,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 typedef int Core;
 
 /**
- * @brief decide witch algorithm we have to process
+ * @brief decide which algorithm we have to process
  **/ 
 void decisionAlgorithm ();
 
 /**
  * @brief compute the median in one core
- * @param the core on which we want the median
+ * @param core the core on which we want the median
  */
 float compute_median_core(Core core);
 
