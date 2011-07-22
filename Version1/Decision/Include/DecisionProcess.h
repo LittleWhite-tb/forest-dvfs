@@ -21,11 +21,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Frequency_Mod.h"
 
-/**@struct data to keep betweens calls**/
+/**
+ * @struct saveData
+ * @brief data to keep betweens calls
+**/
 typedef struct saveData
 {
-	SFreqData *sFreqData;/**@brief frequency's data**/
-	int **freqCounter;/**@brief the number of time we call each frequency for each core**/
+	SFreqData *sFreqData;/** @brief frequency's data**/
+	int **freqCounter;/** @brief the number of time we call each frequency for each core**/
 } SaveData;
 
 
