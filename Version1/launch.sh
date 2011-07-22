@@ -11,6 +11,8 @@ fi
 #choose which microbench to launch
 
 
+CURRENT_DIR=$(pwd)
+
 #add papi to your library path
 LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 #load the powermeter shared library into the loader path (must be done while in sudo)
@@ -85,7 +87,7 @@ trap 'on_controlc' SIGINT
 #run the experiment!
 echo "Running the benchmark on $NUMCORES cores"
 
-CURRENT_DIR=$(pwd)
+
 
 
 #:<<COMMENTINGSOME
