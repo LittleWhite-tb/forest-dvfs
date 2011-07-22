@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "DecisionProcess.h"
 #include "DecisionMaker.h"
 
+#define DECISION_MAKER_SEARCH 0
+
 void* decisionInit (void)
 {
 	int i, j;
@@ -70,10 +72,8 @@ int decisionGiveReport (void *handle, SProfReport *report)
 		int newFrequency = round((int) (report->data.tp.bounded * freqData->numFreq));
 		int distance_frequecies = abs(newFrequency - freqData->currentFreqs[currentCore]);
 		
-
 		//Increase the number of time that we call for this frequency
-		if(savedData->freqCounter[currentCore][newFrequency] < freqData->numFreq)
-			savedData->freqCounter[currentCore][newFrequency]++;
+		savedData->freqCounter[currentCore][newFrequency]++;
 			
 		// if the new frequency isn't equal to the old one
 		// and if (the number of time that we have call this frequency) * (distance between each others)
