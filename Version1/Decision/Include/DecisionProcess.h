@@ -34,10 +34,4 @@ typedef struct saveData
  **/ 
 void decisionAlgorithm ();
 
-/**
- * @brief compute the median in one core
- * @param core the core on which we want the median
- */
-float compute_median_core(Core core);
-
 #endif 
