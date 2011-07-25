@@ -26,12 +26,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <sched.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <unistd.h>
 #include <papi.h>
 #include <assert.h>
 #include <rdtsc.h>
 #include <Log.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <syscall.h>
+#include <unistd.h>
 
 
 #if 0
@@ -44,6 +46,12 @@ static __inline__ unsigned long long getticks ( void )
    unsigned long long ret;
    rdtscll (ret);
    return ret;
+}
+
+pid_t
+gettid(void)
+{
+	return (pid_t)syscall(__NR_gettid);
 }
 
 
@@ -168,6 +176,7 @@ void * profilerThread (void * ContextPtr)
 		#ifdef PRINT_DEBUG
 			printf ("Total Cycles is %lld\n",values[1]);
 			printf ("Super Queue was full %lld\n",values[0]);
+			fflush(stdout);
 		#endif		
 
 		//generate the bounded variable
@@ -249,7 +258,7 @@ STPContext * profilerInit (SFuncsToUse funcPtrs)
 
 	// register the thread specificier
 	/* @todo figure out why pthread_create breaks this but getpid works :-/ */
-	 if (PAPI_thread_init (getpid) != PAPI_OK)
+	 if (PAPI_thread_init (gettid) != PAPI_OK)
 	{
 		Log_output(0,"Thread init function didn't register properly\n");
 	}

@@ -39,8 +39,10 @@ typedef struct sFuncsToUse
 	void * reportFunc; /**< @brief function to use when you should report*/
 	
 } SFuncsToUse;  
-
-/**< @brief a context with all necessary information for PAPI implmentation and threading*/
+/** 
+ * @struct sTPContext
+ * @brief a context with all necessary information for PAPI implmentation and threading
+*/
 typedef struct sTPContext
 {
 	int  volatile * volatile killSig;  /**< @brief address of kill signal that we spin on*/
