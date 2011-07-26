@@ -1,9 +1,8 @@
-EXE=rest
 STATICLIB=rest.a
 DYNAMICLIB=librest.so
 CC=gcc
 
-MAIN_OBJ := $(patsubst Exemple/Src/%.c,obj/%.o,$(wildcard Exemple/Src/*.c))
+MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))
 PROFILER_OBJ := $(patsubst Profiler/Src/%.c,obj/%.o,$(wildcard Profiler/Src/*.c))
 COMMON_OBJ := $(patsubst Common/Src/%.c,obj/%.o,$(wildcard Common/Src/*.c))
 DECISION_OBJ := $(patsubst Decision/Src/%.c,obj/%.o,$(wildcard Decision/Src/*.c))
@@ -15,14 +14,13 @@ OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
 
 FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
 
-all: $(EXE)
-staticlib : $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
-	ar -rv $(STATICLIB) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
-dynamiclib : $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
-	gcc -o $(DYNAMICLIB) -shared $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+all: staticlib dynamiclib
 
-$(EXE):	$(FULL_OBJ)
-	$(CC) -o $(EXE) $(FULL_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+staticlib : $(FULL_OBJ)
+	ar -rv $(STATICLIB) $(FULL_OBJ)
+dynamiclib : $(FULL_OBJ)
+	gcc -o $(DYNAMICLIB) -shared $(FULL_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+
 
 $(PROFILER_OBJ):obj/%.o: Profiler/Src/%.c Profiler/Include/%.h 
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
@@ -36,7 +34,7 @@ $(DECISION_OBJ):obj/%.o: Decision/Src/%.c Decision/Include/%.h
 $(FREQCHANGE_OBJ):obj/%.o: FreqChange/Src/%.c FreqChange/Include/%.h 
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
-$(MAIN_OBJ):obj/%.o: Exemple/Src/%.c Exemple/Include/%.h
+$(MAIN_OBJ):obj/%.o: %.c %.h
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 clean:
