@@ -57,15 +57,13 @@ typedef struct sTPContext
 * @return returns a pointer to the profiler thread's context
 * @param funcPtrs a struct of function pointers that I want the profiler to use for its lifetime
  **/
-STPContext * profilerInit (SFuncsToUse funcPtrs);
-
+STPContext * threadedProfilerInit (SFuncsToUse funcPtrs);
 
 /**
-
  * @brief signals the profiler to destroy it's self
  * @param context takes the context of the profiling thread to send the kill signal
  **/
-void profilerDestroy (STPContext *context);
+void threadedProfilerDestroy (STPContext *context);
 
 
 

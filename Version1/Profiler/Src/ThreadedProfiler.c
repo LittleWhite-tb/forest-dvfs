@@ -270,7 +270,7 @@ void * profilerThread (void * ContextPtr)
 }
 	
 
-STPContext * profilerInit (SFuncsToUse funcPtrs)
+STPContext * threadedProfilerInit (SFuncsToUse funcPtrs)
 {
 	int current_cpu, retval;
 	STPContext * handle;
@@ -307,7 +307,7 @@ STPContext * profilerInit (SFuncsToUse funcPtrs)
 }
 	
 
-void profilerDestroy (STPContext * prof)
+void threadedProfilerDestroy (STPContext * prof)
 {
 	void* dummy;
 	

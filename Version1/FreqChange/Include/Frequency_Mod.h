@@ -61,7 +61,7 @@ typedef struct sfreqData
 /**
  * @brief allocates contexts, queries the system for number of frequncies and number of cores, opens up descriptors for 
  * @return handle to all information the frequency changer will need to change frequencies*/
-SFreqData * init_cpufreq ( void );
+SFreqData * initCpufreq ( void );
 
 
 /**
@@ -83,7 +83,7 @@ int readFreq (SFreqData * context, int core);
 /**
  * @brief frees contexts and closes all files used by frequency changer
  * @return handle to all information the frequency changer will need to change frequencies*/
-void destroy_cpufreq (SFreqData * context);
+void destroyCpufreq (SFreqData * context);
 
 
 
