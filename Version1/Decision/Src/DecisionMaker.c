@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define DECISION_MAKER_SEARCH 0
 
-void* decisionInit (void)
+void* naiveDecisionInit (void)
 {
 	int i, j;
 	
@@ -57,7 +57,7 @@ void* decisionInit (void)
 	return savedData;
 }
 
-int decisionGiveReport (void *handle, SProfReport *report)
+int naiveDecisionGiveReport (void *handle, SProfReport *report)
 {
 	if (report->prof_id == THREADED_PROFILER)
 	{
@@ -98,7 +98,7 @@ int decisionGiveReport (void *handle, SProfReport *report)
 	return 0;
 }
 
-void decisionDestruct(void* handle)
+void naiveDecisionDestruct(void* handle)
 {
 	SaveData *savedData = handle;
 	

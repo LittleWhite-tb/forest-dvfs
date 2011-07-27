@@ -84,7 +84,7 @@ int helperReadFreq (SFreqData * context, int procId)
 }
 
 
-SFreqData * init_cpufreq (void)
+SFreqData * initCpufreq (void)
 {
 
 	SFreqData * handle;
@@ -192,9 +192,8 @@ SFreqData * init_cpufreq (void)
 		strcat(char_buff,"/cpufreq/scaling_governor");
 		ret = system(char_buff);
 
-    		if (WIFSIGNALED(ret) &&
-        		(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
-            	{
+		if (WIFSIGNALED(ret) && (WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
+		{
 			Log_output(0,"System call failed! WHAT!?\n");
 			exit(1);		
 		}
@@ -209,7 +208,7 @@ SFreqData * init_cpufreq (void)
 		if(fp==NULL)
 		{
 			perror( "Error opening file" );
-        	    	printf( "Error opening file: %s\n", strerror( errno ) );
+			printf( "Error opening file: %s\n", strerror( errno ) );
 			printf( "Perhaps you don't have sudo rights?\n");
 		}
 		handle->setFile[i]=fp;//file * opened so now we place it in the context
@@ -277,7 +276,7 @@ void changeFreq (SFreqData * context, int core, int i)
 	
 }
 
-void destroy_cpufreq (SFreqData * context)
+void destroyCpufreq (SFreqData * context)
 {
 	int j;
 	int ret;
