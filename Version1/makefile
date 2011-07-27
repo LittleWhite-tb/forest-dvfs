@@ -3,7 +3,7 @@ STATICLIB=rest.a
 DYNAMICLIB=librest.so
 CC=gcc
 
-MAIN_OBJ := $(patsubst Exemple/Src/%.c,obj/%.o,$(wildcard Exemple/Src/*.c))
+MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))
 PROFILER_OBJ := $(patsubst Profiler/Src/%.c,obj/%.o,$(wildcard Profiler/Src/*.c))
 COMMON_OBJ := $(patsubst Common/Src/%.c,obj/%.o,$(wildcard Common/Src/*.c))
 DECISION_OBJ := $(patsubst Decision/Src/%.c,obj/%.o,$(wildcard Decision/Src/*.c))
@@ -36,7 +36,7 @@ $(DECISION_OBJ):obj/%.o: Decision/Src/%.c Decision/Include/%.h
 $(FREQCHANGE_OBJ):obj/%.o: FreqChange/Src/%.c FreqChange/Include/%.h 
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
-$(MAIN_OBJ):obj/%.o: Exemple/Src/%.c Exemple/Include/%.h
+$(MAIN_OBJ):obj/%.o: %.c %.h
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 clean:
