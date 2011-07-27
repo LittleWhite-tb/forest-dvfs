@@ -20,31 +20,38 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define H_PROFILERS
 
 //Enumerations
-
-#define INSTRUMENTED_PROFILER 2
-#define THREADED_PROFILER 4
-
-typedef int ProfDesc ; /**< @brief this is a profile descriptor... currently an int but descriptor may become more complicated later*/
-
+/** 
+ * @brief enumeration for the different kinds of profilers that will feed data to the decision maker
+*/
+typedef enum eProfType 
+{
+	VMAD_PROFILER, /**< @brief this enumeration is for the VMAD profiler*/
+	THREADED_PROFILER  /**< @brief this enumeration is for the threaded profiler*/
+} EProfType;
 
 
 //Threaded Profiler structure
-/**< @brief structure that holds reporting and feedback information specifically for the threaded profiler implementation*/
-typedef struct sThread_Profiler
+/** 
+ * @struct sThreadProfiler
+ * @brief structure that holds reporting and feedback information specifically for the threaded profiler implementation
+*/
+typedef struct sThreadProfiler
 {
 			float bounded;/**< @brief This variable is between 0 and 1 where 0 is compute bound and 1 is memory bound*/
 			int ticks;/**< @brief This is the size of the report's window in cycles*/
 			int algorithm;/**< @brief This just tells us what our new ProfDesc is and also what we are instrumenting*/
 			int nextTicks;/**< @brief This is the requested size of the next report's window in cycles*/
-}SThread_Profiler;
+}SThreadProfiler;
 
 
 
 
 //definition for the DeicionMaker.h
-/**< @brief union that could be any of many different future reporting structures... selected based on prof_id in SProfReport*/
+/** 
+ * @brief union that could be any of many different future reporting structures... selected based on prof_id in SProfReport
+*/
 typedef union ProfilerInfo {
-				 SThread_Profiler tp;
+				 SThreadProfiler tp;/**< @brief the threaded profiler entry into the union*/
 				} ProfilerInfo;
 				
 

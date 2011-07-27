@@ -16,19 +16,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
-#include <Log.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 
 #include "rdtsc.h"
 #include "Frequency_Mod.h"
+#include "Log.h"
 
-
-static __inline__ unsigned long long getticks(void)
+static __inline__ unsigned long long getTicks (void)
 {
    unsigned long long ret;
    rdtscll(ret);
@@ -43,10 +42,10 @@ int helperReadFreq (SFreqData * context, int procId)
 	char bashCmd[1024]="";
 	char core[3];
 	
-	strcat(bashCmd,"cat /sys/devices/system/cpu/cpu");
-	sprintf(core,"%d",procId);
-	strcat(bashCmd,core);
-	strcat(bashCmd,"/cpufreq/cpuinfo_cur_freq");
+	strcat (bashCmd,"cat /sys/devices/system/cpu/cpu");
+	sprintf (core,"%d",procId);
+	strcat (bashCmd,core);
+	strcat (bashCmd,"/cpufreq/cpuinfo_cur_freq");
 	
 	char currentFreq[10];
 	int curFreq,i;
@@ -55,19 +54,19 @@ int helperReadFreq (SFreqData * context, int procId)
   	fp = popen (bashCmd,"r");
   	if (fp==NULL)
 	{
-		printf("Failed to open cpufreq datafile\n");
-		exit(EXIT_FAILURE);
+		printf ("Failed to open cpufreq datafile\n");
+		exit (EXIT_FAILURE);
 	}
 	else
 	{
-		if(fgets(currentFreq, sizeof(currentFreq), fp))
+		if( fgets (currentFreq, sizeof (currentFreq), fp))
 		{
-			curFreq = atoi( currentFreq);
+			curFreq = atoi ( currentFreq);
 		}
 		else
 		{
-			printf("popen call failed somehow\n");
-			exit(EXIT_FAILURE);
+			printf ("popen call failed somehow\n");
+			exit (EXIT_FAILURE);
 		}
 		
 	}
@@ -77,8 +76,8 @@ int helperReadFreq (SFreqData * context, int procId)
 		if (curFreq==context->availableFreqs[i])
 			return i;	
 	}
-	Log_output(0,"Error: no match between available frequencies and current frequency of processor %d\n",procId);
-	exit(1);
+	Log_output (0,"Error: no match between available frequencies and current frequency of processor %d\n",procId);
+	exit (1);
 	return -1;
 	
 }
@@ -104,12 +103,12 @@ SFreqData * init_cpufreq (void)
 	
 	if (fp==NULL)
 	{
-		printf("Failed to open cpufreq datafile\n");
-		exit(EXIT_FAILURE);
+		printf ("Failed to open cpufreq datafile\n");
+		exit (EXIT_FAILURE);
 	}
 	else
 	{
-		if(fgets(char_buff, sizeof(char_buff), fp)) 
+		if(fgets (char_buff, sizeof (char_buff), fp)) 
 		{
 			char * pch;
 			pch = strtok (char_buff," ");
@@ -124,54 +123,54 @@ SFreqData * init_cpufreq (void)
 				num_frequency++;
 				if(num_frequency == NUM_STATIC_FREQ)
 				{
-					printf("Ran out of allocation for frequencies, set NUM_STATIC_FREQ higher\n");
-					exit(EXIT_FAILURE);
+					printf ("Ran out of allocation for frequencies, set NUM_STATIC_FREQ higher\n");
+					exit (EXIT_FAILURE);
 				}
 				pch = strtok (NULL, " ");
 			}
 		}
 		else
 		{
-			printf("popen call failed somehow\n");
-			exit(EXIT_FAILURE);
+			printf ("popen call failed somehow\n");
+			exit (EXIT_FAILURE);
 		}
 	}
-	pclose(fp);
+	pclose (fp);
 
 	//find number of cores
-	fp=popen("cat /proc/cpuinfo | grep \"processor\" | wc -l", "r");
+	fp=popen ("cat /proc/cpuinfo | grep \"processor\" | wc -l", "r");
 	if (fp==NULL)
 	{
-		printf("Failed to find number of cpus in /proc/cpuinfo\n");
-		exit(EXIT_FAILURE);
+		printf ("Failed to find number of cpus in /proc/cpuinfo\n");
+		exit (EXIT_FAILURE);
 	}
 	else
 	{
-		if(fgets(char_buff, sizeof(char_buff), fp))
+		if(fgets (char_buff, sizeof (char_buff), fp))
 		{
 			char * pch;
 			pch = strtok (char_buff," ");
-			num_cores=atoi(pch);
-			assert(num_cores>0);
-			pclose(fp);	
+			num_cores=atoi (pch);
+			assert (num_cores>0);
+			pclose (fp);	
 		}	
 		else
 		{
-			printf("popen call failed somehow\n");
-			exit(EXIT_FAILURE);
+			printf ("popen call failed somehow\n");
+			exit (EXIT_FAILURE);
 		}	
 	}
 	/*now allocate a context with all my mallocs
 	*/
 	
 	
-	handle= malloc( sizeof(* handle));
-	assert(handle!=NULL);
-	handle->setFile=malloc(sizeof(*(handle->setFile))*num_cores);
-	assert(handle->setFile!=NULL);
-	handle->currentFreqs=malloc(sizeof(*(handle->currentFreqs))*num_cores);
-	assert(handle->currentFreqs!=NULL);
-	handle->availableFreqs=malloc (sizeof(*(handle->availableFreqs))*num_frequency );
+	handle= malloc ( sizeof(* handle));
+	assert (handle!=NULL);
+	handle->setFile=malloc (sizeof (*(handle->setFile))*num_cores);
+	assert (handle->setFile!=NULL);
+	handle->currentFreqs=malloc (sizeof (*(handle->currentFreqs))*num_cores);
+	assert (handle->currentFreqs!=NULL);
+	handle->availableFreqs=malloc (sizeof (*(handle->availableFreqs))*num_frequency );
 
 	handle->numFreq=num_frequency;
 	handle->numCores=num_cores;
@@ -186,38 +185,38 @@ SFreqData * init_cpufreq (void)
 	for(i=0; i<num_cores;i++)
 	{
 		//first set the govenor to userspace
-		sprintf(char_buff,"echo userspace > /sys/devices/system/cpu/cpu");
-		sprintf(num,"%d",i);
-		strcat(char_buff,num);
-		strcat(char_buff,"/cpufreq/scaling_governor");
+		sprintf (char_buff,"echo userspace > /sys/devices/system/cpu/cpu");
+		sprintf (num,"%d",i);
+		strcat (char_buff,num);
+		strcat (char_buff,"/cpufreq/scaling_governor");
 		ret = system(char_buff);
 
     		if (WIFSIGNALED(ret) &&
         		(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
             	{
-			Log_output(0,"System call failed! WHAT!?\n");
-			exit(1);		
+			Log_output (0,"System call failed! WHAT!?\n");
+			exit (1);		
 		}
 
 		//now open the file descriptor
-		sprintf(char_buff,"/sys/devices/system/cpu/cpu");
-		sprintf(num,"%d",i);
-		strcat(char_buff,num);
-		strcat(char_buff,"/cpufreq/scaling_setspeed");
+		sprintf (char_buff,"/sys/devices/system/cpu/cpu");
+		sprintf (num,"%d",i);
+		strcat (char_buff,num);
+		strcat (char_buff,"/cpufreq/scaling_setspeed");
 		fp = fopen (char_buff,"w");
 
 		if(fp==NULL)
 		{
-			perror( "Error opening file" );
-        	    	printf( "Error opening file: %s\n", strerror( errno ) );
-			printf( "Perhaps you don't have sudo rights?\n");
+			perror ( "Error opening file" );
+        	    	printf ( "Error opening file: %s\n", strerror( errno ) );
+			printf ( "Perhaps you don't have sudo rights?\n");
 		}
 		handle->setFile[i]=fp;//file * opened so now we place it in the context
 	}
 
 	for(i=0; i<num_cores;i++)
 	{
-		handle->currentFreqs[i]=helperReadFreq(handle, i);
+		handle->currentFreqs[i]=helperReadFreq (handle, i);
 	}	
 
 	return handle;	
@@ -238,7 +237,7 @@ void changeFreq (SFreqData * context, int core, int i)
 		int j;
 		for(j=0;j<(context->numCores);j++)
 		{	
-			context->sampler[context->thisSample].time=getticks();
+			context->sampler[context->thisSample].time=getTicks ();
 			context->sampler[context->thisSample].freq=i;
 			context->sampler[context->thisSample].core=j;
 			context->thisSample++;
@@ -250,15 +249,15 @@ void changeFreq (SFreqData * context, int core, int i)
 
 
 
-			fseek(context->setFile[j],0,SEEK_SET);
-			fprintf(context->setFile[j],"%d\n",context->availableFreqs[i]);
-			fflush(context->setFile[j]);
+			fseek (context->setFile[j],0,SEEK_SET);
+			fprintf (context->setFile[j],"%d\n",context->availableFreqs[i]);
+			fflush (context->setFile[j]);
 			context->currentFreqs[j]=i;
 		}
 	}
 	else//just the core the decision maker wants
 	{	
-		context->sampler[context->thisSample].time=getticks();
+		context->sampler[context->thisSample].time=getTicks ();
 		context->sampler[context->thisSample].freq=i;
 		context->sampler[context->thisSample].core=core;
 		context->thisSample++;
@@ -269,9 +268,9 @@ void changeFreq (SFreqData * context, int core, int i)
 
 
 
-		fseek(context->setFile[core],0,SEEK_SET);
-		fprintf(context->setFile[core],"%d\n",context->availableFreqs[i]);
-		fflush(context->setFile[core]);
+		fseek (context->setFile[core],0,SEEK_SET);
+		fprintf (context->setFile[core],"%d\n",context->availableFreqs[i]);
+		fflush (context->setFile[core]);
 		context->currentFreqs[core]=i;
 	}
 	
@@ -283,45 +282,50 @@ void destroy_cpufreq (SFreqData * context)
 	int ret;
 	char char_buff[1024]="";
 	char num[10]="";
+	FILE * dumpfile;
+	int i;
 
 	for(j=0;j<(context->numCores);j++)
 	{	
-		fclose(context->setFile[j]);//first close our file descriptors;
+		fclose (context->setFile[j]);//first close our file descriptors;
 		//then set the govenor back to ondemand
-		sprintf(char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
-		sprintf(num,"%d",j);
-		strcat(char_buff,num);
-		strcat(char_buff,"/cpufreq/scaling_governor");
-		ret = system(char_buff);
+		sprintf (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
+		sprintf (num,"%d",j);
+		strcat (char_buff,num);
+		strcat (char_buff,"/cpufreq/scaling_governor");
+		ret = system (char_buff);
 
     		if (WIFSIGNALED(ret) &&
         		(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
             	{
-			Log_output(0,"System call failed! WHAT!?\n");
-			exit(1);		
+			Log_output (0,"System call failed! WHAT!?\n");
+			exit (1);		
 		}
 
-	}
-
-	//dump our samples to file
-	FILE * dumpfile;
-	dumpfile=fopen("frequency_dump.txt","a");
+		//dump our samples per core to a file
+		sprintf (char_buff,"frequency_dump");
+		strcat (char_buff,num);
+		strcat (char_buff,".txt");
+		dumpfile=fopen (char_buff,"a");
 	
-	fprintf(dumpfile,"Time, Core, Frequency\n");
+		fprintf (dumpfile,"Time, Core, Frequency\n");
+		for (i=0;i<context->thisSample;i++ )
+		{
+			if(context->sampler[i].core==j)
+			{		
+				fprintf (dumpfile,"%lld, %d, %d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
+			}		
+		}
+		fclose (dumpfile);
+		
 
-	int i;
-
-	for (i=0;i<context->thisSample;i++ )
-	{
-		fprintf(dumpfile,"%lld, %d, %d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
 	}
-	fclose(dumpfile);
 
 	//free up our memory
-	free(context->setFile);
-	free(context->availableFreqs);
-	free(context->currentFreqs);
-	free(context);
+	free (context->setFile);
+	free (context->availableFreqs);
+	free (context->currentFreqs);
+	free (context);
 
 	
 
