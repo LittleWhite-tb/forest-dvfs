@@ -18,21 +18,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-#include <Profilers.h>
-#include <ThreadedProfiler.h>
-#include <DecisionMaker.h>
+#include "Profilers.h"
+#include "ThreadedProfiler.h"
+#include "DecisionMaker.h"
+#include "Log.h"
+#include "rdtsc.h"
 
+#include <assert.h>
+#include <papi.h>
+#include <pthread.h>
 #define _GNU_SOURCE
 #include <sched.h>
 #include <stdio.h>
-#include <pthread.h>
-#include <papi.h>
-#include <assert.h>
-#include <rdtsc.h>
-#include <Log.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 
@@ -41,18 +41,88 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 
 
-static __inline__ unsigned long long getticks ( void )
+//internal declarations
+static void initPapiHelper ( int * EventSet, STPContext * handle);
+static __inline__ pid_t getTid (void);
+static __inline__ unsigned long long getTicks ( void );
+
+
+
+static __inline__ unsigned long long getTicks ( void )
 {
    unsigned long long ret;
    rdtscll (ret);
    return ret;
 }
 
-pid_t
-gettid(void)
+static __inline__ pid_t getTid (void)
 {
-	return (pid_t)syscall(__NR_gettid);
+	pid_t answer =  syscall (__NR_gettid);
+	return answer;
 }
+
+static void initPapiHelper ( int * EventSet, STPContext * handle)
+{
+
+	int codes[3];
+	int ret_code;
+	
+	if (PAPI_event_name_to_code ("SQ_FULL_STALL_CYCLES", &codes[0]) != PAPI_OK) 
+	{
+		Log_output (0,"PAPI even_name_to_code failed!\n");
+		exit (1);
+	}
+
+	if (PAPI_event_name_to_code ("UNHALTED_CORE_CYCLES", &codes[1]) != PAPI_OK) 
+	{
+		Log_output (0,"PAPI even_name_to_code failed!\n");
+		exit (1);
+	}
+	if (PAPI_event_name_to_code ("L2_RQSTS:MISS", &codes[2]) != PAPI_OK) 
+	{
+		Log_output (0,"PAPI even_name_to_code failed!\n");
+		exit (1);
+	}
+
+	/* Check to see if the PAPI natives are available */
+	if ((PAPI_query_event (codes[0]) != PAPI_OK) || (PAPI_query_event (codes[1]) != PAPI_OK) || (PAPI_query_event (codes[2]) != PAPI_OK)) 
+	{
+		Log_output (0,"PAPI counters aren't sufficient to measure boundedness!\n");
+		exit (1);
+	}
+
+	ret_code=PAPI_create_eventset ( EventSet );
+	if(PAPI_OK != ret_code)
+	{
+		Log_output (0,"Creating the PAPI create eventset failed:%d %s\n",ret_code, PAPI_strerror(ret_code));
+		exit (1);
+
+	}
+	ret_code=PAPI_add_events (*EventSet,codes, 3);
+	if(PAPI_OK != ret_code)
+	{
+		Log_output (0,"Adding the PAPI add eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
+		exit (1);
+	}
+
+	//This ensures that papi counters only reads the parent thread counters
+	ret_code=PAPI_attach (*EventSet, handle->parent);
+	if(PAPI_OK != ret_code)
+	{
+		Log_output (0,"Attaching the PAPI eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
+		exit (1);
+	}
+	return;
+}
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -72,11 +142,9 @@ void * profilerThread (void * ContextPtr)
 	int mycore=myHandle->core;
 
 	/*Papi related variables*/
-	PAPI_thread_id_t parentTid=myHandle->parent;//thread id used to pin
 	int EventSet = PAPI_NULL;
-	long_long values[2]= {0,0};
-	int codes[2];
-	int ret_code;
+	long_long values[3]= {0,0,0};
+	int ret_code=0;
 
 	/*Algorithm related variables*/
 	int algorithm=0;
@@ -96,55 +164,17 @@ void * profilerThread (void * ContextPtr)
 	dummy=fgets (freq_string, sizeof (freq_string), fp);
 	//make it an int	
 	myKHZ=atoi (freq_string);
-	printf("My frequency is %d KHZ\n",myKHZ);
+	printf ("My frequency is %d KHZ\n",myKHZ);
 	#endif
 
-	//first we initialize our decision maker
-	void * (* myInit)(void)=myHandle->myFuncs.initFunc;
-	myDM=myInit();
+	//first we initialize our decision maker functions and call the init
+	int (* myReporter) (void *, SProfReport *)=myHandle->myFuncs.reportFunc;
+	void * (* myInit) (void)=myHandle->myFuncs.initFunc;
+	myDM=myInit ();
 
 
-
-	if (PAPI_event_name_to_code("SQ_FULL_STALL_CYCLES", &codes[0]) != PAPI_OK) 
-	{
-		Log_output(0,"PAPI even_name_to_code failed!\n");
-		exit(1);
-	}
-
-	if (PAPI_event_name_to_code("UNHALTED_CORE_CYCLES", &codes[1]) != PAPI_OK) 
-	{
-		Log_output(0,"PAPI even_name_to_code failed!\n");
-		exit(1);
-	}
-
-	/* Check to see if the PAPI natives are available */
-	if ((PAPI_query_event (codes[0]) != PAPI_OK) || (PAPI_query_event (codes[1]) != PAPI_OK)) 
-	{
-		Log_output(0,"PAPI counters aren't sufficient to measure boundedness!\n");
-		exit(1);
-	}
-
-	ret_code=PAPI_create_eventset ( &EventSet );
-	if(PAPI_OK != ret_code)
-	{
-		Log_output(0,"Creating the PAPI create eventset failed:%d %s\n",ret_code, PAPI_strerror(ret_code));
-		exit(1);
-
-	}
-	ret_code=PAPI_add_events (EventSet,codes, 2);
-	if(PAPI_OK != ret_code)
-	{
-		Log_output(0,"Adding the PAPI add eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
-		exit(1);
-	}
-
-	//This ensures that papi counters only reads the parent thread counters
-	ret_code=PAPI_attach (EventSet, parentTid);
-	if(PAPI_OK != ret_code)
-	{
-		Log_output(0,"Attaching the PAPI eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
-		exit(1);
-	}
+	//call the papi helper to init stuff
+	initPapiHelper (  &EventSet, myHandle);
 
 	//initialize my report
 	myReport.prof_id=THREADED_PROFILER;
@@ -153,31 +183,24 @@ void * profilerThread (void * ContextPtr)
 	//we send back out kill signal address to the other thread to let it continue running
 	myHandle->killSig=&killSignal;
 
-	
-	if(PAPI_OK != PAPI_start(EventSet))
+	ret_code=PAPI_start (EventSet);
+	if(PAPI_OK != ret_code)
 	{
-		Log_output(5," PAPI start failed: %s\n",PAPI_strerror(ret_code));
+		Log_output (5," PAPI start failed: %s\n",PAPI_strerror(ret_code));
 	}
-	startTime=getticks ();
+	startTime=getTicks ();
 
 	
 	usleep (myWindow);
 	while (killSignal==0)
 	{
-		
-		int (* myReporter) (void *, SProfReport *)=myHandle->myFuncs.reportFunc;
-		float val1, val2;
+		float val1, val2, val3;
 
 		//get PAPI info from counters		
-		if(PAPI_OK != PAPI_accum(EventSet,values))
+		if(PAPI_OK != PAPI_accum (EventSet,values))
 		{
-			Log_output(5," PAPI accum failed: %s\n",PAPI_strerror(ret_code));
-		}
-		#ifdef PRINT_DEBUG
-			printf ("Total Cycles is %lld\n",values[1]);
-			printf ("Super Queue was full %lld\n",values[0]);
-			fflush(stdout);
-		#endif		
+			Log_output (5," PAPI accum failed: %s\n",PAPI_strerror(ret_code));
+		}	
 
 		//generate the bounded variable
 		if(values[0]==0 || values[1]==0)//no divide by zeros!
@@ -188,26 +211,34 @@ void * profilerThread (void * ContextPtr)
 		{
 			val1=values[0];
 			val2=values[1];	
-			privateBounded=2*val1/val2;
+			val3=values[2];
+			privateBounded=2*16*val1*val3/(val2*val2);
 			privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 		}
+
+		
+
+		//fill in the report
+		myReport.data.tp.bounded=privateBounded;
+		endTime=getTicks ();	
+		myReport.data.tp.ticks=endTime-startTime;
+
+		
+		#ifdef PRINT_DEBUG
+			printf ("Total Cycles is %lld\n",values[1]);
+			printf ("Super Queue was full %lld\n",values[0]);
+			printf ("L2 Misses is %lld\n",values[2]);
+			printf ("Debug: giving a report with bounded = %f, actual window=%f, expected the window to be %d\n",myReport.data.tp.bounded,
+				(float)myReport.data.tp.ticks * 1000 / (float) myKHZ,myWindow);//this math puts it in microsecond since we are usleeping now
+			fflush (stdout);
+		#endif
 
 		//reset my counters
 		values[0]=0;
 		values[1]=0;
-
-		//fill in the report
-		myReport.data.tp.bounded=privateBounded;
-		endTime=getticks();	
-		myReport.data.tp.ticks=endTime-startTime;
+		values[2]=0;
 
 		//give the report
-		#ifdef PRINT_DEBUG
-			printf ("Debug: giving a report with bounded = %f, actual window=%f, expected the window to be %d\n",myReport.data.tp.bounded,
-				(float)myReport.data.tp.ticks * 1000 / (float) myKHZ,myWindow);//this math puts it in microsecond since we are usleeping now
-		#endif
-
-
 		if (myReporter (myDM, &myReport))
 		{
 		  	myWindow=myReport.data.tp.nextTicks;
@@ -217,7 +248,7 @@ void * profilerThread (void * ContextPtr)
 		else
 		{
 			//self regulate
-			if(abs(lastBoundedValue - privateBounded)>THRESHOLD) 
+			if(abs (lastBoundedValue - privateBounded)>THRESHOLD) 
 			{
 				myWindow=FIRSTSLEEP;
 			}
@@ -228,7 +259,7 @@ void * profilerThread (void * ContextPtr)
 			}
 		}
 		lastBoundedValue=privateBounded;
-		startTime=getticks ();
+		startTime=getTicks ();
 		usleep (myWindow);
 	}
 
@@ -248,7 +279,7 @@ STPContext * threadedProfilerInit (SFuncsToUse funcPtrs)
 	retval=PAPI_library_init (PAPI_VER_CURRENT);
 	if (retval != PAPI_VER_CURRENT) 
 	{
-		Log_output(0,"PAPI library init error!\n");
+		Log_output (0,"PAPI library init error!\n");
 		exit (1);
 	}
 
@@ -257,18 +288,17 @@ STPContext * threadedProfilerInit (SFuncsToUse funcPtrs)
 	current_cpu=sched_getcpu ();
 
 	// register the thread specificier
-	/* @todo figure out why pthread_create breaks this but getpid works :-/ */
-	 if (PAPI_thread_init (gettid) != PAPI_OK)
+	 if (PAPI_thread_init (getTid) != PAPI_OK)
 	{
-		Log_output(0,"Thread init function didn't register properly\n");
+		Log_output (0,"Thread init function didn't register properly\n");
 	}
 
 	//allocate our context on the heap, check that we succeeded, and initialize it
-	handle= malloc(sizeof( * handle));
+	handle= malloc (sizeof ( * handle));
 	assert ( handle != NULL );
 	handle->killSig=NULL;
 	handle->core=current_cpu;
-	handle->parent=PAPI_thread_id();
+	handle->parent=PAPI_thread_id ();
 	handle->myFuncs=funcPtrs;
 	assert(pthread_create (&(handle->join_id),NULL,profilerThread,handle)==0);
 	//spin waiting for my child to init
@@ -285,10 +315,10 @@ void threadedProfilerDestroy (STPContext * prof)
 	*(prof->killSig)=1;
 	
 	//wait for profiler to die
-	pthread_join(prof->join_id,&dummy);
+	pthread_join (prof->join_id,&dummy);
 	
 	//clean up my context
-	free( prof);
+	free (prof);
 
 }
 	

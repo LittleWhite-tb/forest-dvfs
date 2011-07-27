@@ -172,7 +172,7 @@ STPContext *handle;
     Log_output (0, "REST Start\n");
 
 	#ifndef ORACLE_MODE
-	if(doing_rest && assigned_cpu==0)    
+	if(doing_rest)    
 	{
 		handle = profilerInit (profFuncs);
 	}	
@@ -375,7 +375,7 @@ STPContext *handle;
 
 
 	    #ifndef ORACLE_MODE
-	    if(doing_rest && assigned_cpu==0)
+	    if(doing_rest)
 	    {    	
 	    	profilerDestroy (handle), handle = NULL;
 	    }
