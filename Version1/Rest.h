@@ -22,7 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "DecisionMaker.h"
 #include "ThreadedProfiler.h"
 
-/**@brief this enumaration is used to specify the tool chain of REST
+/**
+ * @enum toolChainInit
+ * @brief this enumaration is used to specify the tool chain of REST
  * to be functionnal you have to choose one version of profiler in THREADED_PROFILER,WMAD_PROFILER 
  * then you have to chose a version of the decision maker to use in NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM
  * and at last you have to choose the frequency changer driver in FREQ_CHANGER*/
@@ -37,5 +39,6 @@ typedef enum _toolChainInit
 }toolChainInit;
 
 
-SFuncsToUse decisionFuncs; 
+void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
+void RestDestroy (toolChainInit profiler, void *ptr);
 #endif
