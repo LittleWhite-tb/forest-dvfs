@@ -34,7 +34,7 @@ void* naiveDecisionInit (void)
 	
 	//allocation
 	SaveData *savedData = malloc(sizeof(savedData));
-	savedData->sFreqData = init_cpufreq ();
+	savedData->sFreqData = initCpufreq ();
 	
 	savedData->freqCounter = (int **)malloc(savedData->sFreqData->numCores * sizeof(int *));
 	
@@ -114,7 +114,7 @@ void naiveDecisionDestruct(void* handle)
 		
 		savedData->freqCounter = NULL;
 		
-		destroy_cpufreq(savedData->sFreqData);
+		destroyCpufreq(savedData->sFreqData);
 	}
 	
 	handle = NULL;
