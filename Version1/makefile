@@ -1,4 +1,3 @@
-EXE=rest
 STATICLIB=rest.a
 DYNAMICLIB=librest.so
 CC=gcc
@@ -15,14 +14,13 @@ OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
 
 FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
 
-all: $(EXE)
-staticlib : $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
-	ar -rv $(STATICLIB) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
-dynamiclib : $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
-	gcc -o $(DYNAMICLIB) -shared $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+all: staticlib dynamiclib
 
-$(EXE):	$(FULL_OBJ)
-	$(CC) -o $(EXE) $(FULL_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+staticlib : $(FULL_OBJ)
+	ar -rv $(STATICLIB) $(FULL_OBJ)
+dynamiclib : $(FULL_OBJ)
+	gcc -o $(DYNAMICLIB) -shared $(FULL_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+
 
 $(PROFILER_OBJ):obj/%.o: Profiler/Src/%.c Profiler/Include/%.h 
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
