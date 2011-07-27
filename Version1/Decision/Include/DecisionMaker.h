@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /**< @brief profiler report that it will fill*/
 typedef struct sProfReport
 {
-	ProfDesc prof_id; /**< @brief the id of the profiler*/
+	EProfType prof_id; /**< @brief the id of the profiler*/
 	int proc_id; /**< @brief the id of the processor*/
 	ProfilerInfo data; /**< @brief struct of data relative to the profiler*/
 } SProfReport;

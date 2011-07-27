@@ -61,7 +61,7 @@ int decisionGiveReport (void *handle, SProfReport *report)
 {
 	if (report->prof_id == THREADED_PROFILER)
 	{
-		int currentCore = 0;
+		int currentCore = report->proc_id;
 		
 		//Put in variables easier to use
 		SaveData *savedData = handle;
@@ -91,7 +91,7 @@ int decisionGiveReport (void *handle, SProfReport *report)
 			
 			//change the frequency
 			Log_output(0, "changing frequency %d\n", newFrequency);
-			changeFreq (freqData, -1, newFrequency);
+			changeFreq (freqData, currentCore, newFrequency);
 		}
 	}
 	
