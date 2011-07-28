@@ -30,17 +30,53 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 void* naiveDecisionInit (void)
 {
+	SFreqData *freqData = initCpufreq ();
+	return freqData;
+}
+
+int naiveDecisionGiveReport (void *handle, SProfReport *report)
+{
+	SFreqData *freqData = handle;
+	int newFrequency = round ((int) (report->data.tp.bounded * freqData->numFreq));
+	
+	if (report->prof_id == THREADED_PROFILER)
+	{
+		//Too change: 0 only for now
+		if(newFrequency != readFreq(freqData, 0))
+		{
+			Log_output (0, "changing frequency %d\n", newFrequency);
+			changeFreq (freqData, -1, newFrequency);
+		}
+	}
+	
+	return 0;
+}
+
+void naiveDecisionDestruct(void* handle)
+{
+SFreqData *sFreqData = handle;
+	
+	if (handle != NULL)
+	{
+		destroyCpufreq (sFreqData);
+	}
+	
+	handle = NULL;
+}
+
+void* branchDecisionInit (void)
+{
 	int i, j;
 	
 	//allocation
-	SaveData *savedData = malloc(sizeof(savedData));
+	SaveData *savedData = malloc (sizeof (savedData));
 	savedData->sFreqData = initCpufreq ();
 	
-	savedData->freqCounter = (int **)malloc(savedData->sFreqData->numCores * sizeof(int *));
+	savedData->freqCounter = malloc(savedData->sFreqData->numCores * sizeof (int *));
 	
 	for(i = 0; i < savedData->sFreqData->numCores; i++)
 	{
-		savedData->freqCounter[i] = (int *)malloc(savedData->sFreqData->numFreq * sizeof(int));
+		savedData->freqCounter[i] = malloc (savedData->sFreqData->numFreq * sizeof (int));
 	}
 	
 	
@@ -57,7 +93,7 @@ void* naiveDecisionInit (void)
 	return savedData;
 }
 
-int naiveDecisionGiveReport (void *handle, SProfReport *report)
+int branchDecisionGiveReport (void *handle, SProfReport *report)
 {
 	if (report->prof_id == THREADED_PROFILER)
 	{
@@ -98,7 +134,7 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 	return 0;
 }
 
-void naiveDecisionDestruct(void* handle)
+void branchDecisionDestruct(void* handle)
 {
 	SaveData *savedData = handle;
 	

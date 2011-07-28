@@ -37,5 +37,14 @@ typedef enum _toolChainInit
 }toolChainInit;
 
 
+/**
+ * @brief initialize the rest system with the components you wish to use
+ * @param profiler specify the profiler you wish to use
+ * @param decisionMaker specify the decisionmaker you wish to use
+ * @param freqChanger specify the frequency changer you wish to use
+ **/
+void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
+
+
 SFuncsToUse decisionFuncs; 
 #endif

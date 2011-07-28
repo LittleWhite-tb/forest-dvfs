@@ -34,8 +34,9 @@ void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIni
 			decisionFuncs.reportFunc =  naiveDecisionGiveReport;
 			break;
 		case BRANCHPREDICT_DM:
-			fprintf(stderr, "Not yet implemented for now, please choose the NAIVE_DM \n");
-			assert(0);
+			decisionFuncs.initFunc =  branchDecisionInit;
+			decisionFuncs.destroyFunc = branchDecisionDestruct;
+			decisionFuncs.reportFunc =  branchDecisionGiveReport;
 			break;
 		case MARKOVPREDICT_DM:
 			fprintf(stderr, "Not yet implemented for now, please choose the NAIVE_DM \n");
