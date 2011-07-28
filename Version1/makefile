@@ -38,7 +38,7 @@ $(MAIN_OBJ):obj/%.o: %.c %.h
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 clean:
-	rm $(OBJ) $(EXE) obj/*o tmp Log.txt doxygen_warn `find . -name "*~"` output/* *out 2> /dev/null || echo "Done cleaning"
+	rm $(OBJ) $(EXE) obj/*o tmp Log.txt doxygen_warn librest.so rest.a `find . -name "*~"` output/* *out 2> /dev/null || echo "Done cleaning"
 
 count:
 	wc `find . -name "*\.c"|grep -v utils` `find . -name "*\.h"|grep -v utils` 
