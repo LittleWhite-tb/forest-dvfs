@@ -118,18 +118,6 @@ static void initPapiHelper ( int * EventSet, STPContext * handle)
 
 
 
-
-
-
-
-
-
-
-/**
- * @brief core runtime routine
- * @param ContextPtr pointer to my parents data
- **/
-
 void * profilerThread (void * ContextPtr)
 {
 

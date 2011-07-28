@@ -19,9 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef H_THREADEDPROFILER
 #define H_THREADEDPROFILER
 
-#include <pthread.h>
 #include <papi.h>
-
+#include <pthread.h>
 
 #define THRESHOLD (.05)
 #define FIRSTSLEEP (600)  
