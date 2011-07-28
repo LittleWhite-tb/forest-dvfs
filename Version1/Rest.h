@@ -43,7 +43,7 @@ typedef enum _toolChainInit
  * @param decisionMaker specify the decisionmaker you wish to use
  * @param freqChanger specify the frequency changer you wish to use
  **/
-void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
+void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
 
 
 SFuncsToUse decisionFuncs; 
