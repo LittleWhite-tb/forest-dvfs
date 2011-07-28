@@ -37,7 +37,7 @@ static __inline__ unsigned long long getTicks (void)
 
 
 //this function is implemented with a high overhead! So we Only read the frequency once and then store it somewhere.
-int helperReadFreq (SFreqData * context, int procId)
+static int helperReadFreq (SFreqData * context, int procId)
 {
 	char bashCmd[1024]="";
 	char core[3];
@@ -83,7 +83,7 @@ int helperReadFreq (SFreqData * context, int procId)
 }
 
 
-SFreqData * init_cpufreq (void)
+SFreqData * initCpufreq (void)
 {
 
 	SFreqData * handle;
@@ -276,7 +276,7 @@ void changeFreq (SFreqData * context, int core, int i)
 	
 }
 
-void destroy_cpufreq (SFreqData * context)
+void destroyCpufreq (SFreqData * context)
 {
 	int j;
 	int ret;
