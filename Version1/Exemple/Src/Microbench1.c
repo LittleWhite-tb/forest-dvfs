@@ -1,15 +1,24 @@
+//This define and include must come first for the macros CPU_ZERO and CPU_SET to be defined properly  
+#define _GNU_SOURCE
+#include <sched.h>
 
-#include "Microbench1.h"
 
-
-#include "Log.h"
-#include "ThreadedProfiler.h"
-#include "DecisionMaker.h"
 #include "Frequency_Mod.h"
+#include "Microbench1.h"
+#include "Rest.h"
+#include "../power/timer.h"
+#include "rdtsc.h"
 
-
+#include <assert.h>
+#include <ctype.h>
+#include <dlfcn.h>
 #include <errno.h>
-
+#include <fcntl.h>
+#include <getopt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 //#define ORACLE_MODE
 
@@ -28,25 +37,7 @@ struct timestamp
 	int bound; //1= switching to compute bound 2= switching to memory bound
 };
 
-struct timestamp samples[NUMSAMP];
-int mysample=0;
 
-
-SFreqData * FreqStuff;
-
-
-
-int assigned_cpu=0;
-float expected_loop_interval=1000;//this variable is for anticapted ms for each loops interval
-int numcores;
-int opt;
-
-
-double energy_start,energy_stop;
-void * dlinit_func;
-void * dlclose_func;
-void * dlstart_func;
-void * dlstop_func;
 
 //class __attribute__((aligned(16))) 
 double DummyVec1[12]={1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
@@ -55,15 +46,6 @@ double DummyVec2[12]={1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 double BigVec[MEM_BOUND_FOOTPRINT*32];
 static unsigned int g_seed; 
 
-
-//These ratios are guedron specific... the first is the ratio of the loop bounds.. the second is the product of inner and outer loops
-long cpu_2_mem_ratio=3793110/85;
-long updown_mem_product=5000*32;
-
-
-long outer_loop_bound;
-long cpu_iters=(268435456); //these are the old default values
-long mem_iters=(92);
 
 static struct option option_list[] = {
 {"r", 0, 0, 'r'},
@@ -76,19 +58,15 @@ static struct option option_list[] = {
 };
 
 
-static __inline__ unsigned long long getticks(void)
+static __inline__ unsigned long long getTicks(void)
 {
    unsigned long long ret;
    rdtscll(ret);
    return ret;
 }
 
-
-
-
-
    
-inline void fast_srand() 
+static __inline__ void fastSrand() 
     
 { 
     
@@ -97,7 +75,7 @@ inline void fast_srand()
 } 
   
    
-inline int fastrand() 
+static __inline__ int fastRand() 
     
 { 
     
@@ -122,6 +100,36 @@ int main(int argc,char ** argv)
 	unsigned long long memtime=0;
 	unsigned long long cputime=0;
 
+	//used for recording when we transition between compute and memory bound
+	struct timestamp samples[NUMSAMP];
+	int mysample=0;
+
+	//used for manually changing frequencies
+	SFreqData * FreqStuff;
+
+	int assigned_cpu=0;
+	float expected_loop_interval=1000;//this variable is for anticapted ms for each loops interval
+	int numcores;
+	int opt;
+
+	//used by power meter to get functions dynamically and use them
+	double energy_start,energy_stop;
+	void * dlinit_func;
+	void * dlclose_func;
+	void * dlstart_func;
+	void * dlstop_func;
+
+	//handle for the Rest system
+	void * restHandle;
+
+	//These ratios are guedron specific... the first is the ratio of the loop bounds.. the second is the product of inner and outer loops
+	long cpu_2_mem_ratio=3793110/85;
+	long updown_mem_product=5000*32;
+
+
+	long outer_loop_bound;
+	long cpu_iters=(268435456); //these are the old default values
+	long mem_iters=(92);
 	
    //parse options
        int c;
@@ -159,8 +167,7 @@ int main(int argc,char ** argv)
            default:
              printf("Running on default CPU0\n");
            }
-STPContext *handle;
-	SFuncsToUse profFuncs={decisionInit,decisionDestruct, decisionGiveReport};
+
 
     //Set logger
     Log_setOutput (stderr);
@@ -171,14 +178,7 @@ STPContext *handle;
     //now start!
     Log_output (0, "REST Start\n");
 
-	#ifndef ORACLE_MODE
-	if(doing_rest)    
-	{
-		handle = profilerInit (profFuncs);
-	}	
-	#else
-	FreqStuff= init_cpufreq();
-	#endif
+	
    
 	
 
@@ -192,11 +192,8 @@ STPContext *handle;
 	int current_cpu;
 	current_cpu=sched_getcpu();
 
-	assert(assigned_cpu==current_cpu);
+	assert (assigned_cpu==current_cpu);
 	//link in the power meter functions if you're cpu 0
-
-
-
 	if(assigned_cpu==0)
 	{
 		
@@ -220,9 +217,11 @@ STPContext *handle;
 		
 		init_func();
 		energy_start=start_func();
-		start_time=getticks();
+		start_time=getTicks();
 		
 	}
+
+	
 
 	//touch the file so the script spawns the children
 	if(assigned_cpu==0)
@@ -231,9 +230,18 @@ STPContext *handle;
 		fp=fopen("/tmp/rest","w");
 		fclose(fp);
 	}
+
+	#ifndef ORACLE_MODE
+	if(doing_rest)    
+	{
+		restHandle= RestInit(T_PROFILER, NAIVE_DM, FREQ_CHANGER);
+	}	
+	#else
+	FreqStuff= initCpufreq();
+	#endif
 	
 	//we seed random number generator
-	fast_srand();
+	fastSrand();
  
 	//calculate loop bounds
 	NUM_UP_DOWN=(60*1000)/(expected_loop_interval*2);//60 second in ms divded by the expected loop interval (mult by 2 because we do compute and memory loops)
@@ -271,13 +279,13 @@ STPContext *handle;
 			}
 			#endif
 			
-			samples[mysample].time=getticks();
+			samples[mysample].time=getTicks();
 			samples[mysample].bound=1;
 			mysample++;
 			mysample=(mysample>=NUMSAMP)?NUMSAMP-1:mysample;
 
 			
-			cputime-=getticks();
+			cputime-=getTicks();
 			int j;	
 			double temp[4];
 			//force everything to stay in registers and unroll
@@ -298,7 +306,7 @@ STPContext *handle;
 			DummyVec2[2]=temp[2];
 			DummyVec2[3]=temp[3];
 
-		cputime+=getticks();
+		cputime+=getTicks();
 		}
 		//printf("Switching to Memory Bound on CPU %d\n",current_cpu);
 		//Now we do something mem bound
@@ -323,12 +331,12 @@ STPContext *handle;
 			}
 			#endif
 			
-			samples[mysample].time=getticks();
+			samples[mysample].time=getTicks();
 			samples[mysample].bound=2;
 			mysample++;
 			mysample=(mysample>=NUMSAMP)?NUMSAMP-1:mysample;
 			
-			memtime-=getticks();
+			memtime-=getTicks();
 			int j;
 			int index;
 			int k;
@@ -336,11 +344,11 @@ STPContext *handle;
 			for(j=0;j<MEM_BOUND_ITER;j++)
 			{
 				
-				memcpy(&BigVec[fastrand()%(MEM_BOUND_FOOTPRINT*31)],&BigVec[fastrand()%(MEM_BOUND_FOOTPRINT*31)],
+				memcpy(&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],
 					MEM_BOUND_FOOTPRINT/2*sizeof(*BigVec));
 				
 			}
-			memtime+=getticks();
+			memtime+=getTicks();
 		}
 		
 	}
@@ -349,7 +357,7 @@ STPContext *handle;
 	if(assigned_cpu==0)
 	{
 
-		end_time=getticks();
+		end_time=getTicks();
 		unsigned long long (* close_func)(void)=dlclose_func;
 		double (* stop_func)(void)=dlstop_func;	
 		energy_stop=stop_func();
@@ -377,10 +385,10 @@ STPContext *handle;
 	    #ifndef ORACLE_MODE
 	    if(doing_rest)
 	    {    	
-	    	profilerDestroy (handle), handle = NULL;
+	    	RestDestroy (T_PROFILER, restHandle), restHandle = NULL;
 	    }
 	    #else
-	    destroy_cpufreq(FreqStuff);
+	    destroyCpufreq(FreqStuff);
 	    #endif
 
 
