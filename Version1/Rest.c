@@ -62,3 +62,5 @@ void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIni
 	profilerDestroyFunction(handle);
 	
 }
+
+/*@todo add the destroy function*/
