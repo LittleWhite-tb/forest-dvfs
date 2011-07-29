@@ -2,9 +2,9 @@ CC=gcc
 
 MAIN_OBJ := $(patsubst Src/%.c,obj/%.o,$(wildcard Src/*.c))
 EXE := $(patsubst Src/%.c,%,$(wildcard Src/*.c))
-LIBS = -L.. -lpthread -lpapi -ldl -lrest
+LIBS = -L../.. -lpthread -lpapi -ldl -lrest
 
-OPT_INCLUDE = -I../ -I./Include -I../FreqChange/Include/ -I../Profiler/Include/ -I../Common/Include/
+OPT_INCLUDE = -I../../ -I./Include -I../../FreqChange/Include/ -I../../Profiler/Include/ -I../../Decision/Include -I../../Common/Include/
 CFLAGS = -DX86
 
 all: $(EXE)
