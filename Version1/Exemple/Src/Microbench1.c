@@ -53,6 +53,7 @@ static struct option option_list[] = {
 {"m", 0, 0, 'm'},
 {"c", 1, 0, 'c'},
 {"i", 1, 0, 'i'},
+{"d", 1, 0, 'd'},
 {0,0,0,0}
 
 };
@@ -108,6 +109,7 @@ int main(int argc,char ** argv)
 	SFreqData * FreqStuff;
 
 	int assigned_cpu=0;
+	int choose_dm=1;
 	float expected_loop_interval=1000;//this variable is for anticapted ms for each loops interval
 	int numcores;
 	int opt;
@@ -154,6 +156,9 @@ int main(int argc,char ** argv)
 	   case 'p':
              proc_bound_only = 1;
              break; 
+       case 'd':
+             choose_dm = atoi(optarg);
+             break;
            case '?':
              if (optopt == 'c')
                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -199,7 +204,7 @@ int main(int argc,char ** argv)
 		
 		void * dl;	
 	
-		dl = dlopen ("../power/timer.so", RTLD_NOW);
+		dl = dlopen ("../../power/timer.so", RTLD_NOW);
 		if (dl == NULL)
 		{
 		    printf("The power meter dynamic library could not be linked... please locate timer.so\n");
@@ -232,9 +237,24 @@ int main(int argc,char ** argv)
 	}
 
 	#ifndef ORACLE_MODE
+
+
 	if(doing_rest)    
 	{
-		restHandle= RestInit(T_PROFILER, NAIVE_DM, FREQ_CHANGER);
+		if(choose_dm==1)
+		{
+			
+			restHandle= RestInit(T_PROFILER, NAIVE_DM, FREQ_CHANGER);
+		}
+		else if (choose_dm==2)
+		{
+			restHandle= RestInit(T_PROFILER, BRANCHPREDICT_DM, FREQ_CHANGER);
+		}
+		else
+		{
+			Log_output (0, "-d option was incorrect choose 1 or 2\n");
+			exit (1);
+		}
 	}	
 	#else
 	FreqStuff= initCpufreq();
