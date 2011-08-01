@@ -6,7 +6,7 @@
 #include "esrv/esrv_lib.h"
 #include "timer.h"
 
-#define CONFIGURATION_NAME "../power/esrv/config_y210.txt"
+#define CONFIGURATION_NAME "../../power/esrv/config_y210.txt"
 
 static ESRV_LIB_DATA reading;
 
