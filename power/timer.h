@@ -10,7 +10,6 @@
 #define H_TIMER
 
 #include "defines.h"
-//#error this actually got included
 
 unsigned long long timer_init (void);
 unsigned long long timer_close (void);
