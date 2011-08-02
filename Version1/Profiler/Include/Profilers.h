@@ -39,8 +39,9 @@ typedef struct sThreadProfiler
 {
 			float bounded;/**< @brief This variable is between 0 and 1 where 0 is compute bound and 1 is memory bound*/
 			int ticks;/**< @brief This is the size of the report's window in cycles*/
+			int window; /**< @brief this is the size of the report's window in usleep value*/
 			int algorithm;/**< @brief This just tells us what our new ProfDesc is and also what we are instrumenting*/
-			int nextTicks;/**< @brief This is the requested size of the next report's window in cycles*/
+			int nextWindow;/**< @brief This is the requested size of the next report's window in in usleep values*/
 }SThreadProfiler;
 
 

@@ -19,9 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef H_REST
 #define H_REST
 
-#include "DecisionMaker.h"
-#include "ThreadedProfiler.h"
-
 /**
  * @enum toolChainInit
  * @brief this enumaration is used to specify the tool chain of REST
@@ -55,6 +52,6 @@ void * RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainI
  **/
 void RestDestroy (toolChainInit profiler, void *ptr);
 
-SFuncsToUse decisionFuncs; 
+ 
 
 #endif

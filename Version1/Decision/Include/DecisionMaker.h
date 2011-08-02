@@ -63,5 +63,22 @@ void branchDecisionDestruct (void *);
  **/
 int branchDecisionGiveReport (void *data, SProfReport *profiler);
 
+/**
+ * @brief init the decision maker
+ **/
+void * markovDecisionInit (void);
+
+/**
+ * @brief free all that has to be free
+ */
+void markovDecisionDestruct (void *);
+
+/**
+ * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
+ * @param profiler the report to give
+ * @param data a handle to the Decision Maker context
+ **/
+int markovDecisionGiveReport (void *data, SProfReport *profiler);
+
 
 #endif 

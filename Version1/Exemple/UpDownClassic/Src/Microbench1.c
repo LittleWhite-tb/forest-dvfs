@@ -204,7 +204,7 @@ int main(int argc,char ** argv)
 		
 		void * dl;	
 	
-		dl = dlopen ("../../power/timer.so", RTLD_NOW);
+		dl = dlopen ("../../../power/timer.so", RTLD_NOW);
 		if (dl == NULL)
 		{
 		    printf("The power meter dynamic library could not be linked... please locate timer.so\n");
@@ -239,7 +239,7 @@ int main(int argc,char ** argv)
 	#ifndef ORACLE_MODE
 
 
-	if(doing_rest)    
+	if(doing_rest && assigned_cpu==0)    
 	{
 		if(choose_dm==1)
 		{
@@ -403,7 +403,7 @@ int main(int argc,char ** argv)
 
 
 	    #ifndef ORACLE_MODE
-	    if(doing_rest)
+	    if(doing_rest && assigned_cpu==0)
 	    {    	
 	    	RestDestroy (T_PROFILER, restHandle), restHandle = NULL;
 	    }

@@ -17,14 +17,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 #include <assert.h>
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
 
-#include "Frequency_Mod.h"
-#include "define.h"
-#include "Log.h"
-#include "DecisionProcess.h"
 #include "DecisionMaker.h"
+#include "DecisionProcess.h"
+#include "Frequency_Mod.h"
+#include "Log.h"
+//#include "Markov_struct.h"
+#include "ThreadedProfiler.h"
 
 #define DECISION_MAKER_SEARCH 0
 
@@ -38,6 +39,7 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 {
 	SFreqData *freqData = handle;
 	int newFrequency = round ((int) (report->data.tp.bounded * freqData->numFreq));
+	int currentCore = report->proc_id;
 	
 	if (report->prof_id == THREADED_PROFILER)
 	{
@@ -45,7 +47,15 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 		if(newFrequency != readFreq(freqData, 0))
 		{
 			Log_output (0, "changing frequency %d\n", newFrequency);
-			changeFreq (freqData, -1, newFrequency);
+			changeFreq (freqData, currentCore, newFrequency);
+			report->data.tp.nextWindow=FIRSTSLEEP;
+			return 1;
+		}
+		else
+		{
+			report->data.tp.nextWindow=report->data.tp.window*2;
+			report->data.tp.nextWindow=(report->data.tp.nextWindow>LONGESTSLEEP)?report->data.tp.nextWindow:LONGESTSLEEP;
+			return 1;
 		}
 	}
 	
@@ -151,6 +161,53 @@ void branchDecisionDestruct(void* handle)
 		savedData->freqCounter = NULL;
 		
 		destroyCpufreq(savedData->sFreqData);
+	}
+	
+	handle = NULL;
+}
+
+void* markovDecisionInit (void)
+{
+	SFreqData *freqData = initCpufreq ();
+	
+	return freqData;
+}
+
+int markovDecisionGiveReport (void *handle, SProfReport *report)
+{
+	SFreqData *freqData = handle;
+	int newFrequency = round ((int) (report->data.tp.bounded * freqData->numFreq));
+	int currentCore = report->proc_id;
+	
+	if (report->prof_id == THREADED_PROFILER)
+	{
+		//Too change: 0 only for now
+		if(newFrequency != readFreq(freqData, 0))
+		{
+			Log_output (0, "changing frequency %d\n", newFrequency);
+			changeFreq (freqData, -1, newFrequency);
+			//changeFreq (freqData, currentCore, newFrequency);
+			report->data.tp.nextWindow=FIRSTSLEEP;
+			return 1;
+		}
+		else
+		{
+			report->data.tp.nextWindow=report->data.tp.window*2;
+			report->data.tp.nextWindow=(report->data.tp.nextWindow>LONGESTSLEEP)?report->data.tp.nextWindow:LONGESTSLEEP;
+			return 1;
+		}
+	}
+	
+	return 0;
+}
+
+void markovDecisionDestruct(void* handle)
+{
+SFreqData *sFreqData = handle;
+	
+	if (handle != NULL)
+	{
+		destroyCpufreq (sFreqData);
 	}
 	
 	handle = NULL;
