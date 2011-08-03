@@ -163,7 +163,7 @@ typedef struct sMarkov {
 	SNode **cur;		//Pointers on the graph
 	int iter;		//Index on the cur table, used in the construct function
 
-	void (*fct) (struct sMarkov *, SGlobalAdd*);	//Function that will be used by the programs that want to be optimized
+	SGlobalAdd* (*fct) (struct sMarkov *, SGlobalAdd*);	//Function that will be used by the programs that want to be optimized
 
 
 	int fct_ttlmax;		//Maximum Time to live for the construction function

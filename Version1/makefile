@@ -7,12 +7,13 @@ PROFILER_OBJ := $(patsubst Profiler/Src/%.c,obj/%.o,$(wildcard Profiler/Src/*.c)
 COMMON_OBJ := $(patsubst Common/Src/%.c,obj/%.o,$(wildcard Common/Src/*.c))
 DECISION_OBJ := $(patsubst Decision/Src/%.c,obj/%.o,$(wildcard Decision/Src/*.c))
 FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Src/*.c))
+MARKOV_OBJ := $(patsubst Markov/Src/%.c,obj/%.o,$(wildcard Markov/Src/*.c))
 LIBS = -lpthread -lpapi -ldl
 
-OPT_INCLUDE = -IProfiler/Include -IDecision/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include
+OPT_INCLUDE = -IProfiler/Include -IDecision/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include  -IMarkov/Include
 OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
 
-FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ)
+FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(MARKOV_OBJ)
 
 all: staticlib dynamiclib
 
@@ -32,6 +33,9 @@ $(DECISION_OBJ):obj/%.o: Decision/Src/%.c Decision/Include/%.h
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(FREQCHANGE_OBJ):obj/%.o: FreqChange/Src/%.c FreqChange/Include/%.h 
+	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
+
+$(MARKOV_OBJ):obj/%.o: Markov/Src/%.c Markov/Include/%.h 
 	$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(MAIN_OBJ):obj/%.o: %.c %.h

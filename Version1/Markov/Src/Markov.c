@@ -1,4 +1,4 @@
-#include "Markov_struct.h"
+#include "Markov.h"
 
 /*
   This code builds a framework that helps model a program's behaviour. It is programmed
@@ -31,14 +31,16 @@ static SNode* Markov_CreatePredictionNode(SMarkov* m);
 static SNode* Markov_SearchNode(SGlobalAdd* info,SBinNode* n);
 static SNode* Markov_SearchOrAddNode(SMarkov* m, SGlobalAdd* info);
 static SNode* Markov_AddGraphNode(SMarkov* m,SNode* n, SGlobalAdd* info);
-static void Markov_FirstCall(SMarkov* m, SGlobalAdd* info);
-static void Markov_ConstructBegin(SMarkov* m, SGlobalAdd* info);
-static void Markov_Construct(SMarkov* m, SGlobalAdd* info);
-static void Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info);
+static SGlobalAdd* Markov_FirstCall(SMarkov* m, SGlobalAdd* info);
+static SGlobalAdd* Markov_ConstructBegin(SMarkov* m, SGlobalAdd* info);
+static SGlobalAdd* Markov_Construct(SMarkov* m, SGlobalAdd* info);
+static SGlobalAdd* Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info);
 static void Markov_CalcInfoPred(int pref_dist, SNode* n);
-static inline void Markov_PrefetchItNoReally(SGlobalAdd* x);
-static void Markov_Idle(SMarkov* m, SGlobalAdd* info);
-static void Markov_Predict(SMarkov* m,SGlobalAdd* info);
+
+#define Markov_PrefetchItNoReally(x) {return x;} //using a macro to hack the code for REST
+//static inline void Markov_PrefetchItNoReally(SGlobalAdd* x);
+static SGlobalAdd* Markov_Idle(SMarkov* m, SGlobalAdd* info);
+static SGlobalAdd* Markov_Predict(SMarkov* m,SGlobalAdd* info);
 static void Markov_UpdateVisits(SNode* n);
 static void Markov_OutputPredictionTree(SMarkov* m, SNode* n, int depth);
 static void Markov_OutputBinaryTree(SMarkov* m,SBinNode* n);
@@ -635,7 +637,7 @@ static SNode* Markov_AddGraphNode(SMarkov* m,SNode* n, SGlobalAdd* info)
 
 
 //first call, used to put m->adress in place
-static void Markov_FirstCall(SMarkov* m, SGlobalAdd* info)
+static SGlobalAdd* Markov_FirstCall(SMarkov* m, SGlobalAdd* info)
 {
 	DPRINTF("Module markov FirstCall()\n");
 
@@ -650,10 +652,11 @@ static void Markov_FirstCall(SMarkov* m, SGlobalAdd* info)
 #ifdef __OPT_VERIF__
 	m->cnt_calls++;
 #endif
+	return NULL;
 }
 
 
-static void Markov_ConstructBegin(SMarkov* m, SGlobalAdd* info)
+static SGlobalAdd* Markov_ConstructBegin(SMarkov* m, SGlobalAdd* info)
 {
 	//if we are at the beginning of the construction phase, the process is slightly different
 	//which explains two construction procedures...
@@ -708,11 +711,12 @@ static void Markov_ConstructBegin(SMarkov* m, SGlobalAdd* info)
 		m->iter = m->depth-1;
 		m->fct = &Markov_Construct;
 	}
+	return NULL;
 }
 
 //Second phase of the construction of the prediction graph
 //We have the Markovian model and the address that has been accessed
-static void Markov_Construct(SMarkov* m, SGlobalAdd* info)
+static SGlobalAdd* Markov_Construct(SMarkov* m, SGlobalAdd* info)
 {
 	int i,j;
 	SNodeList* ltmp,*ltmp2;
@@ -898,7 +902,7 @@ static void Markov_Construct(SMarkov* m, SGlobalAdd* info)
 		m->fct = &Markov_Idle;
 		m->fct_ttl=0;
 
-		return;
+		return NULL;
 	}
 #endif
 
@@ -929,10 +933,11 @@ static void Markov_Construct(SMarkov* m, SGlobalAdd* info)
 
 #endif
 	}
+return NULL;
 }
 
 //Special case for construction depth of 1
-static void Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info)
+static SGlobalAdd* Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info)
 {
 	SNode* ntmp;
 	SNodeList* ltmp, *ltmp2;
@@ -955,7 +960,7 @@ static void Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info)
 	//special case
 	if(!m->cur[0]) {
 		m->cur[0] = Markov_SearchOrAddNode(m,info);
-		return;
+		return NULL;
 	}
 
 	//This version is simple just use the rech_ou_ajoute function
@@ -1016,7 +1021,7 @@ static void Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info)
 				//we do not really take care of this problem yet...
 				//in general, it should not happen
 				printf("Allocate problem 2 in construct\n");
-				return;
+				return NULL;
 			}
 
 			//link this new edge to the list
@@ -1066,7 +1071,7 @@ static void Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info)
 		Markov_Reset(m);
 		m->fct = &Markov_Idle;
 		m->fct_ttl=0;
-		return;
+		return NULL;
 	}
 #endif
 
@@ -1085,6 +1090,7 @@ static void Markov_ConstructDepth1(SMarkov* m, SGlobalAdd* info)
 		//This is done because predict will only use m->cur[0]
 		DPRINTF("Construction finished, created\n");
 	}
+	return NULL;
 }
 
 //calculates the address to be fetched, using the value of pref_dist to determine the how far in the future do we go
@@ -1123,8 +1129,11 @@ static void Markov_CalcInfoPred(int pref_dist, SNode* n)
 }
 
 //inline prefetch function
+/* commented out for REST... replaced by macro at top of file
+
 static inline void Markov_PrefetchItNoReally(SGlobalAdd* x)
-{
+{*/
+
 	//only lfetch
 	/*
 	 __asm__ __volatile__ (
@@ -1133,7 +1142,7 @@ static inline void Markov_PrefetchItNoReally(SGlobalAdd* x)
 	 ::"r" (x)
 	 );
 	 */
-}
+//}
 
 /*
  Verification functions
@@ -1215,14 +1224,15 @@ static void Markov_CommitPred(SMarkov* m, SGlobalAdd* info)
 }
 #endif
 
-static void Markov_Idle(SMarkov* m, SGlobalAdd* info)
+static SGlobalAdd* Markov_Idle(SMarkov* m, SGlobalAdd* info)
 {
 	//idle function...
+	return NULL;
 }
 
 
 //predict is the function for the prediction phase
-static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
+static SGlobalAdd* Markov_Predict(SMarkov* m,SGlobalAdd* info)
 {
 	SNode* tmp ,*tmp2;
 	SNodeList* ltmp;
@@ -1253,7 +1263,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 			printf("A flush\n");
 #endif
 			Markov_Reset(m);
-			return;
+			return NULL;
 		}
 
 	} else {
@@ -1317,7 +1327,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 					Markov_PrefetchItNoReally(&tmp2->predInfo);
 				#endif
 			#endif
-			return;
+			return NULL;
 		}
 
 		//if we are here then it is not the most followed edge,
@@ -1369,7 +1379,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 					printf("Flushing\n");
 				#endif
 				Markov_Reset(m);
-				return;
+				return NULL;
 			}
 
 			#ifdef __PREFETCH__
@@ -1387,7 +1397,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 					Markov_PrefetchItNoReally(&tmp2->predInfo);
 				#endif
 			#endif
-			return;
+			return NULL;
 		}
 
 		//if we still have not found the son than we try with this one
@@ -1442,7 +1452,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 					printf("A Flush\n");
 				#endif
 				Markov_Reset(m);
-				return;
+				return NULL;
 			}
 
 			//we predict
@@ -1460,7 +1470,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 					Markov_PrefetchItNoReally(&tmp2->predInfo);
 				#endif
 			#endif
-			return;
+			return NULL;
 		}
 
 		//We check the other sons
@@ -1488,7 +1498,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 					printf("Flushing\n");
 				#endif
 				Markov_Reset(m);
-				return;
+				return NULL;
 			}
 
 		//we try to find a root node with the same label
@@ -1586,6 +1596,7 @@ static void Markov_Predict(SMarkov* m,SGlobalAdd* info)
 			#endif
 		}
 	}
+return NULL;
 }
 
 /*
