@@ -83,10 +83,13 @@ void* branchDecisionInit (void)
 	savedData->sFreqData = initCpufreq ();
 	
 	savedData->freqCounter = malloc(savedData->sFreqData->numCores * sizeof (int *));
-	
+
+		
+
 	for(i = 0; i < savedData->sFreqData->numCores; i++)
 	{
 		savedData->freqCounter[i] = malloc (savedData->sFreqData->numFreq * sizeof (int));
+
 	}
 	
 	
@@ -107,15 +110,21 @@ int branchDecisionGiveReport (void *handle, SProfReport *report)
 {
 	if (report->prof_id == THREADED_PROFILER)
 	{
-		int currentCore = report->proc_id;
+		
 		
 		//Put in variables easier to use
 		SaveData *savedData = handle;
 		SFreqData *freqData = savedData->sFreqData;
+
+		int currentCore = report->proc_id;
+		assert(currentCore < freqData->numCores);
+		
 		
 		//Take new information on the frequency that we should move to and the current date
 		//to say that we wanted to move to it
 		int newFrequency = round((int) (report->data.tp.bounded * freqData->numFreq));
+		newFrequency=(newFrequency==freqData->numFreq)?newFrequency-1:newFrequency;
+		assert (newFrequency>=0 && newFrequency<freqData->numFreq);
 		int distance_frequecies = abs(newFrequency - freqData->currentFreqs[currentCore]);
 		
 		//Increase the number of time that we call for this frequency
@@ -148,10 +157,11 @@ void branchDecisionDestruct(void* handle)
 {
 	SaveData *savedData = handle;
 	
+	
 	if (handle != NULL)
 	{
 		int i;
-		
+	
 		for(i = 0; i < savedData->sFreqData->numCores; i++)
 		{
 			free(savedData->freqCounter[i]);
