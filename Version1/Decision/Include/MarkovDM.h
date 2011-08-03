@@ -16,26 +16,27 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef DECISIONPROCESS_H
-#define DECISIONPROCESS_H
+#ifndef H_MARKOVDM
+#define H_MARKOVDM
 
-#include "Frequency_Mod.h"
-
-/**
- * @struct saveData
- * @brief data to keep betweens calls
-**/
-typedef struct saveData
-{
-	SFreqData *sFreqData;/** @brief frequency's data**/
-	int **freqCounter;/** @brief the number of time we call each frequency for each core**/
-} SaveData;
-
+#include "DecisionStructures.h"
 
 /**
- * @brief decide which algorithm we have to process
- **/ 
-void decisionAlgorithm ();
+ * @brief init the markov based decision maker
+ **/
+void * markovDecisionInit (void);
+
+/**
+ * @brief free all that has to be free
+ */
+void markovDecisionDestruct (void *);
+
+/**
+ * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
+ * @param profiler the report to give
+ * @param data a handle to the Decision Maker context
+ **/
+int markovDecisionGiveReport (void *data, SProfReport *profiler);
 
 
 #endif 

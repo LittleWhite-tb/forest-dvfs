@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2011 Exascale Compûting Research
+Copyright (C) 2011 Exascale Computing Research
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -16,11 +16,27 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <assert.h>
+#ifndef H_NAIVEDM
+#define H_NAIVEDM
 
-#include "DecisionProcess.h"
+#include "DecisionStructures.h"
 
-void decisionAlgorithm ()
-{
 
-}
+/**
+ * @brief init the naive decision maker
+ **/
+void * naiveDecisionInit (void);
+
+/**
+ * @brief free all that has to be free
+ */
+void naiveDecisionDestruct (void *);
+
+/**
+ * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
+ * @param profiler the report to give
+ * @param data a handle to the Decision Maker context
+ **/
+int naiveDecisionGiveReport (void *data, SProfReport *profiler);
+
+#endif

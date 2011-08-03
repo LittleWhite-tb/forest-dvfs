@@ -432,7 +432,7 @@ do
 
 echo "Executing interval $k"
 
-#:<<COMMENTINGSOME
+:<<COMMENTINGSOME
 #running the programs... they will pin themselves to a core
 
 
@@ -665,7 +665,7 @@ done
 
 #$UTIL_DIR/timing.sh $k $NUMCORES
 
-#COMMENTINGSOME
+COMMENTINGSOME
 
 echo "Running experiment using REST-Profiler-Naive setting at $k ms intervals"
 
