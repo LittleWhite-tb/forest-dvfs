@@ -20,10 +20,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include <stdlib.h>
 
-#include "MarkovDM.h"
+
 #include "Frequency_Mod.h"
 #include "Log.h"
 #include "Markov.h"
+#include "MarkovDM.h"
 #include "ThreadedProfiler.h"
 
 #define DECISION_MAKER_SEARCH 0

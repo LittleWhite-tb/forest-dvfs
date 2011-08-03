@@ -19,7 +19,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include <stdio.h>
 
-#include "DecisionMaker.h"
+#include "NaiveDM.h"
+#include "PredictiveDM.h"
+#include "MarkovDM.h"
 #include "Rest.h"
 #include "ThreadedProfiler.h"
 
