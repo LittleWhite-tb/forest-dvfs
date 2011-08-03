@@ -1,11 +1,23 @@
+/*  This benchmark tries to characterize the latency to switch frequencies... it uses system() calls to change the frequency*/
+#define _GNU_SOURCE
+#include <sched.h>
 
-#include "Microbench2.h"
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <getopt.h>
+#include <math.h>
+#include "rdtsc.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 //used to get all the p-states
 int globalFrequency[20];
 int num_frequency=0;
 int assigned_cpu=0;
 int num_repeats=1000;
+FILE * freq_fp;
 
 int * BigFatTable;
 
@@ -17,8 +29,6 @@ int opt;
 
 
 static struct option option_list[] = {
-{"p", 0, 0, 'p'},
-{"m", 0, 0, 'm'},
 {"c", 1, 0, 'c'},
 {0,0,0,0}
 
@@ -40,19 +50,40 @@ void setgov()
 	system(govstring);
 }
 	
-void changeFreq(int core, int i)
+void Init_cpufreq(int core)
 {
 	char Freq[1024]="";
 	char num[128];
-	sprintf(num,"%d",globalFrequency[i]);
-	strcat(Freq,"echo ");
-	strcat(Freq, num);
-	strcat(Freq," > /sys/devices/system/cpu/cpu");
+	
+	
+	strcat(Freq,"/sys/devices/system/cpu/cpu");
 	sprintf(num,"%d",core);
 	strcat(Freq,num);
 	strcat(Freq,"/cpufreq/scaling_setspeed");
-	system(Freq);
-	//printf("Changing my frequency on core %d to %d\n",core,globalFrequency[i]);
+	//printf("Trying to open file: %s\n",Freq);
+	freq_fp = fopen (Freq,"w");
+	if(freq_fp==NULL)
+	{
+		perror( "Error opening file" );
+            	printf( "Error opening file: %s\n", strerror( errno ) );
+		printf( "Perhaps you don't have sudo rights?\n");
+	}
+}
+
+void Destroy_cpufreq()
+{
+	fclose(freq_fp);
+}
+
+	
+	
+void changeFreq(int i)
+{
+	fseek(freq_fp,0,SEEK_SET);
+	fprintf(freq_fp,"%d\n",globalFrequency[i]);
+	fflush(freq_fp);
+	//printf("Frequency has changed to %d\n",globalFrequency[i]);
+	
 }
 
 
@@ -153,6 +184,8 @@ int main(int argc,char ** argv)
 	int current_cpu;
 	current_cpu=sched_getcpu();
 
+	Init_cpufreq(assigned_cpu);
+
 	assert(assigned_cpu==current_cpu);
 
 	//set govenor to userspace
@@ -170,9 +203,9 @@ int main(int argc,char ** argv)
 		{
 			for(k=0;k<num_repeats; k++)//repititions to get a statistical average
 			{
-				changeFreq(current_cpu,i);
+				changeFreq(i);
 				start_time=getticks();
-				changeFreq(current_cpu,i);
+				changeFreq(j);
 				end_time=getticks();
 				BigFatTable[i*num_frequency*num_repeats+j*num_repeats+k]=end_time-start_time;
 			}

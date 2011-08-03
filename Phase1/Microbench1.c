@@ -1,3 +1,5 @@
+/*  This is the original UpDown Benchmark... it uses system() calls to change the frequency and large memcpy's to do memory bound loop*/
+
 
 #include "Microbench1.h"
 

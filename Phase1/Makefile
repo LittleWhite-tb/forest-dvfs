@@ -12,7 +12,7 @@ POWER_LIB = ../power/timer.so
 all: $(TIMER_LIB) $(POWER_LIB) $(EXE)
 
 $(EXE):	$(FULL_OBJ)
-	$(CC) -o $(EXE) Microbench1.c $(OPT) $(LIBS)
+	$(CC) -o $(EXE) $(EXE).c $(OPT) $(LIBS)
 
 $(TIMER_LIB):%.so: %.c %.h
 	$(CC) $< -o $@ -fPIC -shared $(OPT) -I.

@@ -8,9 +8,21 @@ echo “Sudo make me a sandwich....” 2>&1
 exit 1
 fi
 
+#choose which microbench to launch
+
+
+
 #making a fresh binary
+
+if [ $# -gt 0 ]
+then
+TARGET=$1
+make EXE=$TARGET clean
+make EXE=$TARGET
+else
 make clean
 make
+fi
 
 
 #getting the number of cores on the system
@@ -74,11 +86,11 @@ CURRENT_DIR=$(pwd)
 LD_LIBRARY_PATH="$CURRENT_DIR/../power/esrv:$LD_LIBRARY_PATH"
 export LD_LIBRARY_PATH
 
-INTERVALS=( 10 20 30 40 50 100 150 300 500 1000 )
+INTERVALS=( .1 .5 1 2 4 6 8 16 32 64 128)
 
 
 echo "Changed ld_libary_path to $LD_LIBRARY_PATH"
-
+:<<COMMENTINGSOME
 echo "Doing Memorybound only loop on all frequencies to characterize machine"
 
 for ((j=0;j<NUMFREQS;j++))
@@ -96,7 +108,7 @@ do
 	for ((i=0;i<NUMCORES;i++))
 
 	do
-		./Microbench1 --c=$i --r --m --i=1000 &
+		./$TARGET --c=$i --r --m --i=1000 &
 		PID[$i]=$!
 
 	done
@@ -128,7 +140,7 @@ do
 	for ((i=0;i<NUMCORES;i++))
 
 	do
-		./Microbench1 --c=$i --r --p --i=1000 &
+		./"$TARGET" --c=$i --r --p --i=1000 &
 		PID[$i]=$!
 
 	done
@@ -143,7 +155,7 @@ do
 
 done
 
-
+COMMENTINGSOME
 
 for k in "${INTERVALS[@]}"
 do
@@ -168,7 +180,7 @@ do
 	for ((i=0;i<NUMCORES;i++))
 
 	do
-		./Microbench1 --c=$i --r --i=$k &
+		./$TARGET --c=$i --r --i=$k &
 		PID[$i]=$!
 
 	done
@@ -200,7 +212,7 @@ for ((i=0;i<NUMCORES;i++))
 
 do
 
-./Microbench1 --c=$i --r --i=$k &
+./$TARGET --c=$i --r --i=$k &
 PID[$i]=$!
 
 #echo "PID for core $i is ${PID[${i}]}"
@@ -231,7 +243,7 @@ for ((i=0;i<NUMCORES;i++))
 
 do
 
-./Microbench1 --c=$i --r --i=$k &
+./$TARGET --c=$i --r --i=$k &
 PID[$i]=$!
 
 #echo "PID for core $i is ${PID[${i}]}"
@@ -263,7 +275,7 @@ for ((i=0;i<NUMCORES;i++))
 
 do
 
-./Microbench1 --c=$i --r --i=$k &
+./$TARGET --c=$i --r --i=$k &
 PID[$i]=$!
 
 #echo "PID for core $i is ${PID[${i}]}"
@@ -297,7 +309,7 @@ for ((i=0;i<NUMCORES;i++))
 
 do
 
-./Microbench1 --c=$i --i=$k &
+./$TARGET --c=$i --i=$k &
 PID[$i]=$!
 
 done

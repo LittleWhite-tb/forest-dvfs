@@ -239,7 +239,7 @@ int main(int argc,char ** argv)
 	#ifndef ORACLE_MODE
 
 
-	if(doing_rest && assigned_cpu==0)    
+	if(doing_rest)    
 	{
 		if(choose_dm==1)
 		{
@@ -403,7 +403,7 @@ int main(int argc,char ** argv)
 
 
 	    #ifndef ORACLE_MODE
-	    if(doing_rest && assigned_cpu==0)
+	    if(doing_rest)
 	    {    	
 	    	RestDestroy (T_PROFILER, restHandle), restHandle = NULL;
 	    }
