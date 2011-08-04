@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <papi.h>
+#include <syscall.h>
+
 #include "rest_vmad.h"
+#include "Profilers.h"
+#include "papiCounters.h"
 
 
 void restBind(restModule *module)
@@ -15,7 +20,28 @@ void restBind(restModule *module)
 
 void *restInit(restModule *module)
 {
-	restOn(module);
+	/**Papi initialisation, almost like the threaded profiler*/
+	int EventSet = PAPI_NULL;
+	STPContext * handle;
+	
+	initLibraryPapi();
+	initThreadPapi (getTid);
+	
+	//get our cpu... it should be pinned
+	int current_cpu=sched_getcpu ();
+	
+	handle= malloc (sizeof ( * handle));
+	assert ( handle != NULL );
+	handle->killSig=NULL;
+	handle->core=current_cpu;
+	handle->parent=threadIdPapi ();
+	handle->myFuncs=module->funcPtrs;
+	
+	//call the papi helper to init stuff
+	initPapiHelper (&EventSet, handle);
+	
+	
+	restOn (module);
 	return NULL;
 }
 
@@ -28,6 +54,7 @@ void *restQuit(restModule *module)
 void *restOn(restModule *module)
 {
 	//choper les compteurs papi
+	
 	//init la chaine de rest
 	return NULL;
 }

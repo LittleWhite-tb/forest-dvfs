@@ -18,38 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #ifndef H_THREADEDPROFILER
 #define H_THREADEDPROFILER
-
-#include <papi.h>
-#include <pthread.h>
-
-#define THRESHOLD (.05)
-#define FIRSTSLEEP (600)  
-#define LONGESTSLEEP (128000)
-
-
-/** 
- * @struct sFuncsToUse
- * @brief pointer table which is passed to the profiler to tell it who to initialize, report to, and destroy
- */
-typedef struct sFuncsToUse
-{
-	void * initFunc;  /**< @brief function to use when you call the init*/
-	void * destroyFunc;	/**< @brief function to use when you call the destroy */
-	void * reportFunc; /**< @brief function to use when you should report*/
-	
-} SFuncsToUse;  
-/** 
- * @struct sTPContext
- * @brief a context with all necessary information for PAPI implmentation and threading
-*/
-typedef struct sTPContext
-{
-	int  volatile * volatile killSig;  /**< @brief address of kill signal that we spin on*/
-	int core;	/**< @brief physical core number to change its frequency */
-	PAPI_thread_id_t parent; /**< @brief tid used by papi to access the counters*/
-	pthread_t join_id;   /**<  @brief this tid is used for the join at the end of the program since stack allocated variables can be mangled*/
-	SFuncsToUse myFuncs; /**<  @brief functions given by my parent for when I should init, destroy, or create*/
-} STPContext;   
+#include "Profilers.h"
 
 /**
  * @brief initializes the profiler through a pthread_create
@@ -63,8 +32,5 @@ STPContext * threadedProfilerInit (SFuncsToUse funcPtrs);
  * @param context takes the context of the profiling thread to send the kill signal
  **/
 void threadedProfilerDestroy (STPContext *context);
-
-
-
 
 #endif

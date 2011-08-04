@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <papi.h>
+#define _GNU_SOURCE
 #include <syscall.h>
 #include <sys/types.h>
 
@@ -26,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "ThreadedProfiler.h"
 #include "papiCounters.h"
  
- static __inline__ pid_t getTid (void)
+static __inline__ pid_t getTid (void)
 {
 	pid_t answer =  syscall (__NR_gettid);
 	return answer;
@@ -118,7 +119,7 @@ static void initLibraryPapi ()
 	}
 }
 
-static void initThreadPapi (int getTid)
+static void initThreadPapi (pid_t getTid)
 {
 	if (PAPI_thread_init (getTid) != PAPI_OK)
 	{

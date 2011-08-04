@@ -18,8 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-#include "Profilers.h"
-#include "ThreadedProfiler.h"
+
 #include "DecisionStructures.h"
 #include "Log.h"
 #include "rdtsc.h"

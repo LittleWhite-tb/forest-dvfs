@@ -19,12 +19,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef H_PAPICOUNTER
 #define H_PAPICOUNTER 
 
+
+
 static __inline__ pid_t getTid (void);
 static void initPapiHelper ( int * EventSet, STPContext * handle);
 static void startPapi (int EventSet);
 static void accumPapi (int EventSet, long_long *values);
 static void initLibraryPapi ();
-static void initThreadPapi (int getTid);
+static void initThreadPapi (pid_t getTid);
 static PAPI_thread_id_t threadIdPapi ();
 
 #endif

@@ -19,7 +19,7 @@ FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMO
 
 
 LIBS = -lpthread -lpapi -ldl
-OPT_INCLUDE = -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include
+OPT_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include
 OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
 
 
