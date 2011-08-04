@@ -32,9 +32,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 void* markovDecisionInit (void)
 {
-	SFreqData *freqData = initCpufreq ();
-	
-	return freqData;
+
+	SaveData *savedData = malloc (sizeof (savedData));
+	savedData->sFreqData = initCpufreq ();
+	savedData->predictor = Markov_Initialize ();
+	Markov_Set(savedData->predictor, 1 , M_PREFDIST);
+	Markov_Set(savedData->predictor, 100, M_ERRMAX);
+	Markov_Set(savedData->predictor, 100, M_CONSTTL);
+	savedData->duration=0;
+	return savedData;
 }
 
 int markovDecisionGiveReport (void *handle, SProfReport *report)
@@ -67,12 +73,13 @@ int markovDecisionGiveReport (void *handle, SProfReport *report)
 
 void markovDecisionDestruct(void* handle)
 {
-SFreqData *sFreqData = handle;
+	SaveData *savedData = handle;
 	
-	if (handle != NULL)
+	if (savedData != NULL)
 	{
-		destroyCpufreq (sFreqData);
+		Markov_Clear(savedData->predictor);
+		destroyCpufreq (savedData->sFreqData);
 	}
-	
+	free(savedData);
 	handle = NULL;
 }
