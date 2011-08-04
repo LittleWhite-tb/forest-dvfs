@@ -21,12 +21,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-static __inline__ pid_t getTid (void);
-static void initPapiHelper ( int * EventSet, STPContext * handle);
-static void startPapi (int EventSet);
-static void accumPapi (int EventSet, long_long *values);
-static void initLibraryPapi ();
-static void initThreadPapi (pid_t getTid);
-static PAPI_thread_id_t threadIdPapi ();
+pid_t getTid (void);
+void initPapiHelper ( int * EventSet, STPContext * handle);
+void startPapi (int EventSet);
+void accumPapi (int EventSet, long_long *values);
+void initLibraryPapi ();
+void initThreadPapi (pid_t getTid);
+PAPI_thread_id_t threadIdPapi ();
 
 #endif

@@ -10,7 +10,9 @@ restModule *mymodule;
 void restModuleLoad ()
 {
 	//module(s) loading
-	
+	//mymodule->context->myFuncs.destroyFunc =  
+	//mymodule->context->myFuncs.initFunc = 
+	//mymodule->context->myFuncs.reportFunc = 
 	//module(s) init
 	//bind
 	restBind(mymodule);

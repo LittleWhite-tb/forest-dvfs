@@ -27,14 +27,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "ThreadedProfiler.h"
 #include "papiCounters.h"
  
-static __inline__ pid_t getTid (void)
+pid_t getTid (void)
 {
 	pid_t answer =  syscall (__NR_gettid);
 	return answer;
 }
  
  
- static void initPapiHelper ( int * EventSet, STPContext * handle)
+void initPapiHelper ( int * EventSet, STPContext * handle)
 {
 	int codes[3];
 	int ret_code;
@@ -88,7 +88,7 @@ static __inline__ pid_t getTid (void)
 }
 
 
-static void startPapi (int EventSet)
+void startPapi (int EventSet)
 {
 	int ret_code=PAPI_start (EventSet);
 	if(PAPI_OK != ret_code)
@@ -99,7 +99,7 @@ static void startPapi (int EventSet)
 	}	
 }
 	
-static void accumPapi (int EventSet, long_long *values)
+void accumPapi (int EventSet, long_long *values)
 {	
 	int ret_code = PAPI_accum (EventSet,values);
 	if(PAPI_OK != ret_code)
@@ -109,7 +109,7 @@ static void accumPapi (int EventSet, long_long *values)
 	}
 }	
 		
-static void initLibraryPapi ()
+void initLibraryPapi ()
 {
 	int retval=PAPI_library_init (PAPI_VER_CURRENT);
 	if (retval != PAPI_VER_CURRENT) 
@@ -119,7 +119,7 @@ static void initLibraryPapi ()
 	}
 }
 
-static void initThreadPapi (pid_t getTid)
+void initThreadPapi (pid_t getTid)
 {
 	if (PAPI_thread_init (getTid) != PAPI_OK)
 	{
@@ -127,7 +127,7 @@ static void initThreadPapi (pid_t getTid)
 	}
 }
 
-static PAPI_thread_id_t threadIdPapi ()
+PAPI_thread_id_t threadIdPapi ()
 {
 	return PAPI_thread_id ();
 }

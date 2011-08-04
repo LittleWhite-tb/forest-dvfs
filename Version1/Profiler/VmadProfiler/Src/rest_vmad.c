@@ -8,6 +8,8 @@
 #include "papiCounters.h"
 
 
+
+
 void restBind(restModule *module)
 {
 	module->init = restInit(module);
@@ -23,6 +25,7 @@ void *restInit(restModule *module)
 	/**Papi initialisation, almost like the threaded profiler*/
 	int EventSet = PAPI_NULL;
 	STPContext * handle;
+	long_long values[3]= {0,0,0};
 	
 	initLibraryPapi();
 	initThreadPapi (getTid);
@@ -35,10 +38,13 @@ void *restInit(restModule *module)
 	handle->killSig=NULL;
 	handle->core=current_cpu;
 	handle->parent=threadIdPapi ();
-	handle->myFuncs=module->funcPtrs;
+	handle->myFuncs=module->context->myFuncs;
 	
 	//call the papi helper to init stuff
 	initPapiHelper (&EventSet, handle);
+	startPapi(EventSet);
+	
+	
 	
 	
 	restOn (module);
@@ -54,7 +60,7 @@ void *restQuit(restModule *module)
 void *restOn(restModule *module)
 {
 	//choper les compteurs papi
-	
+
 	//init la chaine de rest
 	return NULL;
 }

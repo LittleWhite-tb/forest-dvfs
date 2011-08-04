@@ -14,7 +14,6 @@ typedef struct _restModule
 	void * (* on) (struct _restModule *module);
 	void * (* off) (struct _restModule *module);
 	STPContext *context;
-	SFuncsToUse funcPtrs;
 	
 }restModule;
 
