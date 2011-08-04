@@ -209,6 +209,7 @@ void * profilerThread (void * ContextPtr)
 		myReport.data.tp.bounded=privateBounded;
 		endTime=getTicks ();	
 		myReport.data.tp.ticks=endTime-startTime;
+		myReport.data.tp.window=myWindow;
 
 		
 		#ifdef PRINT_DEBUG
@@ -228,7 +229,7 @@ void * profilerThread (void * ContextPtr)
 		//give the report
 		if (myReporter (myDM, &myReport))
 		{
-		  	myWindow=myReport.data.tp.nextTicks;
+		  	myWindow=myReport.data.tp.nextWindow;
 		   	algorithm=myReport.data.tp.algorithm;
 		   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
 		}
