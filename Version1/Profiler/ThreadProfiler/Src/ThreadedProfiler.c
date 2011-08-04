@@ -200,8 +200,7 @@ void * profilerThread (void * ContextPtr)
 			val1=values[0];
 			val2=values[1];	
 			val3=values[2];
-			privateBounded=2*val1/(val2);
-			//privateBounded=2*16*val1*val3/(val2*val2);
+			privateBounded=2*16*val1*val3/(val2*val2);
 			privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 		}
 
@@ -230,7 +229,7 @@ void * profilerThread (void * ContextPtr)
 		//give the report
 		if (myReporter (myDM, &myReport))
 		{
-		  	myWindow=myReport.data.tp.nextWindow;
+		  	myWindow=myReport.data.tp.nextTicks;
 		   	algorithm=myReport.data.tp.algorithm;
 		   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
 		}
