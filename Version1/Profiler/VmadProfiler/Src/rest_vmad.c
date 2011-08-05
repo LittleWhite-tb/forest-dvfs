@@ -23,46 +23,86 @@ void restBind(restModule *module)
 void *restInit(restModule *module)
 {
 	/**Papi initialisation, almost like the threaded profiler*/
-	int EventSet = PAPI_NULL;
-	STPContext * handle;
-	long_long values[3]= {0,0,0};
+	void * theDmContext = NULL;
 	
 	initLibraryPapi();
 	initThreadPapi (getTid);
 	
-	//get our cpu... it should be pinned
-	int current_cpu=sched_getcpu ();
-	
-	handle= malloc (sizeof ( * handle));
-	assert ( handle != NULL );
-	handle->killSig=NULL;
-	handle->core=current_cpu;
-	handle->parent=threadIdPapi ();
-	handle->myFuncs=module->context->myFuncs;
+	module->context.ProfContext->parent = threadIdPapi();
+	module->report.papiEventSet = PAPI_NULL;
 	
 	//call the papi helper to init stuff
-	initPapiHelper (&EventSet, handle);
-	startPapi(EventSet);
+	initPapiHelper (&(module->report).papiEventSet, module->context.ProfContext);
+	startPapi(module->report.papiEventSet);
 	
-	
-	
+	void * (* DmInit) (void)=module->context.ProfContext->myFuncs.initFunc;
+	theDmContext = DmInit();
+	module->context.DMcontext = theDmContext;
 	
 	restOn (module);
-	return NULL;
+	return module;
 }
 
 void *restQuit(restModule *module)
 {
-	//destroy la chaine rest
+	free(module->context.DMcontext); module->context.DMcontext = NULL;
+	free(module->context.ProfContext); module->context.ProfContext = NULL;
 	return NULL;
 }
 
 void *restOn(restModule *module)
 {
-	//choper les compteurs papi
-
-	//init la chaine de rest
-	return NULL;
+	float privateBounded;
+	static float lastBoundedValue = 0.5;
+	int myWindow = -1;
+	long_long values[3]= {0,0,0};
+	unsigned long long currentTicks = 0;
+	static unsigned long long oldTicks = 0;
+	
+	currentTicks = getTicks ();
+	module->report.Profreport.data.tp.ticks = currentTicks - oldTicks;
+	oldTicks = currentTicks;
+	
+	accumPapi(module->report.papiEventSet, values);
+	
+	if(values[0]==0 || values[1]==0)//no divide by zeros!
+	{
+		privateBounded=0.0;
+	}
+	else
+	{
+		privateBounded=2*16*values[0]*values[2]/(values[1]*values[1]);
+		privateBounded=(privateBounded>1.0)?1.0:privateBounded;
+	}
+	
+	module->report.Profreport.data.tp.bounded=privateBounded;
+	module->report.Profreport.data.tp.window=myWindow;
+	
+	int (* DmReport) (void *, SProfReport *) = module->context.ProfContext->myFuncs.reportFunc;
+	if (DmReport (module->context.DMcontext, &(module->report).Profreport))
+		{
+		  	myWindow=module->report.Profreport.data.tp.nextWindow;
+		   	//algorithm=module->report.Profreport.data.tp.algorithm;
+		   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
+		}
+		else
+		{
+			//self regulate
+			if(abs (lastBoundedValue - privateBounded)>THRESHOLD) 
+			{
+				myWindow=FIRSTSLEEPITERATION;
+			}
+			else
+			{
+				myWindow*=2;
+				myWindow= (myWindow>LONGESTSLEEPITERATION)?LONGESTSLEEPITERATION:myWindow;
+			}
+		}
+		lastBoundedValue=privateBounded;
+		
+		module->report.Profreport.data.tp.window=myWindow;
+		
+	return module;
 }
 void *restOff(restModule *module)
 {

@@ -251,111 +251,115 @@ int main(int argc,char ** argv)
 	CPU_BOUND_ITER=MEM_BOUND_ITER*cpu_2_mem_ratio;
 	//now start!
 
-
-	restModuleLoad ();
-	int i;
-	for(i=0;i<NUM_UP_DOWN; i++)
-
+	restModule *loadedModule;
+	restModuleLoad (loadedModule);
+	int i,j;
+	for (j=0; j<NUM_UP_DOWN; )
 	{
-		//fprintf (stderr, "Iter %d out of %d\n", i, NUM_UP_DOWN);
-
-		//Now we do something cpu bound
-		
-		
-		if(!mem_bound_only)
-		{	
-
-			
-			#ifdef ORACLE_MODE			
-			if(doing_rest)
-			{
-				#ifdef CHANGETOGETHER
-				if(assigned_cpu==0)
-				{
-				   changeFreq(FreqStuff,-1,1);
-	
-				}	
-				#else
-				changeFreq(FreqStuff,assigned_cpu,1);
-				#endif
-			}
-			#endif
-			
-			samples[mysample].time=getTicks();
-			samples[mysample].bound=1;
-			mysample++;
-			mysample=(mysample>=NUMSAMP)?NUMSAMP-1:mysample;
-
-			
-			cputime-=getTicks();
-			int j;	
-			double temp[4];
-			//force everything to stay in registers and unroll
-			temp[0]=DummyVec1[0];
-			temp[1]=DummyVec1[1];
-			temp[2]=DummyVec1[2];
-			temp[3]=DummyVec1[3];
-			for(j=0;j<CPU_BOUND_ITER;j++)
-			{
-				temp[0]=temp[0]*temp[0];
-				temp[1]=temp[1]*temp[1];
-				temp[2]=temp[2]*temp[2];
-				temp[3]=temp[3]*temp[3];
-				
-			}
-			DummyVec2[0]=temp[0];
-			DummyVec2[1]=temp[1];
-			DummyVec2[2]=temp[2];
-			DummyVec2[3]=temp[3];
-
-		cputime+=getTicks();
-		}
-		//printf("Switching to Memory Bound on CPU %d\n",current_cpu);
-		//Now we do something mem bound
-		
-		
-		
-		if(!proc_bound_only)
+		loadedModule = loadedModule->on(loadedModule);
+		j += loadedModule->report.Profreport.data.tp.window;
+		for(i=0;i<j;i++)
 		{
+			//fprintf (stderr, "Iter %d out of %d\n", i, NUM_UP_DOWN);
+
+			//Now we do something cpu bound
 			
-			#ifdef ORACLE_MODE			
-			if(doing_rest)
-			{
-				#ifdef CHANGETOGETHER
-				if(assigned_cpu==0)
+			
+			if(!mem_bound_only)
+			{	
+
+				
+				#ifdef ORACLE_MODE			
+				if(doing_rest)
 				{
-				   changeFreq(FreqStuff,-1,FreqStuff->numFreq-1);
-	
-				}	
-				#else
-				changeFreq(FreqStuff,assigned_cpu,FreqStuff->numFreq-1);
+					#ifdef CHANGETOGETHER
+					if(assigned_cpu==0)
+					{
+					   changeFreq(FreqStuff,-1,1);
+		
+					}	
+					#else
+					changeFreq(FreqStuff,assigned_cpu,1);
+					#endif
+				}
 				#endif
+				
+				samples[mysample].time=getTicks();
+				samples[mysample].bound=1;
+				mysample++;
+				mysample=(mysample>=NUMSAMP)?NUMSAMP-1:mysample;
+
+				
+				cputime-=getTicks();
+				int j;	
+				double temp[4];
+				//force everything to stay in registers and unroll
+				temp[0]=DummyVec1[0];
+				temp[1]=DummyVec1[1];
+				temp[2]=DummyVec1[2];
+				temp[3]=DummyVec1[3];
+				for(j=0;j<CPU_BOUND_ITER;j++)
+				{
+					temp[0]=temp[0]*temp[0];
+					temp[1]=temp[1]*temp[1];
+					temp[2]=temp[2]*temp[2];
+					temp[3]=temp[3]*temp[3];
+					
+				}
+				DummyVec2[0]=temp[0];
+				DummyVec2[1]=temp[1];
+				DummyVec2[2]=temp[2];
+				DummyVec2[3]=temp[3];
+
+			cputime+=getTicks();
 			}
-			#endif
+			//printf("Switching to Memory Bound on CPU %d\n",current_cpu);
+			//Now we do something mem bound
 			
-			samples[mysample].time=getTicks();
-			samples[mysample].bound=2;
-			mysample++;
-			mysample=(mysample>=NUMSAMP)?NUMSAMP-1:mysample;
 			
-			memtime-=getTicks();
-			int j;
-			int index;
-			int k;
-			double temp[8];
-			for(j=0;j<MEM_BOUND_ITER;j++)
+			
+			if(!proc_bound_only)
 			{
 				
-				memcpy(&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],
-					MEM_BOUND_FOOTPRINT/2*sizeof(*BigVec));
-				
-			}
-			memtime+=getTicks();
-		}
+				#ifdef ORACLE_MODE			
+				if(doing_rest)
+				{
+					#ifdef CHANGETOGETHER
+					if(assigned_cpu==0)
+					{
+					   changeFreq(FreqStuff,-1,FreqStuff->numFreq-1);
 		
+					}	
+					#else
+					changeFreq(FreqStuff,assigned_cpu,FreqStuff->numFreq-1);
+					#endif
+				}
+				#endif
+				
+				samples[mysample].time=getTicks();
+				samples[mysample].bound=2;
+				mysample++;
+				mysample=(mysample>=NUMSAMP)?NUMSAMP-1:mysample;
+				
+				memtime-=getTicks();
+				int j;
+				int index;
+				int k;
+				double temp[8];
+				for(j=0;j<MEM_BOUND_ITER;j++)
+				{
+					
+					memcpy(&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],
+						MEM_BOUND_FOOTPRINT/2*sizeof(*BigVec));
+					
+				}
+				memtime+=getTicks();
+			}
+			
+		}
 	}
 	/**We are leaving the tagged loop, so if we doesn't want to redo all the work, we have to save the context*/
-
+	restModuleUnload(loadedModule);
 
 	if(assigned_cpu==0)
 	{

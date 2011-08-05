@@ -2,9 +2,21 @@
 #define REST_MODULE
 
 #include "Profilers.h"
+#include "DecisionStructures.h"
 
-void restModuleLoad ();
-void restModuleUnload ();
+
+typedef struct _RESTcontext
+{
+	STPContext *ProfContext;
+	void * DMcontext;
+}RESTcontext;
+
+
+typedef struct _Report
+{
+	SProfReport Profreport;
+	int papiEventSet;
+}Report;
 
 typedef struct _restModule
 {
@@ -13,10 +25,13 @@ typedef struct _restModule
 	void * (* reset) (struct _restModule *module);
 	void * (* on) (struct _restModule *module);
 	void * (* off) (struct _restModule *module);
-	STPContext *context;
+	RESTcontext context;
+	Report report;
 	
 }restModule;
 
+void restModuleLoad (restModule *mymodule);
+void restModuleUnload (restModule *mymodule);
 
 #endif
 

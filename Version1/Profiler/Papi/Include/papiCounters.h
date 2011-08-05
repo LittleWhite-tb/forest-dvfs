@@ -21,7 +21,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-pid_t getTid (void);
+pid_t getTid ( void );
+unsigned long long getTicks ( void );
 void initPapiHelper ( int * EventSet, STPContext * handle);
 void startPapi (int EventSet);
 void accumPapi (int EventSet, long_long *values);

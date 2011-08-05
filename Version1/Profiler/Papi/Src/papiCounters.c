@@ -20,17 +20,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <papi.h>
 #define _GNU_SOURCE
+#include <unistd.h>
 #include <syscall.h>
 #include <sys/types.h>
 
 #include "Log.h"
 #include "ThreadedProfiler.h"
 #include "papiCounters.h"
+#include "rdtsc.h"
  
 pid_t getTid (void)
 {
 	pid_t answer =  syscall (__NR_gettid);
 	return answer;
+}
+unsigned long long getTicks ( void )
+{
+   unsigned long long ret;
+   rdtscll (ret);
+   return ret;
 }
  
  

@@ -35,6 +35,8 @@ typedef enum eProfType
 #define FIRSTSLEEP (600)  
 #define LONGESTSLEEP (128000)
 
+#define FIRSTSLEEPITERATION (10)  
+#define LONGESTSLEEPITERATION (100)
 
 
 // Comon structure for all the profilers/decisions
