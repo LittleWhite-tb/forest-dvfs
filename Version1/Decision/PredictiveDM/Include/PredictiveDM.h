@@ -35,6 +35,7 @@ void branchDecisionDestruct (void *);
  * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
  * @param profiler the report to give
  * @param data a handle to the Decision Maker context
+ * @return 0 if it has to self regulate
  **/
 int branchDecisionGiveReport (void *data, SProfReport *profiler);
 

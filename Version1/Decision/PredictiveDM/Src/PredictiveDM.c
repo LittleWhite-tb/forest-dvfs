@@ -32,31 +32,42 @@ void* branchDecisionInit (void)
 	int i, j;
 	
 	//allocation
-	SaveData *savedData = malloc (sizeof (savedData));
-	savedData->sFreqData = initCpufreq ();
+	SaveData *savedData = (SaveData*) malloc (sizeof (savedData));
 	
-	savedData->freqCounter = malloc(savedData->sFreqData->numCores * sizeof (int *));
-
+	//Just be paranoid
+	if (savedData != NULL)
+	{
+		//initialized the freq data values
+		savedData->sFreqData = initCpufreq ();
 		
-
-	for(i = 0; i < savedData->sFreqData->numCores; i++)
-	{
-		savedData->freqCounter[i] = malloc (savedData->sFreqData->numFreq * sizeof (int));
-
-	}
-	
-	
-	for(i = 0; i < savedData->sFreqData->numCores; i++)
-	{
-		for(j = 0; j < savedData->sFreqData->numFreq; j++)
+		//allocate the number of time we call each frequency
+		savedData->freqCounter = malloc(savedData->sFreqData->numCores * sizeof (int *));
+		
+		//initialize all the array of cores
+		for(i = 0; i < savedData->sFreqData->numCores; i++)
 		{
-			savedData->freqCounter[i][j] = 0;
+			savedData->freqCounter[i] = malloc (savedData->sFreqData->numFreq * sizeof (int));
+		}
+		
+		//i is the core and j the frequeny and we initialize them to 0
+		for(i = 0; i < savedData->sFreqData->numCores; i++)
+		{
+			for(j = 0; j < savedData->sFreqData->numFreq; j++)
+			{
+				savedData->freqCounter[i][j] = 0;
+			}
 		}
 	}
-	
-	
+	else
+	{
+		//if the malloc failed we stop
+		Log_output (0, "Bad allocation for SavedData structure in PredicitiveDM \n");
+		exit (1);
+	}
+		
 	//return the structure intialized
 	return savedData;
+	
 }
 
 int branchDecisionGiveReport (void *handle, SProfReport *report)
@@ -110,22 +121,19 @@ void branchDecisionDestruct(void* handle)
 {
 	SaveData *savedData = handle;
 	
-	
-	if (handle != NULL)
+	if (savedData != NULL)
 	{
 		int i;
 	
 		for(i = 0; i < savedData->sFreqData->numCores; i++)
 		{
-			free(savedData->freqCounter[i]);
+			free(savedData->freqCounter[i]), savedData->freqCounter[i] = NULL;
 		}
-		free(savedData->freqCounter);
 		
-		savedData->freqCounter = NULL;
+		free(savedData->freqCounter), savedData->freqCounter = NULL;
 		
 		destroyCpufreq(savedData->sFreqData);
+		free(handle), handle = NULL;
 	}
-	
-	handle = NULL;
 }
 
