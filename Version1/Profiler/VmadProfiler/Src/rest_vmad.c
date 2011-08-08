@@ -10,13 +10,13 @@
 
 
 
-void restBind(restModule *module)
+void restBind(restModule *module) 
 {
-	module->init = restInit(module);
-	module->on = restOn (module);
-	module->off = restOff (module);
-	module->quit = restQuit (module);
-	module->reset = restReset (module);
+	module->init = restInit;
+	module->on = restOn;
+	module->off = restOff;
+	module->quit = restQuit;
+	module->reset = restReset;
 }
 
 
@@ -24,23 +24,29 @@ void *restInit(restModule *module)
 {
 	/**Papi initialisation, almost like the threaded profiler*/
 	void * theDmContext = NULL;
+	int EventSet = PAPI_NULL;
 	
 	initLibraryPapi();
-	initThreadPapi (getTid);
-	
+	//~ initThreadPapi (getTid);
+	if (PAPI_thread_init (getTid) != PAPI_OK)
+	{
+		fprintf (stderr,"Thread init function didn't register properly\n");
+		exit(1);
+	}
 	module->context.ProfContext->parent = threadIdPapi();
-	module->report.papiEventSet = PAPI_NULL;
 	
 	//call the papi helper to init stuff
-	initPapiHelper (&(module->report).papiEventSet, module->context.ProfContext);
+	initPapiHelper (&EventSet, module->context.ProfContext);
+	
+	module->report.papiEventSet = EventSet;
+	
 	startPapi(module->report.papiEventSet);
 	
 	void * (* DmInit) (void)=module->context.ProfContext->myFuncs.initFunc;
 	theDmContext = DmInit();
 	module->context.DMcontext = theDmContext;
 	
-	restOn (module);
-	return module;
+	return NULL;
 }
 
 void *restQuit(restModule *module)
@@ -54,7 +60,7 @@ void *restOn(restModule *module)
 {
 	float privateBounded;
 	static float lastBoundedValue = 0.5;
-	int myWindow = -1;
+	static int myWindow = FIRSTSLEEPITERATION;
 	long_long values[3]= {0,0,0};
 	unsigned long long currentTicks = 0;
 	static unsigned long long oldTicks = 0;
@@ -79,6 +85,7 @@ void *restOn(restModule *module)
 	module->report.Profreport.data.tp.window=myWindow;
 	
 	int (* DmReport) (void *, SProfReport *) = module->context.ProfContext->myFuncs.reportFunc;
+	
 	if (DmReport (module->context.DMcontext, &(module->report).Profreport))
 		{
 		  	myWindow=module->report.Profreport.data.tp.nextWindow;
@@ -88,7 +95,8 @@ void *restOn(restModule *module)
 		else
 		{
 			//self regulate
-			if(abs (lastBoundedValue - privateBounded)>THRESHOLD) 
+			
+			if(fabsf (lastBoundedValue - privateBounded)> (float)THRESHOLD) 
 			{
 				myWindow=FIRSTSLEEPITERATION;
 			}

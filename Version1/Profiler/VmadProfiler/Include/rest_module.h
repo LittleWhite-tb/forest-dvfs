@@ -30,7 +30,7 @@ typedef struct _restModule
 	
 }restModule;
 
-void restModuleLoad (restModule *mymodule);
+void restModuleLoad (restModule **mymodule);
 void restModuleUnload (restModule *mymodule);
 
 #endif

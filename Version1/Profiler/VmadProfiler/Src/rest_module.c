@@ -8,12 +8,12 @@
 #include "rest_vmad.h"
 #include "NaiveDM.h"
 
-void restModuleLoad (restModule *mymodule)
+void restModuleLoad (restModule **ptrmymodule)
 {
 	//module(s) loading
 	
 	STPContext * handle;
-	handle= malloc (sizeof ( * handle));
+	handle= malloc (sizeof (*handle));
 	assert ( handle != NULL );
 	handle->killSig = NULL;
 	handle->core=sched_getcpu ();
@@ -22,7 +22,8 @@ void restModuleLoad (restModule *mymodule)
 	handle->myFuncs.destroyFunc = naiveDecisionDestruct;
 	handle->myFuncs.reportFunc = naiveDecisionGiveReport;
 	
-	mymodule = malloc (sizeof ( *mymodule));
+	restModule * mymodule = NULL;
+	mymodule = malloc (sizeof (*mymodule));
 	assert( mymodule != NULL);
 	mymodule->context.ProfContext = handle;
 	mymodule->init = NULL;
@@ -34,10 +35,10 @@ void restModuleLoad (restModule *mymodule)
 	mymodule->report.Profreport.proc_id=mymodule->context.ProfContext->core;
 	mymodule->report.Profreport.data.tp.window=FIRSTSLEEPITERATION;
 	
-	
 	//module(s) init
 	restBind(mymodule);
 	mymodule->init(mymodule);
+	*ptrmymodule = mymodule;
 }
 
 

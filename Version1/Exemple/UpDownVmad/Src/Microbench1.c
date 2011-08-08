@@ -6,7 +6,7 @@
 #include "Frequency_Mod.h"
 #include "Microbench1.h"
 #include "Rest.h"
-#include "rest_module.h"
+#include "rest_module.h" 
 #include "../power/timer.h"
 #include "rdtsc.h"
 
@@ -54,6 +54,7 @@ static struct option option_list[] = {
 {"m", 0, 0, 'm'},
 {"c", 1, 0, 'c'},
 {"i", 1, 0, 'i'},
+{"d", 1, 0, 'd'},
 {0,0,0,0}
 
 };
@@ -109,6 +110,7 @@ int main(int argc,char ** argv)
 	SFreqData * FreqStuff;
 
 	int assigned_cpu=0;
+	int choose_dm=1;
 	float expected_loop_interval=1000;//this variable is for anticapted ms for each loops interval
 	int numcores;
 	int opt;
@@ -155,6 +157,9 @@ int main(int argc,char ** argv)
 	   case 'p':
              proc_bound_only = 1;
              break; 
+       case 'd':
+             choose_dm = atoi(optarg);
+             break;
            case '?':
              if (optopt == 'c')
                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -200,7 +205,7 @@ int main(int argc,char ** argv)
 		
 		void * dl;	
 	
-		dl = dlopen ("../power/timer.so", RTLD_NOW);
+		dl = dlopen ("../../../power/timer.so", RTLD_NOW);
 		if (dl == NULL)
 		{
 		    printf("The power meter dynamic library could not be linked... please locate timer.so\n");
@@ -232,14 +237,7 @@ int main(int argc,char ** argv)
 		fclose(fp);
 	}
 
-	#ifndef ORACLE_MODE
-	if(doing_rest)    
-	{
-		restHandle= RestInit(T_PROFILER, NAIVE_DM, FREQ_CHANGER);
-	}	
-	#else
 	FreqStuff= initCpufreq();
-	#endif
 	
 	//we seed random number generator
 	fastSrand();
@@ -251,16 +249,24 @@ int main(int argc,char ** argv)
 	CPU_BOUND_ITER=MEM_BOUND_ITER*cpu_2_mem_ratio;
 	//now start!
 
-	restModule *loadedModule;
-	restModuleLoad (loadedModule);
-	int i,j;
+	restModule *loadedModule = NULL;
+	restModuleLoad (&loadedModule);
+	int i=0,j=0;
 	for (j=0; j<NUM_UP_DOWN; )
 	{
+		fprintf (stderr, "[DECISION MAKING] iterations [%d/%d]\n", j,NUM_UP_DOWN );
 		loadedModule = loadedModule->on(loadedModule);
+		i=j;
 		j += loadedModule->report.Profreport.data.tp.window;
-		for(i=0;i<j;i++)
+		
+		if(j > NUM_UP_DOWN)
 		{
-			//fprintf (stderr, "Iter %d out of %d\n", i, NUM_UP_DOWN);
+			j = j - NUM_UP_DOWN;
+		}
+		fprintf (stderr, "[DECISION MAKING] new chunck : %d iterations\n",j-i);
+		for(;i<j;i++)
+		{
+			fprintf (stderr, "  [LOOP EXECUTION] iterations [%d/%d]\n", i, j);
 
 			//Now we do something cpu bound
 			
@@ -358,7 +364,6 @@ int main(int argc,char ** argv)
 			
 		}
 	}
-	/**We are leaving the tagged loop, so if we doesn't want to redo all the work, we have to save the context*/
 	restModuleUnload(loadedModule);
 
 	if(assigned_cpu==0)
@@ -389,46 +394,40 @@ int main(int argc,char ** argv)
 	}
 
 
-	    #ifndef ORACLE_MODE
-	    if(doing_rest)
-	    {    	
-	    	RestDestroy (T_PROFILER, restHandle), restHandle = NULL;
-	    }
-	    #else
-	    destroyCpufreq(FreqStuff);
-	    #endif
+	   
+	destroyCpufreq(FreqStuff);
+	   
 
 
    //dump my sample for analysis
-   char filename[512]="timing_dump_core";
-   char temp[16];
-    sprintf(temp,"%d",assigned_cpu);
-    strcat(filename,temp);
-    strcat(filename, ".txt");
-   FILE* dump=fopen(filename,"w");
-   
-    int x;
-    for(x=0;x<mysample;x++)
-    {
-	if(samples[x].bound==1)
-	{fprintf(dump,"%lld, compute bound, %d\n",samples[x].time,assigned_cpu);}
-	else if (samples[x].bound==2)
-	{fprintf(dump,"%lld, memory bound, %d\n",samples[x].time,assigned_cpu);}
-	else
+	char filename[512]="timing_dump_core";
+	char temp[16];
+	sprintf(temp,"%d",assigned_cpu);
+	strcat(filename,temp);
+	strcat(filename, ".txt");
+	FILE* dump=fopen(filename,"w");
+
+	int x;
+	for(x=0;x<mysample;x++)
 	{
-		printf("Something Screwed up!\n");
+		if(samples[x].bound==1)
+		{
+			fprintf(dump,"%lld, compute bound, %d\n",samples[x].time,assigned_cpu);
+		}
+		else if (samples[x].bound==2)
+		{
+			fprintf(dump,"%lld, memory bound, %d\n",samples[x].time,assigned_cpu);
+		}
+		else
+		{
+			printf("Something Screwed up!\n");
+		}
 	}
-    }
-    fclose(dump);
+	fclose(dump);
     
-
-
     Log_output (0, "REST Stop\n");
  
-    return EXIT_SUCCESS;
-	
-	
-
+    return EXIT_SUCCESS;	
 }	
 	
 

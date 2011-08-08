@@ -73,7 +73,7 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 
 void naiveDecisionDestruct(void* handle)
 {
-SFreqData *sFreqData = handle;
+	SFreqData *sFreqData = handle;
 	
 	if (handle != NULL)
 	{
