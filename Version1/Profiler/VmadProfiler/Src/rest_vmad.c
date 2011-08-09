@@ -1,6 +1,7 @@
+#include <math.h>
+#include <papi.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <papi.h>
 #include <syscall.h>
 
 #include "rest_vmad.h"
@@ -27,12 +28,9 @@ void *restInit(restModule *module)
 	int EventSet = PAPI_NULL;
 	
 	initLibraryPapi();
-	//~ initThreadPapi (getTid);
-	if (PAPI_thread_init (getTid) != PAPI_OK)
-	{
-		fprintf (stderr,"Thread init function didn't register properly\n");
-		exit(1);
-	}
+
+	initThreadPapi ();
+
 	module->context.ProfContext->parent = threadIdPapi();
 	
 	//call the papi helper to init stuff
@@ -112,11 +110,15 @@ void *restOn(restModule *module)
 		
 	return module;
 }
+
 void *restOff(restModule *module)
 {
+	(void) module;
 	return NULL;
 }
+
 void *restReset(restModule *module)
 {
+	(void) module;
 	return NULL;
 }

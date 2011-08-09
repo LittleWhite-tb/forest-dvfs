@@ -27,7 +27,7 @@ void initPapiHelper ( int * EventSet, STPContext * handle);
 void startPapi (int EventSet);
 void accumPapi (int EventSet, long_long *values);
 void initLibraryPapi ();
-void initThreadPapi (pid_t getTid);
+void initThreadPapi (void);
 PAPI_thread_id_t threadIdPapi ();
 
 #endif

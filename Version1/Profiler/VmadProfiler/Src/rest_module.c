@@ -41,9 +41,6 @@ void restModuleLoad (restModule **ptrmymodule)
 	*ptrmymodule = mymodule;
 }
 
-
-
-
 void restModuleUnload (restModule *mymodule)
 {
 	//quit
