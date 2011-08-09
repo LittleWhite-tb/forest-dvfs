@@ -250,6 +250,10 @@ int main(int argc,char ** argv)
 		{
 			restHandle= RestInit(T_PROFILER, BRANCHPREDICT_DM, FREQ_CHANGER);
 		}
+		else if (choose_dm==3)
+		{
+			restHandle= RestInit(T_PROFILER, MARKOVPREDICT_DM, FREQ_CHANGER);
+		}
 		else
 		{
 			Log_output (0, "-d option was incorrect choose 1 or 2\n");
@@ -350,7 +354,7 @@ int main(int argc,char ** argv)
 				#endif
 			}
 			#endif
-			
+		
 			samples[mysample].time=getTicks();
 			samples[mysample].bound=2;
 			mysample++;
