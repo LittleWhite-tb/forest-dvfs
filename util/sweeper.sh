@@ -11,8 +11,7 @@ fi
 source /opt/util/redo_sudo.rc
 
 #need to make this some kind of command in the future
-REST_PATH=/home/users/klivingston/nfs/rest
-
+REST_PATH=$PWD/$(dirname $0)/../
 
 CURRENT_DIR=$PWD
 
