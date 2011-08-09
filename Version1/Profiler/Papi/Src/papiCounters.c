@@ -44,44 +44,44 @@ unsigned long long getTicks ( void )
  
 void initPapiHelper ( int * EventSet, STPContext * handle)
 {
-	int codes[3];
+	int codes[3] = {0,0,0};
 	int ret_code;
 	
 	if (PAPI_event_name_to_code ("SQ_FULL_STALL_CYCLES", &codes[0]) != PAPI_OK) 
 	{
-		Log_output (0,"PAPI even_name_to_code failed!\n");
+		fprintf (stderr,"PAPI even_name_to_code failed!\n");
 		exit (1);
 	}
 
 	if (PAPI_event_name_to_code ("UNHALTED_CORE_CYCLES", &codes[1]) != PAPI_OK) 
 	{
-		Log_output (0,"PAPI even_name_to_code failed!\n");
+		fprintf (stderr,"PAPI even_name_to_code failed!\n");
 		exit (1);
 	}
 	if (PAPI_event_name_to_code ("L2_RQSTS:MISS", &codes[2]) != PAPI_OK) 
 	{
-		Log_output (0,"PAPI even_name_to_code failed!\n");
+		fprintf (stderr,"PAPI even_name_to_code failed!\n");
 		exit (1);
 	}
-
+	
 	/* Check to see if the PAPI natives are available */
 	if ((PAPI_query_event (codes[0]) != PAPI_OK) || (PAPI_query_event (codes[1]) != PAPI_OK) || (PAPI_query_event (codes[2]) != PAPI_OK)) 
 	{
-		Log_output (0,"PAPI counters aren't sufficient to measure boundedness!\n");
+		fprintf (stderr,"PAPI counters aren't sufficient to measure boundedness!\n");
 		exit (1);
 	}
 
 	ret_code=PAPI_create_eventset ( EventSet );
 	if(PAPI_OK != ret_code)
 	{
-		Log_output (0,"Creating the PAPI create eventset failed:%d %s\n",ret_code, PAPI_strerror(ret_code));
+		fprintf (stderr,"Creating the PAPI create eventset failed:%d %s\n",ret_code, PAPI_strerror(ret_code));
 		exit (1);
 
 	}
 	ret_code=PAPI_add_events (*EventSet,codes, 3);
 	if(PAPI_OK != ret_code)
 	{
-		Log_output (0,"Adding the PAPI add eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
+		fprintf (stderr,"Adding the PAPI add eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
 		exit (1);
 	}
 
@@ -89,7 +89,7 @@ void initPapiHelper ( int * EventSet, STPContext * handle)
 	ret_code=PAPI_attach (*EventSet, handle->parent);
 	if(PAPI_OK != ret_code)
 	{
-		Log_output (0,"Attaching the PAPI eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
+		fprintf (stderr,"Attaching the PAPI eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
 		exit (1);
 	}
 	return;
@@ -101,7 +101,7 @@ void startPapi (int EventSet)
 	int ret_code=PAPI_start (EventSet);
 	if(PAPI_OK != ret_code)
 	{
-		Log_output (5," PAPI start failed: %s\n",PAPI_strerror(ret_code));
+		fprintf (stderr," PAPI start failed: %s\n",PAPI_strerror(ret_code));
 		exit (1);
 	
 	}	
@@ -112,7 +112,7 @@ void accumPapi (int EventSet, long_long *values)
 	int ret_code = PAPI_accum (EventSet,values);
 	if(PAPI_OK != ret_code)
 	{
-		Log_output (5," PAPI accum failed: %s\n",PAPI_strerror(ret_code));
+		fprintf (stderr," PAPI accum failed: %s\n",PAPI_strerror(ret_code));
 		exit (1);
 	}
 }	
@@ -122,16 +122,19 @@ void initLibraryPapi ()
 	int retval=PAPI_library_init (PAPI_VER_CURRENT);
 	if (retval != PAPI_VER_CURRENT) 
 	{
-		Log_output (0,"PAPI library init error!\n");
+		fprintf (stderr,"PAPI library init error!\n");
 		exit (1);
 	}
 }
 
-void initThreadPapi (pid_t getTid)
+void initThreadPapi (void)
 {
+	fprintf(stderr, "[DEBUG : %d] Thread id \n",getpid());
+
 	if (PAPI_thread_init (getTid) != PAPI_OK)
 	{
-		Log_output (0,"Thread init function didn't register properly\n");
+		fprintf (stderr,"Thread init function didn't register properly\n");
+		exit(1);
 	}
 }
 

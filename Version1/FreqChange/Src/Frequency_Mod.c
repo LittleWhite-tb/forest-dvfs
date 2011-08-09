@@ -39,19 +39,19 @@ static __inline__ unsigned long long getTicks (void)
 //this function is implemented with a high overhead! So we Only read the frequency once and then store it somewhere.
 static int helperReadFreq (SFreqData * context, int procId)
 {
-	char bashCmd[1024]="";
+	char curFreqString[1024]="";
 	char core[3];
 	
-	strcat (bashCmd,"cat /sys/devices/system/cpu/cpu");
+	strcat (curFreqString,"/sys/devices/system/cpu/cpu");
 	sprintf (core,"%d",procId);
-	strcat (bashCmd,core);
-	strcat (bashCmd,"/cpufreq/cpuinfo_cur_freq");
+	strcat (curFreqString,core);
+	strcat (curFreqString,"/cpufreq/cpuinfo_cur_freq");
 	
 	char currentFreq[10];
 	int curFreq,i;
 	FILE * fp;
 	
-  	fp = popen (bashCmd,"r");
+  	fp = fopen (curFreqString,"r");
   	if (fp==NULL)
 	{
 		printf ("Failed to open cpufreq datafile\n");
@@ -65,12 +65,12 @@ static int helperReadFreq (SFreqData * context, int procId)
 		}
 		else
 		{
-			printf ("popen call failed somehow\n");
+			printf ("fopen call failed somehow 1\n");
 			exit (EXIT_FAILURE);
 		}
 		
 	}
-	pclose (fp);
+	fclose (fp);
 	for(i=0; i < context->numFreq ; i++)
 	{
 		if (curFreq==context->availableFreqs[i])
@@ -99,7 +99,7 @@ SFreqData * initCpufreq (void)
 
 	//find all the frequencies and record them
 	FILE * fp;
-  	fp = popen ("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies","r");
+  	fp = fopen ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies","r");
 	
 	if (fp==NULL)
 	{
@@ -131,14 +131,14 @@ SFreqData * initCpufreq (void)
 		}
 		else
 		{
-			printf ("popen call failed somehow\n");
+			printf ("fopen call failed somehow 2\n");
 			exit (EXIT_FAILURE);
 		}
 	}
-	pclose (fp);
+	fclose (fp);
 
 	//find number of cores
-	fp=popen ("cat /proc/cpuinfo | grep \"processor\" | wc -l", "r");
+	fp= fopen ("/proc/cpuinfo", "r");
 	if (fp==NULL)
 	{
 		printf ("Failed to find number of cpus in /proc/cpuinfo\n");
@@ -146,20 +146,18 @@ SFreqData * initCpufreq (void)
 	}
 	else
 	{
-		if(fgets (char_buff, sizeof (char_buff), fp))
+		while (fgets (char_buff, sizeof (char_buff), fp))
 		{
-			char * pch;
-			pch = strtok (char_buff," ");
-			num_cores=atoi (pch);
-			assert (num_cores>0);
-			pclose (fp);	
+			//Check if there is something
+			if (strstr (char_buff, "processor") != NULL)
+			{
+				num_cores++;
+			}
 		}	
-		else
-		{
-			printf ("popen call failed somehow\n");
-			exit (EXIT_FAILURE);
-		}	
+		fclose (fp);
 	}
+
+	assert (num_cores > 0);
 	/*now allocate a context with all my mallocs
 	*/
 	

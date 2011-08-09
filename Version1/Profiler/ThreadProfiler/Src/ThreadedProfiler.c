@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "DecisionStructures.h"
 #include "Log.h"
 #include "rdtsc.h"
+#include "papiCounters.h"
 
 #include <assert.h>
 #include <math.h>
@@ -42,13 +43,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 //internal declarations
-static void initPapiHelper ( int * EventSet, STPContext * handle);
-static __inline__ pid_t getTid (void);
-static __inline__ unsigned long long getTicks ( void );
+//static void initPapiHelper ( int * EventSet, STPContext * handle);
+//static __inline__ pid_t getTid (void);
+//static __inline__ unsigned long long getTicks ( void );
 
 
 
-static __inline__ unsigned long long getTicks ( void )
+/*static __inline__ unsigned long long getTicks ( void )
 {
    unsigned long long ret;
    rdtscll (ret);
@@ -59,9 +60,9 @@ static __inline__ pid_t getTid (void)
 {
 	pid_t answer =  syscall (__NR_gettid);
 	return answer;
-}
+}*/
 
-static void initPapiHelper ( int * EventSet, STPContext * handle)
+/*static void initPapiHelper ( int * EventSet, STPContext * handle)
 {
 
 	int codes[3];
@@ -84,7 +85,7 @@ static void initPapiHelper ( int * EventSet, STPContext * handle)
 		exit (1);
 	}
 
-	/* Check to see if the PAPI natives are available */
+	 //Check to see if the PAPI natives are available 
 	if ((PAPI_query_event (codes[0]) != PAPI_OK) || (PAPI_query_event (codes[1]) != PAPI_OK) || (PAPI_query_event (codes[2]) != PAPI_OK)) 
 	{
 		Log_output (0,"PAPI counters aren't sufficient to measure boundedness!\n");
@@ -113,7 +114,7 @@ static void initPapiHelper ( int * EventSet, STPContext * handle)
 		exit (1);
 	}
 	return;
-}
+}*/
 
 
 
