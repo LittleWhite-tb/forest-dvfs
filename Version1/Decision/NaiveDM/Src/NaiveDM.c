@@ -41,31 +41,18 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 	newFrequency=(report->data.tp.bounded == 1.0)?freqData->numFreq-1:newFrequency;//if it's exactly 1.0 then we set it to the lowest frequency
 	int currentCore = report->proc_id;
 	
-	if (report->prof_id == THREADED_PROFILER)
+	//Too change: 0 only for now
+	if(newFrequency != readFreq(freqData, currentCore))
 	{
-		//Too change: 0 only for now
-		if(newFrequency != readFreq(freqData, currentCore))
-		{
-			Log_output (0, "changing frequency %d\n", newFrequency);
-			changeFreq (freqData, currentCore, newFrequency);
-			report->data.tp.nextWindow=FIRSTSLEEP;
-			return 1;
-		}
-		else
-		{
-			report->data.tp.nextWindow=report->data.tp.window*2;
-			report->data.tp.nextWindow=(report->data.tp.nextWindow>LONGESTSLEEP)?report->data.tp.nextWindow:LONGESTSLEEP;
-			return 1;
-		}
-	}
-	else if (report->prof_id == VMAD_PROFILER)
-	{
-		return 0;
+		Log_output (0, "changing frequency %d\n", newFrequency);
+		changeFreq (freqData, currentCore, newFrequency);
+		report->data.tp.nextWindow=1;
+		return 1;
 	}
 	else
 	{
-		Log_output (0, "Report has bad Profiler ID!! Quiting \n");
-		exit (1);
+		report->data.tp.nextWindow=report->data.tp.window++;
+		return 1;
 	}
 	
 	return 0;

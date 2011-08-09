@@ -5,7 +5,7 @@ EXE := $(patsubst Src/%.c,%,$(wildcard Src/*.c))
 LIBS = -L../.. -lpthread -lpapi -ldl -lm -lrest
 
 
-OPT_INCLUDE = -I../../ -I./Include -I../../FreqChange/Include/ -I../../Profiler/Include/ -I../../Decision/Include -I../../Common/Include/
+OPT_INCLUDE = -I../../ -I./Include -I../../FreqChange/Include/ -I../../Profiler/Include/ -I../../Decision/Include -I../../Common/Include/ -I../../Profiler/VmadProfiler/Include/ -I../../Markov/Include/
 OPT_FLAGS = -DX86 -g -O3
 
 all: $(EXE)
