@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "rdtsc.h"
 
 #include <assert.h>
+#include <math.h>
 #include <papi.h>
 #include <pthread.h>
 #define _GNU_SOURCE
@@ -179,8 +180,11 @@ void * profilerThread (void * ContextPtr)
 
 	
 	usleep (myWindow);
+
 	while (killSignal==0)
 	{
+
+
 		float val1, val2, val3;
 
 		//get PAPI info from counters		
@@ -229,14 +233,14 @@ void * profilerThread (void * ContextPtr)
 		//give the report
 		if (myReporter (myDM, &myReport))
 		{
-		  	myWindow=myReport.data.tp.nextWindow;
+		  	myWindow=pow(2,myReport.data.tp.nextWindow)*FIRSTSLEEP;
 		   	algorithm=myReport.data.tp.algorithm;
 		   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
 		}
 		else
 		{
 			//self regulate
-			if(abs (lastBoundedValue - privateBounded)>THRESHOLD) 
+			if(fabs (lastBoundedValue - privateBounded)>THRESHOLD) 
 			{
 				myWindow=FIRSTSLEEP;
 			}
@@ -248,6 +252,7 @@ void * profilerThread (void * ContextPtr)
 		}
 		lastBoundedValue=privateBounded;
 		startTime=getTicks ();
+
 		usleep (myWindow);
 	}
 
