@@ -43,6 +43,8 @@ void *restInit(restModule *module)
 	void * (* DmInit) (void)=module->context.ProfContext->myFuncs.initFunc;
 	theDmContext = DmInit();
 	module->context.DMcontext = theDmContext;
+
+	fprintf (stderr, "Here we are in rest\n");
 	
 	return NULL;
 }
