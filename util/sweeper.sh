@@ -8,10 +8,14 @@ echo “Sudo make me a sandwich....” 2>&1
 exit 1
 fi
 
-source /opt/util/redo_sudo.rc
+PID=0
 
 #need to make this some kind of command in the future
 REST_PATH=$PWD/$(dirname $0)/../
+source $REST_PATH/util/redo_sudo.rc
+
+
+VMAD_PATH=$REST_PATH/../vmad
 
 CURRENT_DIR=$PWD
 
@@ -77,22 +81,34 @@ done
 
 echo "Number of cores is $NUMCORES and number of frequencies is $NUMFREQS"
 
+#FUNCTION DECLARATIONS
+
+function on_controlc
+{
+	echo "Control C Detected: Trying to kill the benchmarks..."
+	echo "kill $PID"
+	kill $PID
+}
+
+trap 'on_controlc' SIGINT
+
+
 function testFunc ()
 {
 
-if [ -e ./run_spec.sh ];
-then
-
-	BASENAME=$1
-	microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TOTAL_PATH --execargs "\" $@ \"" 
-
-else
-
 	BASENAME=$1
 	shift 1
-	microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TOTAL_PATH --execargs "\" $@ \"" 
+
+if [ -e $TARGET_PATH/run_spec.sh ];
+then
+	echo "microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs \"$*\""
+
+	microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs "$*"
+
+else
+	microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TOTAL_PATH --execargs "$*" 
 fi
-	
+	PID=$!
 
 }
 	
@@ -101,7 +117,7 @@ cd $TARGET_PATH
 if [ -e ./build_spec.sh ];
 then
 
-	./build_spec.sh #ok
+	./build_spec.sh $@
 
 else
 

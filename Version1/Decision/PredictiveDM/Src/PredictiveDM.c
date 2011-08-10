@@ -71,11 +71,7 @@ void* branchDecisionInit (void)
 }
 
 int branchDecisionGiveReport (void *handle, SProfReport *report)
-{
-	if (report->prof_id == THREADED_PROFILER)
-	{
-		
-		
+{		
 		//Put in variables easier to use
 		SaveData *savedData = handle;
 		SFreqData *freqData = savedData->sFreqData;
@@ -112,7 +108,6 @@ int branchDecisionGiveReport (void *handle, SProfReport *report)
 			Log_output(0, "changing frequency %d\n", newFrequency);
 			changeFreq (freqData, currentCore, newFrequency);
 		}
-	}
 	
 	return 0;
 }

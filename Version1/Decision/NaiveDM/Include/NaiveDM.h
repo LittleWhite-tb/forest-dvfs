@@ -33,7 +33,7 @@ void * naiveDecisionInit (void);
 void naiveDecisionDestruct (void *);
 
 /**
- * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the frequency changer should do
+ * @brief function return 0 if no additional action is required by the profiler and 1 if context needs to be examined and what the profiler should do
  * @param profiler the report to give
  * @param data a handle to the Decision Maker context
  **/

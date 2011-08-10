@@ -30,52 +30,89 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 void* markovDecisionInit (void)
 {
-
-	SaveData *savedData = malloc (sizeof (savedData));
+	int i;
+	SaveData *savedData = malloc (sizeof (*savedData));
 	savedData->sFreqData = initCpufreq ();
-	savedData->predictor = Markov_Initialize ();
-	Markov_Set(savedData->predictor, 1 , M_PREFDIST);
-	Markov_Set(savedData->predictor, 100, M_ERRMAX);
-	Markov_Set(savedData->predictor, 100, M_CONSTTL);
+	savedData->predictor = malloc (savedData->sFreqData->numCores * sizeof(* (savedData->predictor)));
+
+	for(i=0; i< savedData->sFreqData->numCores; i++)
+	{
+		savedData->predictor[i]=NULL;//first we make all the allocations null since we do per core markov modeling
+	}
 	savedData->duration=0;
 	return savedData;
 }
 
 int markovDecisionGiveReport (void *handle, SProfReport *report)
 {
-	SFreqData *freqData = handle;
+
+	SaveData *savedData = handle;
+	SFreqData *freqData =savedData->sFreqData;
 	int newFrequency = round ((int) (report->data.tp.bounded * freqData->numFreq));
+	newFrequency=(report->data.tp.bounded == 0.0)?1:newFrequency;//unless it's prefectly compute bound we won't use the turbo frequency
+	newFrequency=(report->data.tp.bounded == 1.0)?freqData->numFreq-1:newFrequency;//if it's exactly 1.0 then we set it to the lowest frequency
 	int currentCore = report->proc_id;
 	
+	assert (newFrequency>-1 && newFrequency<12);
+	assert(currentCore<freqData->numCores);
+	//init the markov on this core if not already done
+	if(savedData->predictor[currentCore]==NULL)
+	{
+		savedData->predictor[currentCore]=Markov_Initialize ();
+		Markov_Set (savedData->predictor[currentCore], 1 , M_PREFDIST);
+		Markov_Set (savedData->predictor[currentCore], 100, M_ERRMAX);
+		Markov_Set (savedData->predictor[currentCore], 100, M_CONSTTL);
+	}
 	if (report->prof_id == THREADED_PROFILER)
 	{
-		//Too change: 0 only for now
-		if(newFrequency != readFreq(freqData, 0))
+		
+		savedData->duration+=pow(2,report->data.tp.window)*FIRSTSLEEP;
+		if(newFrequency == readFreq(freqData, currentCore))//it's the same frequency suggestion
 		{
-			Log_output (0, "changing frequency %d\n", newFrequency);
-			changeFreq (freqData, -1, newFrequency);
-			//changeFreq (freqData, currentCore, newFrequency);
-			report->data.tp.nextWindow=FIRSTSLEEP;
+			report->data.tp.nextWindow=report->data.tp.window+1;
 			return 1;
 		}
-		else
+		else  //we have a transition!
 		{
-			report->data.tp.nextWindow=report->data.tp.window*2;
-			report->data.tp.nextWindow=(report->data.tp.nextWindow>LONGESTSLEEP)?report->data.tp.nextWindow:LONGESTSLEEP;
-			return 1;
+			SGlobalAdd nodeToAdd;
+			SGlobalAdd * markovPredictPtr;
+
+			
+			changeFreq (freqData, currentCore, newFrequency);
+			
+			nodeToAdd.boundedness=report->data.tp.bounded;
+			nodeToAdd.duration=savedData->duration;
+			markovPredictPtr=savedData->predictor[currentCore]->fct(savedData->predictor[currentCore],&nodeToAdd);
+			if(markovPredictPtr)
+			{
+				//printf("We had a prediction!!\n");
+				report->data.tp.nextWindow=markovPredictPtr->duration;
+				return 1;
+			}
+			else
+			{
+				report->data.tp.nextWindow=1;
+				return 1;
+			}
 		}
 	}
-	
-	return 0;
-}
 
+return 0;
+}
+			
+	
 void markovDecisionDestruct(void* handle)
 {
 	SaveData *savedData = handle;
 	
 	if (savedData != NULL)
 	{
-		Markov_Clear(savedData->predictor);
+		int i;
+		for(i=0;i< savedData->sFreqData->numCores;i++)
+		{
+			Markov_Clear(savedData->predictor[i]);
+		}
+		free(savedData->predictor);
 		destroyCpufreq (savedData->sFreqData);
 	}
 	free(savedData);

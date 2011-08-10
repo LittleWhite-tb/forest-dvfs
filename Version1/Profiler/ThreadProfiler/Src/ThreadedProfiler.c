@@ -137,7 +137,7 @@ void * profilerThread (void * ContextPtr)
 
 	/*Algorithm related variables*/
 	int algorithm=0;
-	int myWindow=FIRSTSLEEP;
+	int myWindow=1;
 	float lastBoundedValue=.5;//just initializing to .5 so it's valid
 	float privateBounded;
 	unsigned long long startTime, endTime;
@@ -180,7 +180,7 @@ void * profilerThread (void * ContextPtr)
 	startTime=getTicks ();
 
 	
-	usleep (myWindow);
+	usleep (FIRSTSLEEP);
 
 	while (killSignal==0)
 	{
@@ -215,7 +215,6 @@ void * profilerThread (void * ContextPtr)
 		endTime=getTicks ();	
 		myReport.data.tp.ticks=endTime-startTime;
 		myReport.data.tp.window=myWindow;
-
 		
 		#ifdef PRINT_DEBUG
 			printf ("Total Cycles is %lld\n",values[1]);
@@ -234,7 +233,8 @@ void * profilerThread (void * ContextPtr)
 		//give the report
 		if (myReporter (myDM, &myReport))
 		{
-		  	myWindow=pow(2,myReport.data.tp.nextWindow)*FIRSTSLEEP;
+		  	myWindow=myReport.data.tp.nextWindow;
+			myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
 		   	algorithm=myReport.data.tp.algorithm;
 		   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
 		}
@@ -243,18 +243,18 @@ void * profilerThread (void * ContextPtr)
 			//self regulate
 			if(fabs (lastBoundedValue - privateBounded)>THRESHOLD) 
 			{
-				myWindow=FIRSTSLEEP;
+				myWindow=1;
 			}
 			else
 			{
-				myWindow*=2;
-				myWindow= (myWindow>LONGESTSLEEP)?LONGESTSLEEP:myWindow;
+				myWindow++;
+				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
 			}
 		}
 		lastBoundedValue=privateBounded;
 		startTime=getTicks ();
-
-		usleep (myWindow);
+		//printf("Usleeping for %d\n",myWindow);
+		usleep (pow(2,myWindow)*FIRSTSLEEP);
 	}
 
 	/* @todo destroy papi stuff properly*/
