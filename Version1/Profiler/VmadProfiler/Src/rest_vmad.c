@@ -44,7 +44,7 @@ void *restInit(restModule *module)
 	theDmContext = DmInit();
 	module->context.DMcontext = theDmContext;
 	
-	return NULL;
+	return module->on(module);
 }
 
 void *restQuit(restModule *module)
