@@ -11,6 +11,7 @@
 void restModuleLoad (restModule **ptrmymodule)
 {
 	//module(s) loading
+	fprintf (stderr, "Rest module\n");
 	
 	STPContext * handle;
 	handle= malloc (sizeof (*handle));
@@ -36,7 +37,6 @@ void restModuleLoad (restModule **ptrmymodule)
 	mymodule->report.Profreport.data.tp.window=FIRSTSLEEPITERATION;
 	
 	//module(s) init
-	restBind(mymodule);
 	mymodule->init(mymodule);
 	*ptrmymodule = mymodule;
 }

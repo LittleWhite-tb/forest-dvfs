@@ -11,8 +11,9 @@
 
 
 
-void restBind(restModule *module) 
+void camus_bind (restModule *module) 
 {
+	fprintf (stderr, "Rest binding %p\n", module);
 	module->init = restInit;
 	module->on = restOn;
 	module->off = restOff;

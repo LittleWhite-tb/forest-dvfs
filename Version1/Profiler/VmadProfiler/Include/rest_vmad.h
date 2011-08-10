@@ -3,7 +3,7 @@
 
 #include "rest_module.h"
 
-void restBind(restModule *module);
+void camus_bind (restModule *module);
 
 
 void *restInit(restModule *module);
