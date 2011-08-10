@@ -129,7 +129,6 @@ void initLibraryPapi ()
 
 void initThreadPapi (void)
 {
-	fprintf(stderr, "[DEBUG : %d] Thread id \n",getpid());
 
 	if (PAPI_thread_init (getTid) != PAPI_OK)
 	{

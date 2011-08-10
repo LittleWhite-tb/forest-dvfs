@@ -2,31 +2,13 @@
 #define REST_VMAD
 
 #include "camus_definitions.h"
-
+#include "vmad_rest_definition.h"
 
 #include "Profilers.h"
 #include "DecisionStructures.h"
 
 
-typedef struct _RESTcontext
-{
-	STPContext *ProfContext;
-	void * DMcontext;
-}RESTcontext;
 
-
-typedef struct _Report
-{
-	SProfReport Profreport;
-	int papiEventSet;
-}Report;
-
-typedef struct _restData
-{
-	RESTcontext context;
-	Report report;
-	
-}restData;
 
 
 void camus_bind (camus_module_t module);

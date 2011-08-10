@@ -14,7 +14,6 @@
 
 void camus_bind (camus_module_t module) 
 {
-	fprintf (stderr, "Rest binding %p\n", module);
 	module->init = restInit;
 	module->on = restOn;
 	module->off = restOff;
