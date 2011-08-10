@@ -6,7 +6,7 @@
 
 #include "vmad_rest_definition.h"
 #include "camus_interpolation.h"
-#inlcude "camus_decision.h"
+#include "camus_decision.h"
 #include "camus_dep_tst.h"
 #include "camus_decision_transaction.h"
 
