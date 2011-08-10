@@ -11,8 +11,9 @@
 
 
 
-void restBind(restModule *module) 
+void camus_bind (restModule *module) 
 {
+	fprintf (stderr, "Rest binding %p\n", module);
 	module->init = restInit;
 	module->on = restOn;
 	module->off = restOff;
@@ -43,6 +44,8 @@ void *restInit(restModule *module)
 	void * (* DmInit) (void)=module->context.ProfContext->myFuncs.initFunc;
 	theDmContext = DmInit();
 	module->context.DMcontext = theDmContext;
+
+	fprintf (stderr, "Here we are in rest\n");
 	
 	return module->on(module);
 }

@@ -40,14 +40,14 @@ static __inline__ unsigned long long getTicks (void)
 static int helperReadFreq (SFreqData * context, int procId)
 {
 	char curFreqString[1024]="";
-	char core[3];
+	char core[1024];
 	
 	strcat (curFreqString,"/sys/devices/system/cpu/cpu");
 	sprintf (core,"%d",procId);
 	strcat (curFreqString,core);
 	strcat (curFreqString,"/cpufreq/cpuinfo_cur_freq");
 	
-	char currentFreq[10];
+	char currentFreq[512];
 	int curFreq,i;
 	FILE * fp;
 	
@@ -71,6 +71,7 @@ static int helperReadFreq (SFreqData * context, int procId)
 		
 	}
 	fclose (fp);
+
 	for(i=0; i < context->numFreq ; i++)
 	{
 		if (curFreq==context->availableFreqs[i])
@@ -85,16 +86,13 @@ static int helperReadFreq (SFreqData * context, int procId)
 
 SFreqData * initCpufreq (void)
 {
-
 	SFreqData * handle;
 	
-	char num[128];
 	int i;
 	char char_buff[1024]="";
 	int globalFrequency[NUM_STATIC_FREQ];//this is a place to temporarily store all the values until we alloc on the heap
 	int num_frequency=0;//another temp holder
 	int num_cores=0;
-	int ret;
 	
 
 	//find all the frequencies and record them
@@ -161,7 +159,6 @@ SFreqData * initCpufreq (void)
 	/*now allocate a context with all my mallocs
 	*/
 	
-	
 	handle= malloc ( sizeof(* handle));
 	assert (handle!=NULL);
 	handle->setFile=malloc (sizeof (*(handle->setFile))*num_cores);
@@ -169,6 +166,7 @@ SFreqData * initCpufreq (void)
 	handle->currentFreqs=malloc (sizeof (*(handle->currentFreqs))*num_cores);
 	assert (handle->currentFreqs!=NULL);
 	handle->availableFreqs=malloc (sizeof (*(handle->availableFreqs))*num_frequency );
+	
 
 	handle->numFreq=num_frequency;
 	handle->numCores=num_cores;
@@ -183,24 +181,24 @@ SFreqData * initCpufreq (void)
 	for(i=0; i<num_cores;i++)
 	{
 		//first set the govenor to userspace
-		sprintf (char_buff,"echo userspace > /sys/devices/system/cpu/cpu");
-		sprintf (num,"%d",i);
-		strcat (char_buff,num);
-		strcat (char_buff,"/cpufreq/scaling_governor");
-		ret = system(char_buff);
+		sprintf (char_buff,"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
 
-    		if (WIFSIGNALED(ret) &&
-        		(WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
-            	{
-			Log_output (0,"System call failed! WHAT!?\n");
-			exit (1);		
+		FILE *f = fopen (char_buff, "w");
+
+		if(fp==NULL)
+		{
+			perror ( "Error opening file" );
+        	    	printf ( "Error opening file: %s - %s\n", char_buff, strerror( errno ) );
+			printf ( "Perhaps you don't have sudo rights?\n");
 		}
+		assert (f != NULL);
+
+		fprintf (f, "userspace");
+
+		fclose (f), f = NULL;
 
 		//now open the file descriptor
-		sprintf (char_buff,"/sys/devices/system/cpu/cpu");
-		sprintf (num,"%d",i);
-		strcat (char_buff,num);
-		strcat (char_buff,"/cpufreq/scaling_setspeed");
+		sprintf (char_buff,"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", i);
 		fp = fopen (char_buff,"w");
 
 		if(fp==NULL)
@@ -209,6 +207,7 @@ SFreqData * initCpufreq (void)
         	    	printf ( "Error opening file: %s\n", strerror( errno ) );
 			printf ( "Perhaps you don't have sudo rights?\n");
 		}
+
 		handle->setFile[i]=fp;//file * opened so now we place it in the context
 	}
 
