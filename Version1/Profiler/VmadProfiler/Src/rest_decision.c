@@ -6,6 +6,7 @@
 
 #include "vmad_rest_definition.h"
 #include "camus_interpolation.h"
+#inlcude "camus_decision.h"
 #include "camus_dep_tst.h"
 #include "camus_decision_transaction.h"
 
@@ -66,7 +67,7 @@ void restDecisionInit(camus_module_t module)
 
 	decision_t* d = (decision_t*) sym;
 	d->decision_block = camus_decision_chunk;
-	d->module = self;
+	d->module = module;
 	
 	xlog_end();
 }
