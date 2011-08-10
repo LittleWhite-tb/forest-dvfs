@@ -6,7 +6,7 @@ CC=gcc
 
 MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))
 THREADED_PROFILER_OBJ := $(patsubst Profiler/ThreadProfiler/Src/%.c,obj/%.o,$(wildcard Profiler/ThreadProfiler/Src/*.c))
-VMAD_PROFILER_OBJ := $(patsubst Profiler/VmadProfiler/Src/%.c,obj/%.o,$(wildcard Profiler/VmadProfiler/Src/*.c))
+#VMAD_PROFILER_OBJ := $(patsubst Profiler/VmadProfiler/Src/%.c,obj/%.o,$(wildcard Profiler/VmadProfiler/Src/*.c))
 PAPI_COUNTERS_OBJ := $(patsubst Profiler/Papi/Src/%.c,obj/%.o,$(wildcard Profiler/Papi/Src/*.c))
 COMMON_OBJ := $(patsubst Common/Src/%.c,obj/%.o,$(wildcard Common/Src/*.c))
 MARKOV_OBJ := $(patsubst Markov/Src/%.c,obj/%.o,$(wildcard Markov/Src/*.c))
@@ -16,7 +16,7 @@ DECISION_MARKOV_OBJ := $(patsubst Decision/MarkovDM/Src/%.c,obj/%.o,$(wildcard D
 FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Src/*.c))
 
 DECISION_OBJ = $(DECISION_NAIVE_OBJ) $(DECISION_MARKOV_OBJ) $(DECISION_PREDICTIVE_OBJ)
-PROFILER_OBJ = $(PAPI_COUNTERS_OBJ) $(VMAD_PROFILER_OBJ) $(THREADED_PROFILER_OBJ) 
+PROFILER_OBJ = $(PAPI_COUNTERS_OBJ)  $(THREADED_PROFILER_OBJ) #$(VMAD_PROFILER_OBJ)
 FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(MARKOV_OBJ)
 
 
