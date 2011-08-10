@@ -7,11 +7,12 @@
 #include "rest_vmad.h"
 #include "Profilers.h"
 #include "papiCounters.h"
+#include "NaiveDM.h"
 
 
 
 
-void camus_bind (restModule *module) 
+void camus_bind (camus_module_t module) 
 {
 	fprintf (stderr, "Rest binding %p\n", module);
 	module->init = restInit;
@@ -22,44 +23,73 @@ void camus_bind (restModule *module)
 }
 
 
-void *restInit(restModule *module)
+void restInit(camus_module_t module)
 {
-	/**Papi initialisation, almost like the threaded profiler*/
 	void * theDmContext = NULL;
 	int EventSet = PAPI_NULL;
+	restData * restdata;
+	
+	xlog_start();
+	xlog("restInit");
+	xlog_add(" -> %s",module->header->name);
+	
+	STPContext * handle;
+	handle= malloc (sizeof (*handle));
+	assert ( handle != NULL );
+	handle->killSig = NULL;
+	handle->core=sched_getcpu ();
+	handle->parent = -1;
+	handle->myFuncs.initFunc = naiveDecisionInit;
+	handle->myFuncs.destroyFunc = naiveDecisionDestruct;
+	handle->myFuncs.reportFunc = naiveDecisionGiveReport;
+
+	
+	module->data = malloc(sizeof(restData));
+	restdata = module->data;
+	
+	restdata->context.ProfContext = handle;
 	
 	initLibraryPapi();
 
 	initThreadPapi ();
 
-	module->context.ProfContext->parent = threadIdPapi();
+	restdata->context.ProfContext->parent = threadIdPapi();
 	
-	//call the papi helper to init stuff
-	initPapiHelper (&EventSet, module->context.ProfContext);
+	initPapiHelper (&EventSet, restdata->context.ProfContext);
 	
-	module->report.papiEventSet = EventSet;
+	restdata->report.papiEventSet = EventSet;
 	
-	startPapi(module->report.papiEventSet);
+	startPapi(restdata->report.papiEventSet);
 	
-	void * (* DmInit) (void)=module->context.ProfContext->myFuncs.initFunc;
+	void * (* DmInit) (void)=restdata->context.ProfContext->myFuncs.initFunc;
 	theDmContext = DmInit();
-	module->context.DMcontext = theDmContext;
+	restdata->context.DMcontext = theDmContext;
 
-	fprintf (stderr, "Here we are in rest\n");
+	xlog_end();
+}
+
+void restQuit(camus_module_t module)
+{
+	xlog_start();
+	xlog("restQuit");
+	xlog_add(" -> %s",module->header->name);
+	restData * restdata = module->data;
 	
-	return module->on(module);
+	free(restdata->context.DMcontext); restdata->context.DMcontext = NULL;
+	free(restdata->context.ProfContext); restdata->context.ProfContext = NULL;
+	free(restdata); module->data = NULL;
+	
+	xlog_end();
 }
 
-void *restQuit(restModule *module)
+void restOn(camus_module_t module)
 {
-	free(module->context.DMcontext); module->context.DMcontext = NULL;
-	free(module->context.ProfContext); module->context.ProfContext = NULL;
-	return NULL;
-}
-
-void *restOn(restModule *module)
-{
-	float privateBounded;
+	xlog_start();
+	xlog("restOn");
+	xlog_add(" -> %s",module->header->name);
+	
+	xlog_end();
+	/*float privateBounded;
 	static float lastBoundedValue = 0.5;
 	static int myWindow = FIRSTSLEEPITERATION;
 	long_long values[3]= {0,0,0};
@@ -91,7 +121,7 @@ void *restOn(restModule *module)
 		{
 		  	myWindow=module->report.Profreport.data.tp.nextWindow;
 		   	//algorithm=module->report.Profreport.data.tp.algorithm;
-		   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
+		   	// @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id
 		}
 		else
 		{
@@ -111,17 +141,23 @@ void *restOn(restModule *module)
 		
 		module->report.Profreport.data.tp.window=myWindow;
 		
-	return module;
+	return module;*/
 }
 
-void *restOff(restModule *module)
+void restOff(camus_module_t module)
 {
-	(void) module;
-	return NULL;
+	xlog_start();
+	xlog("restOff");
+	xlog_add(" -> %s",module->header->name);
+	
+	xlog_end();
 }
 
-void *restReset(restModule *module)
+void restReset(camus_module_t module)
 {
-	(void) module;
-	return NULL;
+	xlog_start();
+	xlog("restReset");
+	xlog_add(" -> %s",module->header->name);
+	
+	xlog_end();
 }
