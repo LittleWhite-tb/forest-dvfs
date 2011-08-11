@@ -6,7 +6,6 @@ CC=gcc
 
 MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))
 THREADED_PROFILER_OBJ := $(patsubst Profiler/ThreadProfiler/Src/%.c,obj/%.o,$(wildcard Profiler/ThreadProfiler/Src/*.c))
-#VMAD_PROFILER_OBJ := $(patsubst Profiler/VmadProfiler/Src/%.c,obj/%.o,$(wildcard Profiler/VmadProfiler/Src/*.c))
 PAPI_COUNTERS_OBJ := $(patsubst Profiler/Papi/Src/%.c,obj/%.o,$(wildcard Profiler/Papi/Src/*.c))
 COMMON_OBJ := $(patsubst Common/Src/%.c,obj/%.o,$(wildcard Common/Src/*.c))
 MARKOV_OBJ := $(patsubst Markov/Src/%.c,obj/%.o,$(wildcard Markov/Src/*.c))
@@ -16,7 +15,7 @@ DECISION_MARKOV_OBJ := $(patsubst Decision/MarkovDM/Src/%.c,obj/%.o,$(wildcard D
 FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Src/*.c))
 
 DECISION_OBJ = $(DECISION_NAIVE_OBJ) $(DECISION_MARKOV_OBJ) $(DECISION_PREDICTIVE_OBJ)
-PROFILER_OBJ = $(PAPI_COUNTERS_OBJ)  $(THREADED_PROFILER_OBJ) #$(VMAD_PROFILER_OBJ)
+PROFILER_OBJ = $(PAPI_COUNTERS_OBJ) $(THREADED_PROFILER_OBJ) 
 FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(MARKOV_OBJ)
 
 
@@ -27,13 +26,24 @@ OPT_INCLUDE = $(REST_INCLUDE) $(VMAD_INCLUDE)
 OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
 
 
-all: staticlib dynamiclib
+all: staticlib dynamiclib librest_vmad_bootstrap librest_vmad_decision
 
 staticlib : $(FULL_OBJ)
 	@ar -rv $(STATICLIB) $(FULL_OBJ)
 dynamiclib : $(FULL_OBJ)
 	@gcc -o $(DYNAMICLIB) -shared $(FULL_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+	
+librest_vmad_bootstrap: rest_vmad_bootstrap
+	@gcc -o librest_vmad_bootstrap.so -shared obj/rest_vmad_bootstrap.o $(OPT) $(CFLAGS) $(LIBS)
 
+librest_vmad_decision: rest_vmad_decision
+	@gcc -o librest_vmad_decision.so -shared obj/rest_vmad_bootstrap.o $(OPT) $(CFLAGS) $(LIBS)
+
+rest_vmad_bootstrap: Profiler/VmadProfiler/Src/rest_vmad.c Profiler/VmadProfiler/Include/rest_vmad.h
+	@$(CC) -c $< -o obj/rest_vmad_bootstrap.o $(OPT) $(CFLAGS) $(LIBS)
+	
+rest_vmad_decision: Profiler/VmadProfiler/Src/rest_decision.c Profiler/VmadProfiler/Include/rest_decision.h
+	@$(CC) -c $< -o obj/rest_vmad_decision.o $(OPT) $(CFLAGS) $(LIBS)
 
 $(VMAD_PROFILER_OBJ):obj/%.o: Profiler/VmadProfiler/Src/%.c Profiler/VmadProfiler/Include/%.h 
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
@@ -75,3 +85,4 @@ countfiles:
 	@echo "c: " `find . -name "*c" |wc -l`; \
     echo "Headers:" `find . -name "*h" | wc -l`;\
     echo "Txt:" `find data -name "*txt" |wc -l`
+

@@ -34,7 +34,7 @@ void restDecisionInit(camus_module_t module)
 	xlog_start();
 	xlog("restDecisionInit");
 	xlog_add(" -> %s",module->header->name);
-	camus_decision_param_t *param = module->header->param;
+	camus_decision_param_t param = module->header->param;
 	
 	xlog("runtime_decision_block_symbol_name: %s", param->runtime_decision_block_symbol_name);
 	xlog("chunk_instrumented_size: %li",  param->chunk_instrumented_size);
@@ -115,14 +115,15 @@ int camus_decision_chunk(void* module, int* lower_bound, int* upper_bound)
 	xlog("camus_decision_chunk");
 	
 	float privateBounded;
-	static float lastBoundedValue = 0.5;
-	int myWindow;
+	int myWindow = -1;
 	long_long values[3]= {0,0,0};
 	unsigned long long currentTicks = 0;
 	static unsigned long long oldTicks = 0;
 	
-	restData * restdata = module->data;
-	camus_decision_param_t *param = module->header->param;
+	camus_module_t mymodule = module;
+
+	restData * restdata = mymodule->data;
+	camus_decision_param_t param = mymodule->header->param;
 	
 	currentTicks = getTicks ();
 	restdata->report.Profreport.data.tp.ticks = currentTicks - oldTicks;
@@ -145,17 +146,16 @@ int camus_decision_chunk(void* module, int* lower_bound, int* upper_bound)
 	
 	int (* DmReport) (void *, SProfReport *) = restdata->context.ProfContext->myFuncs.reportFunc;
 	
-	if(DmReport (restdata->context.DMcontext, &(restdata->data->report).Profreport))
+	if(DmReport (restdata->context.DMcontext, &(restdata->report).Profreport))
 	{
 		myWindow = param->chunk_instrumented_size * restdata->report.Profreport.data.tp.nextWindow;
 	}
 
-	lastBoundedValue=privateBounded;
 	
 	*lower_bound = *upper_bound;
 	upper_bound += myWindow;
 	
-	camus_decision_log("CHUNK EXIT: version=%i, lower_bound=%i, upper_bound=%i, chunk_size=%i",version, *lower_bound, *upper_bound, data->chunk_size);
+	camus_decision_log("CHUNK EXIT: version=1, lower_bound=%i, upper_bound=%i, chunk_size=%i", *lower_bound, *upper_bound, param->chunk_instrumented_size);
 	
 	xlog_end();
 	
