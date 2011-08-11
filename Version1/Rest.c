@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include <stdio.h>
 
+#include "camus_definitions.h"
 #include "NaiveDM.h"
 #include "PredictiveDM.h"
 #include "MarkovDM.h"
@@ -105,5 +106,20 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 	
 	profilerDestroyFunction(handle);
 }
+
+
+void camus_empty (camus_module_t module)
+{
+}
+
+void camus_bind (camus_module_t module) 
+{
+	module->init = camus_empty;
+	module->on = camus_empty;
+	module->off = camus_empty;
+	module->quit = camus_empty;
+	module->reset = camus_empty;
+}
+
 
 /*@todo add the destroy function*/

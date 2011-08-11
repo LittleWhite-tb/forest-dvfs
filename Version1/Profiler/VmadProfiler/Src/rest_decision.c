@@ -34,7 +34,8 @@ void restDecisionInit(camus_module_t module)
 	xlog_start();
 	xlog("restDecisionInit");
 	xlog_add(" -> %s",module->header->name);
-	camus_decision_param_t param = module->header->param;
+
+	CAMUS_DECISION_PARAM (module);
 	
 	xlog("runtime_decision_block_symbol_name: %s", param->runtime_decision_block_symbol_name);
 	xlog("chunk_instrumented_size: %li",  param->chunk_instrumented_size);
@@ -43,9 +44,10 @@ void restDecisionInit(camus_module_t module)
 	xlog("number: %li",  param->number);
 	
 	
-	restData * restdata = module->data;
-	restdata->report.Profreport.data.tp.window = param->chunk_instrumented_size;
-	
+	CAMUS_DECISION_DATA (module);
+
+	//Removed this line it bugs
+	//data->report.Profreport.data.tp.window = param->chunk_instrumented_size;
 	
 	void* handle = dlopen(NULL, RTLD_LAZY);
 	if (handle == NULL)
@@ -58,6 +60,9 @@ void restDecisionInit(camus_module_t module)
 
 	char* error;
 	void* sym = dlsym(handle, (const char*) param->runtime_decision_block_symbol_name);
+	
+	xlog ("Here");
+	xlog_add (": %s\n", (const char*) param->runtime_decision_block_symbol_name);
 
 	if ((error = dlerror()) != NULL)
 	{
@@ -65,6 +70,8 @@ void restDecisionInit(camus_module_t module)
 		exit(EXIT_FAILURE);
 	}
 
+	xlog ("Here:");
+        xlog_add ("%p\n", sym);
 	decision_t* d = (decision_t*) sym;
 	d->decision_block = camus_decision_chunk;
 	d->module = module;

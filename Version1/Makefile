@@ -37,7 +37,7 @@ librest_vmad_bootstrap: rest_vmad_bootstrap
 	@gcc -o librest_vmad_bootstrap.so -shared obj/rest_vmad_bootstrap.o $(OPT) $(CFLAGS) $(LIBS)
 
 librest_vmad_decision: rest_vmad_decision
-	@gcc -o librest_vmad_decision.so -shared obj/rest_vmad_bootstrap.o $(OPT) $(CFLAGS) $(LIBS)
+	@gcc -o librest_vmad_decision.so -shared obj/rest_vmad_decision.o $(OPT) $(CFLAGS) $(LIBS)
 
 rest_vmad_bootstrap: Profiler/VmadProfiler/Src/rest_vmad.c Profiler/VmadProfiler/Include/rest_vmad.h
 	@$(CC) -c $< -o obj/rest_vmad_bootstrap.o $(OPT) $(CFLAGS) $(LIBS)
