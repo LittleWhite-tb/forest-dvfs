@@ -20,7 +20,8 @@ FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMO
 
 
 LIBS = -lpthread -lpapi -ldl
-REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include
+REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include -I.
+
 VMAD_INCLUDE = -I../../vmad/VMAD_version_under_development/camus_vm/include -I../../vmad/VMAD_version_under_development/camus_vm/ressource/ -I../../vmad/VMAD_version_under_development/camus_vm/modules/
 OPT_INCLUDE = $(REST_INCLUDE) $(VMAD_INCLUDE)
 OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86

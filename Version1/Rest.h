@@ -27,12 +27,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  * and at last you have to choose the frequency changer driver in FREQ_CHANGER*/
 typedef enum _toolChainInit
 {	
-	T_PROFILER, /**< @brief init the threaded profiler*/
-	WMAD_PROFILER,     /**< @brief init the wmad profiler*/
-	NAIVE_DM,		   /**< @brief init the naive decision maker*/
-	BRANCHPREDICT_DM,  /**< @brief init the branch prediction like decision maker*/
-	MARKOVPREDICT_DM,  /**< @brief init the markovian decision maker*/
-	FREQ_CHANGER       /**< @brief init the frequency changer driver*/
+	REST_T_PROFILER, /**< @brief init the threaded profiler*/
+	REST_VMAD_PROFILER,     /**< @brief init the wmad profiler*/
+	REST_NAIVE_DM,		   /**< @brief init the naive decision maker*/
+	REST_BRANCHPREDICT_DM,  /**< @brief init the branch prediction like decision maker*/
+	REST_MARKOVPREDICT_DM,  /**< @brief init the markovian decision maker*/
+	REST_FREQ_CHANGER       /**< @brief init the frequency changer driver*/
 }toolChainInit;
 
 

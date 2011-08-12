@@ -19,5 +19,6 @@ typedef struct _restData
 {
 	RESTcontext context;
 	Report report;
+	long long iteration;
 	
 }restData;

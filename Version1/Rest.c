@@ -34,15 +34,14 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 	
 	switch (profiler)
 	{
-		case T_PROFILER :
+		case REST_T_PROFILER :
 			profilerInitFunction = threadedProfilerInit;
 			break;
-		case WMAD_PROFILER :
-			fprintf(stderr, "Not yet implemented for now, please choose the THREADED_PROFILER\n");
-			assert(0);
+		case REST_VMAD_PROFILER :
+			//Nothing to do here
 			break;
 		default :
-			fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, WMAD_PROFILER\n");
+			fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
 			assert(0);
 			break;
 	}
@@ -50,17 +49,17 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 	
 	switch (decisionMaker)
 	{
-		case NAIVE_DM:
+		case REST_NAIVE_DM:
 			decisionFuncs.initFunc =  naiveDecisionInit;
 			decisionFuncs.destroyFunc = naiveDecisionDestruct;
 			decisionFuncs.reportFunc =  naiveDecisionGiveReport;
 			break;
-		case BRANCHPREDICT_DM:
+		case REST_BRANCHPREDICT_DM:
 			decisionFuncs.initFunc =  branchDecisionInit;
 			decisionFuncs.destroyFunc = branchDecisionDestruct;
 			decisionFuncs.reportFunc =  branchDecisionGiveReport;
 			break;
-		case MARKOVPREDICT_DM:
+		case REST_MARKOVPREDICT_DM:
 			fprintf(stderr, "Not yet implemented for now, please choose the NAIVE_DM \n");
 			assert(0);
 			break;
@@ -72,7 +71,7 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 	
 	switch (freqChanger)
 	{
-		case FREQ_CHANGER:
+		case REST_FREQ_CHANGER:
 			break;
 		default:
 			fprintf(stderr, "Undefined decision maker, the defined ones are : FREQ_CHANGER\n");
@@ -81,7 +80,7 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 	}
 	
 	STPContext *handle = profilerInitFunction (decisionFuncs);
-    return handle;
+	return handle;
 }
 
 void RestDestroy (toolChainInit profiler, void *ptr)
@@ -91,15 +90,13 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 
 	switch (profiler)
 	{
-		case T_PROFILER :
+		case REST_T_PROFILER :
 			profilerDestroyFunction = threadedProfilerDestroy;
 			break;
-		case WMAD_PROFILER :
-			fprintf(stderr, "Not yet implemented for now, please choose the THREADED_PROFILER\n");
-			assert(0);
+		case REST_VMAD_PROFILER :
 			break;
 		default :
-			fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, WMAD_PROFILER\n");
+			fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
 			assert(0);
 			break;
 	}

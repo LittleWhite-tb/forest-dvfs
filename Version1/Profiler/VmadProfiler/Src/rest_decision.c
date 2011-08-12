@@ -14,6 +14,7 @@
 #include "papiCounters.h"
 #include "NaiveDM.h"
 
+#include "Rest.h"
 #include "rest_decision.h"
 
 
@@ -43,11 +44,24 @@ void restDecisionInit(camus_module_t module)
 	xlog("chunk_initial_parallel_size: %li",  param->chunk_initial_parallel_size);
 	xlog("number: %li",  param->number);
 	
-	
-	CAMUS_DECISION_DATA (module);
+	module->data = malloc (sizeof (restData));
+	assert (module->data != NULL);
+	memset (module->data, 0, sizeof (restData));
+
+	restData *data = module->data;
 
 	//Removed this line it bugs
-	//data->report.Profreport.data.tp.window = param->chunk_instrumented_size;
+	data->report.Profreport.data.tp.window = param->chunk_instrumented_size;
+	data->context.ProfContext = RestInit (REST_VMAD_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
+
+	//Sanity check
+	int (* DmReport) (void *, SProfReport *) = data->context.ProfContext->myFuncs.reportFunc;
+	xlog ("DM Report");
+	xlog_add (" %p %p", DmReport, naiveDecisionGiveReport);
+
+	//Init the DecisionMaker
+	void * (*myInit) (void)= data->context.ProfContext->myFuncs.initFunc;
+	data->context.DMcontext = myInit ();
 	
 	void* handle = dlopen(NULL, RTLD_LAZY);
 	if (handle == NULL)
@@ -129,12 +143,16 @@ int camus_decision_chunk(void* module, int* lower_bound, int* upper_bound)
 	
 	camus_module_t mymodule = module;
 
+	xlog ("Getting data");
+
 	restData * restdata = mymodule->data;
 	camus_decision_param_t param = mymodule->header->param;
 	
 	currentTicks = getTicks ();
 	restdata->report.Profreport.data.tp.ticks = currentTicks - oldTicks;
 	oldTicks = currentTicks;
+
+	xlog ("Checking papi");
 	
 	accumPapi(restdata->report.papiEventSet, values);
 	
@@ -144,23 +162,36 @@ int camus_decision_chunk(void* module, int* lower_bound, int* upper_bound)
 	}
 	else
 	{
-		privateBounded=2*16*values[0]*values[2]/(values[1]*values[1]);
+		privateBounded=2.0*16.0*values[0]*values[2] / (values[1]*values[1] + 0.0f);
 		privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 	}
+	fprintf (stderr, "\n\n\n%lld %lld %lld %f\n\n\n", values[0], values[1], values[2], privateBounded);
 	
 	restdata->report.Profreport.data.tp.bounded=privateBounded;
-	
+
+	xlog ("Updated bounded");
 	
 	int (* DmReport) (void *, SProfReport *) = restdata->context.ProfContext->myFuncs.reportFunc;
 	
-	if(DmReport (restdata->context.DMcontext, &(restdata->report).Profreport))
+	xlog ("Reporting to DM");
+	xlog_add (" %p", DmReport);
+
+	int res = DmReport (restdata->context.DMcontext, &(restdata->report.Profreport));
+
+	if(res != 0)
 	{
+		xlog ("Got information: ");
+		xlog_add ("chunksize %d, nextWindow %d\n", param->chunk_instrumented_size,
+			  				   restdata->report.Profreport.data.tp.nextWindow);
+
 		myWindow = param->chunk_instrumented_size * restdata->report.Profreport.data.tp.nextWindow;
 	}
+	xlog ("Reported to DM: ");
+	xlog_add ("%d -> %d", res, myWindow);
 
-	
-	*lower_bound = *upper_bound;
-	upper_bound += myWindow;
+	*lower_bound = restdata->iteration;
+	restdata->iteration = *lower_bound + myWindow;
+	*upper_bound = restdata->iteration;
 	
 	camus_decision_log("CHUNK EXIT: version=1, lower_bound=%i, upper_bound=%i, chunk_size=%i", *lower_bound, *upper_bound, param->chunk_instrumented_size);
 	
