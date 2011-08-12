@@ -32,6 +32,8 @@ void camus_bind (camus_module_t module)
 
 void restDecisionInit(camus_module_t module)
 {
+	int EventSet = PAPI_NULL;
+
 	xlog_start();
 	xlog("restDecisionInit");
 	xlog_add(" -> %s",module->header->name);
@@ -56,13 +58,26 @@ void restDecisionInit(camus_module_t module)
 
 	//Sanity check
 	int (* DmReport) (void *, SProfReport *) = data->context.ProfContext->myFuncs.reportFunc;
-	xlog ("DM Report");
-	xlog_add (" %p %p", DmReport, naiveDecisionGiveReport);
 
 	//Init the DecisionMaker
 	void * (*myInit) (void)= data->context.ProfContext->myFuncs.initFunc;
 	data->context.DMcontext = myInit ();
+	xlog ("DM Report");
+	xlog_add (" %p %p %p", DmReport, data, data->context.DMcontext);
 	
+	//Handle Papi
+	initLibraryPapi();
+
+	initThreadPapi ();
+
+	data->context.ProfContext->parent = threadIdPapi();
+	
+	initPapiHelper (&EventSet, data->context.ProfContext);
+	
+	data->report.papiEventSet = EventSet;
+	
+	startPapi(data->report.papiEventSet);
+
 	void* handle = dlopen(NULL, RTLD_LAZY);
 	if (handle == NULL)
 	{
@@ -152,9 +167,11 @@ int camus_decision_chunk(void* module, int* lower_bound, int* upper_bound)
 	restdata->report.Profreport.data.tp.ticks = currentTicks - oldTicks;
 	oldTicks = currentTicks;
 
-	xlog ("Checking papi");
+	xlog ("Checking papi -");
 	
-	accumPapi(restdata->report.papiEventSet, values);
+	accumPapi (restdata->report.papiEventSet, values);
+
+	xlog ("Checked papi");
 	
 	if(values[0]==0 || values[1]==0)//no divide by zeros!
 	{
@@ -162,7 +179,10 @@ int camus_decision_chunk(void* module, int* lower_bound, int* upper_bound)
 	}
 	else
 	{
-		privateBounded=2.0*16.0*values[0]*values[2] / (values[1]*values[1] + 0.0f);
+		float value0 = values[0];
+		float value1 = values[1];
+		float value2 = values[2];
+		privateBounded=2.0*16.0*value0*value2 / (value1*value1 + 0.0f);
 		privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 	}
 	fprintf (stderr, "\n\n\n%lld %lld %lld %f\n\n\n", values[0], values[1], values[2], privateBounded);
@@ -174,7 +194,7 @@ int camus_decision_chunk(void* module, int* lower_bound, int* upper_bound)
 	int (* DmReport) (void *, SProfReport *) = restdata->context.ProfContext->myFuncs.reportFunc;
 	
 	xlog ("Reporting to DM");
-	xlog_add (" %p", DmReport);
+	xlog_add (" %p %p %p", DmReport, restdata, restdata->context.DMcontext);
 
 	int res = DmReport (restdata->context.DMcontext, &(restdata->report.Profreport));
 

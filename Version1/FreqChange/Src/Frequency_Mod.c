@@ -222,6 +222,7 @@ SFreqData * initCpufreq (void)
 
 int readFreq (SFreqData * context, int procId)
 {
+	fprintf (stderr, "\nReading here: %d - %p\n", getpid (), context); 
 	return context->currentFreqs[procId];
 }
 
@@ -268,6 +269,7 @@ void changeFreq (SFreqData * context, int core, int i)
 		fseek (context->setFile[core],0,SEEK_SET);
 		fprintf (context->setFile[core],"%d\n",context->availableFreqs[i]);
 		fflush (context->setFile[core]);
+		fprintf (stderr, "\nWriting here: %p %d\n", context, i); 
 		context->currentFreqs[core]=i;
 	}
 	

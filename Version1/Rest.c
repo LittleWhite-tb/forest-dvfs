@@ -29,8 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
-	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs);	
-    SFuncsToUse decisionFuncs; 
+	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
+	SFuncsToUse decisionFuncs; 
 	
 	switch (profiler)
 	{
@@ -79,7 +79,18 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 			break;
 	}
 	
-	STPContext *handle = profilerInitFunction (decisionFuncs);
+	STPContext *handle = NULL;
+	if (profilerInitFunction != NULL)
+	{
+		handle = profilerInitFunction (decisionFuncs);
+	}
+	else
+	{
+		handle = malloc (sizeof (*handle));
+		assert (handle != NULL);
+		memset (handle, 0, sizeof (*handle));
+		handle->myFuncs = decisionFuncs;
+	}
 	return handle;
 }
 
