@@ -19,6 +19,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef H_REST
 #define H_REST
 
+
+//prototypes
+
+
+typedef int (*rest_main_t)(int argc, char** argv, char** env);
+
+typedef void (*rest_lsm_t)(void);
+
+typedef int (*rest_libc_start_main_t)(
+        rest_main_t main, int argc, char** ubp_av,
+        rest_lsm_t init, rest_lsm_t fini, rest_lsm_t rtld_fini,
+        void* stack_end);
+
 /**
  * @enum toolChainInit
  * @brief this enumaration is used to specify the tool chain of REST
