@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "MarkovDM.h"
 #include "Rest.h"
 #include "ThreadedProfiler.h"
+#include "Log.h"
 
 #ifdef _VMAD
 #include "camus_definitions.h"
@@ -39,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //single global variable for the linker to hook us in... internally used only
 static rest_main_t rest_original_main;
 void * restHandle;  //must be global so the atexit function can grab it
-
+char ldPreload[256]="\0";
 	
 static void restAtExit( void )
 {
@@ -49,9 +50,42 @@ static void restAtExit( void )
 //wrapper for the original function
 static int rest_main(int argc, char** argv, char** env)
 {
-    
+	toolChainInit profiler = REST_T_PROFILER, algorithm = REST_NAIVE_DM, freqChanger = REST_FREQ_CHANGER;
+
+    strcpy(ldPreload, getenv("LD_PRELOAD"));
     setenv ("LD_PRELOAD"," ", 1);
-    restHandle=RestInit(REST_T_PROFILER,REST_NAIVE_DM,REST_FREQ_CHANGER);
+    
+    //Choosing which profiler need to use
+    if(getenv("REST_PROFILER") !=NULL)
+    {
+    	if(strcmp(getenv("REST_PROFILER"), "vmad_profiler") == 0)
+    	{
+    		profiler = REST_VMAD_PROFILER;
+    	}
+    }
+
+    //Choosing which algorithm need to use
+    if(getenv("REST_DM") !=NULL)
+    {
+    	if(strcmp(getenv("REST_DM"), "predictive_dm") == 0)
+    	{
+    		algorithm = REST_BRANCHPREDICT_DM;
+    	}
+    	else
+    		if(strcmp(getenv("REST_DM"), "markov_dm") == 0)
+    		{
+    			algorithm = REST_MARKOVPREDICT_DM;
+    		}
+    }
+    
+    //Choosing which algorithm need to use
+    if(getenv("REST_FREQ_CHANGER") !=NULL)
+    {
+    	//Will be useful when we will have more than one freq changer
+    }
+    
+    Log_output (0,"Configuration:\n profiler: %d \n algorithm: %d \n freqChanger: %d \n ",profiler, algorithm, freqChanger);
+    restHandle=RestInit(profiler, algorithm, freqChanger);
     atexit(restAtExit);
     return rest_original_main(argc, argv, env);
  
@@ -70,7 +104,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
     void* handle = NULL;// = dlopen(RTLD_NEXT, RTLD_NOW );
 
     rest_libc_start_main_t real_start =
-        (rest_libc_start_main_t)dlsym(handle, "__libc_start_main");
+        (rest_libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
 
     
     //call the wrapper with the real libc_start_main
@@ -82,7 +116,7 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 {
 	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
 	SFuncsToUse decisionFuncs; 
-	
+	printf("Initializing REST...\n");
 	switch (profiler)
 	{
 		case REST_T_PROFILER :
@@ -164,6 +198,8 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 	}
 	
 	profilerDestroyFunction(handle);
+
+	setenv ("LD_PRELOAD",ldPreload, 1);
 }
 
 #ifdef _VMAD
