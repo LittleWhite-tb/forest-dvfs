@@ -20,17 +20,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <dlfcn.h>
 
 #define _REENTRANT
-
 #include <assert.h>
 #include <stdio.h>
 
-//#include "camus_definitions.h"
 #include "NaiveDM.h"
 #include "PredictiveDM.h"
 #include "MarkovDM.h"
 #include "Rest.h"
 #include "ThreadedProfiler.h"
+#include "Log.h"
 
+#ifdef _VMAD
+#include "camus_definitions.h"
+#endif
 
 
 //single global variable for the linker to hook us in... internally used only
@@ -46,9 +48,42 @@ static void restAtExit( void )
 //wrapper for the original function
 static int rest_main(int argc, char** argv, char** env)
 {
+	toolChainInit profiler = REST_T_PROFILER, algorithm = REST_NAIVE_DM, freqChanger = REST_FREQ_CHANGER;
+
     strcpy(ldPreload, getenv("LD_PRELOAD"));
     setenv ("LD_PRELOAD"," ", 1);
-    restHandle=RestInit(REST_T_PROFILER,REST_NAIVE_DM,REST_FREQ_CHANGER);
+    
+    //Choosing which profiler need to use
+    if(getenv("REST_PROFILER") !=NULL)
+    {
+    	if(strcmp(getenv("REST_PROFILER"), "vmad_profiler") == 0)
+    	{
+    		profiler = REST_VMAD_PROFILER;
+    	}
+    }
+
+    //Choosing which algorithm need to use
+    if(getenv("REST_DM") !=NULL)
+    {
+    	if(strcmp(getenv("REST_DM"), "predictive_dm") == 0)
+    	{
+    		algorithm = REST_BRANCHPREDICT_DM;
+    	}
+    	else
+    		if(strcmp(getenv("REST_DM"), "markov_dm") == 0)
+    		{
+    			algorithm = REST_MARKOVPREDICT_DM;
+    		}
+    }
+    
+    //Choosing which algorithm need to use
+    if(getenv("REST_FREQ_CHANGER") !=NULL)
+    {
+    	//Will be useful when we will have more than one freq changer
+    }
+    
+    Log_output (0,"Configuration:\n profiler: %d \n algorithm: %d \n freqChanger: %d \n ",profiler, algorithm, freqChanger);
+    restHandle=RestInit(profiler, algorithm, freqChanger);
     atexit(restAtExit);
     return rest_original_main(argc, argv, env);
  
@@ -64,6 +99,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
     //reset main to our global variable so our wrapper can call it easily
     rest_original_main = main;
     //Initialisation :
+    void* handle = NULL;// = dlopen(RTLD_NEXT, RTLD_NOW );
 
     rest_libc_start_main_t real_start =
         (rest_libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
@@ -164,8 +200,8 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 	setenv ("LD_PRELOAD",ldPreload, 1);
 }
 
-/*
-//void camus_empty (camus_module_t module)
+#ifdef _VMAD
+void camus_empty (camus_module_t module)
 {
 }
 
@@ -178,5 +214,6 @@ void camus_bind (camus_module_t module)
 	module->reset = camus_empty;
 }
 
-*/
-/*@todo add the destroy function*/
+#endif
+
+
