@@ -99,7 +99,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
     //reset main to our global variable so our wrapper can call it easily
     rest_original_main = main;
     //Initialisation :
-    void* handle = NULL;// = dlopen(RTLD_NEXT, RTLD_NOW );
+
 
     rest_libc_start_main_t real_start =
         (rest_libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
