@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //single global variable for the linker to hook us in... internally used only
 static rest_main_t rest_original_main;
 void * restHandle;  //must be global so the atexit function can grab it
-
+char ldPreload[256]="\0";
 	
 static void restAtExit( void )
 {
@@ -46,7 +46,7 @@ static void restAtExit( void )
 //wrapper for the original function
 static int rest_main(int argc, char** argv, char** env)
 {
-    
+    strcpy(ldPreload, getenv("LD_PRELOAD"));
     setenv ("LD_PRELOAD"," ", 1);
     restHandle=RestInit(REST_T_PROFILER,REST_NAIVE_DM,REST_FREQ_CHANGER);
     atexit(restAtExit);
@@ -64,10 +64,9 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
     //reset main to our global variable so our wrapper can call it easily
     rest_original_main = main;
     //Initialisation :
-    void* handle = dlopen(RTLD_NEXT, RTLD_NOW );
 
     rest_libc_start_main_t real_start =
-        (rest_libc_start_main_t)dlsym(handle, "__libc_start_main");
+        (rest_libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
 
     
     //call the wrapper with the real libc_start_main
@@ -78,10 +77,8 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
 	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
-	SFuncsToUse decisionFuncs; 
-	
-	printf("REST initializing\n");
-	
+	SFuncsToUse decisionFuncs;
+	printf("Initializing REST...\n");
 	switch (profiler)
 	{
 		case REST_T_PROFILER :
@@ -163,6 +160,8 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 	}
 	
 	profilerDestroyFunction(handle);
+
+	setenv ("LD_PRELOAD",ldPreload, 1);
 }
 
 /*
