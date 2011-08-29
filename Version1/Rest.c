@@ -24,13 +24,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include <stdio.h>
 
-#include "camus_definitions.h"
+
 #include "NaiveDM.h"
 #include "PredictiveDM.h"
 #include "MarkovDM.h"
 #include "Rest.h"
 #include "ThreadedProfiler.h"
 
+#ifdef _VMAD
+#include "camus_definitions.h"
+#endif
 
 
 //single global variable for the linker to hook us in... internally used only
@@ -64,7 +67,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
     //reset main to our global variable so our wrapper can call it easily
     rest_original_main = main;
     //Initialisation :
-    void* handle = dlopen(RTLD_NEXT, RTLD_NOW );
+    void* handle = NULL;// = dlopen(RTLD_NEXT, RTLD_NOW );
 
     rest_libc_start_main_t real_start =
         (rest_libc_start_main_t)dlsym(handle, "__libc_start_main");
@@ -163,7 +166,7 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 	profilerDestroyFunction(handle);
 }
 
-
+#ifdef _VMAD
 void camus_empty (camus_module_t module)
 {
 }
@@ -176,6 +179,6 @@ void camus_bind (camus_module_t module)
 	module->quit = camus_empty;
 	module->reset = camus_empty;
 }
-
+#endif
 
 /*@todo add the destroy function*/
