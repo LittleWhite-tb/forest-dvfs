@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <assert.h>
 #include <stdio.h>
 
-#include "camus_definitions.h"
+//#include "camus_definitions.h"
 #include "NaiveDM.h"
 #include "PredictiveDM.h"
 #include "MarkovDM.h"
@@ -79,6 +79,8 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 {
 	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
 	SFuncsToUse decisionFuncs; 
+	
+	printf("REST initializing\n");
 	
 	switch (profiler)
 	{
@@ -163,8 +165,8 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 	profilerDestroyFunction(handle);
 }
 
-
-void camus_empty (camus_module_t module)
+/*
+//void camus_empty (camus_module_t module)
 {
 }
 
@@ -177,5 +179,5 @@ void camus_bind (camus_module_t module)
 	module->reset = camus_empty;
 }
 
-
+*/
 /*@todo add the destroy function*/
