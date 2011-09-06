@@ -27,7 +27,9 @@ OPT_INCLUDE = $(REST_INCLUDE) $(VMAD_INCLUDE)
 OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
 
 
-all: staticlib dynamiclib librest_vmad_bootstrap librest_vmad_decision
+all: staticlib dynamiclib 
+
+vmad: all librest_vmad_bootstrap librest_vmad_decision
 
 staticlib : $(FULL_OBJ)
 	@ar -rv $(STATICLIB) $(FULL_OBJ)
