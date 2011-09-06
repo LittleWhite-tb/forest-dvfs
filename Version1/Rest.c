@@ -19,18 +19,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define _GNU_SOURCE
 #include <dlfcn.h>
 
-#define _REENTRANT
-
+//#define _REENTRANT
 #include <assert.h>
 #include <stdio.h>
 
-//#include "camus_definitions.h"
 #include "NaiveDM.h"
 #include "PredictiveDM.h"
 #include "MarkovDM.h"
 #include "Rest.h"
 #include "ThreadedProfiler.h"
+#include "Log.h"
 
+#ifdef _VMAD
+#include "camus_definitions.h"
+#endif
 
 
 //single global variable for the linker to hook us in... internally used only
@@ -46,9 +48,42 @@ static void restAtExit( void )
 //wrapper for the original function
 static int rest_main(int argc, char** argv, char** env)
 {
-    strcpy(ldPreload, getenv("LD_PRELOAD"));
+    
+    toolChainInit profiler = REST_T_PROFILER, algorithm = REST_NAIVE_DM, freqChanger = REST_FREQ_CHANGER;
+    //LD PRELOAD Could work but we are not sure
+    strcpy (ldPreload, getenv ("LD_PRELOAD"));
     setenv ("LD_PRELOAD"," ", 1);
-    restHandle=RestInit(REST_T_PROFILER,REST_NAIVE_DM,REST_FREQ_CHANGER);
+    //Choosing which profiler need to use
+    if(getenv("REST_PROFILER") !=NULL)
+    {
+    	if(strcmp(getenv("REST_PROFILER"), "vmad_profiler") == 0)
+    	{
+    		profiler = REST_VMAD_PROFILER;
+    	}
+    }
+
+    //Choosing which algorithm need to use
+    if(getenv("REST_DM") !=NULL)
+    {
+    	if(strcmp(getenv("REST_DM"), "predictive_dm") == 0)
+    	{
+    		algorithm = REST_BRANCHPREDICT_DM;
+    	}
+    	else
+    		if(strcmp(getenv("REST_DM"), "markov_dm") == 0)
+    		{
+    			algorithm = REST_MARKOVPREDICT_DM;
+    		}
+    }
+    
+    //Choosing which algorithm need to use
+    if(getenv("REST_FREQ_CHANGER") !=NULL)
+    {
+    	//Will be useful when we will have more than one freq changer
+    }
+    
+    Log_output (0,"Configuration:\n profiler: %d \n algorithm: %d \n freqChanger: %d \n ",profiler, algorithm, freqChanger);
+    restHandle=RestInit(profiler, algorithm, freqChanger);
     atexit(restAtExit);
     return rest_original_main(argc, argv, env);
  
@@ -77,8 +112,8 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
 	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
-	SFuncsToUse decisionFuncs; 
-	printf("Initializing REST\n");
+        SFuncsToUse decisionFuncs; 
+	fprintf(stderr,"Initializing REST...\n");
 	switch (profiler)
 	{
 		case REST_T_PROFILER :
@@ -107,8 +142,9 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 			decisionFuncs.reportFunc =  branchDecisionGiveReport;
 			break;
 		case REST_MARKOVPREDICT_DM:
-			fprintf(stderr, "Not yet implemented for now, please choose the NAIVE_DM \n");
-			assert(0);
+			decisionFuncs.initFunc = markovDecisionInit;
+			decisionFuncs.destroyFunc = markovDecisionDestruct;
+			decisionFuncs.reportFunc = markovDecisionGiveReport;	
 			break;
 		default:
 			fprintf(stderr, "Undefined decision maker, the defined ones are : NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM\n");
@@ -164,7 +200,8 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 	setenv ("LD_PRELOAD",ldPreload, 1);
 }
 
-/*
+#ifdef _VMAD
+
 void camus_empty (camus_module_t module)
 {
 }
@@ -177,6 +214,5 @@ void camus_bind (camus_module_t module)
 	module->quit = camus_empty;
 	module->reset = camus_empty;
 }
-*/
+#endif
 
-/*@todo add the destroy function*/

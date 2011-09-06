@@ -37,7 +37,6 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 {
 	SFreqData *freqData = handle;
 
-	fprintf (stderr, "START %d - %p %p\n", getpid (), report, freqData);
 	int newFrequency = round ((int) (report->data.tp.bounded * freqData->numFreq));
 	newFrequency=(report->data.tp.bounded == 0.0)?1:newFrequency;//unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
 	newFrequency=(report->data.tp.bounded == 1.0)?freqData->numFreq-1:newFrequency;//if it's exactly 1.0 then we set it to the lowest frequency
@@ -45,10 +44,8 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 	
 	//Too change: 0 only for now
 	//
-	fprintf (stderr, "Gonna read the freq\n");
 	int currentFreq = readFreq (freqData, currentCore);
 
-	fprintf (stderr, "Cur: %d, New %d\n", currentFreq, newFrequency);
 	if(newFrequency != currentFreq)
 	{
 		Log_output (0, "changing frequency %d\n", newFrequency);
