@@ -199,7 +199,7 @@ int main(int argc,char ** argv)
 
 	assert (assigned_cpu==current_cpu);
 	//link in the power meter functions if you're cpu 0
-	if(assigned_cpu==0)
+/*	if(assigned_cpu==0)
 	{
 		
 		void * dl;	
@@ -225,7 +225,7 @@ int main(int argc,char ** argv)
 		start_time=getTicks();
 		
 	}
-
+*/
 	
 
 	//touch the file so the script spawns the children
@@ -244,15 +244,15 @@ int main(int argc,char ** argv)
 		if(choose_dm==1)
 		{
 			
-			restHandle= RestInit(T_PROFILER, NAIVE_DM, FREQ_CHANGER);
+			restHandle= RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
 		}
 		else if (choose_dm==2)
 		{
-			restHandle= RestInit(T_PROFILER, BRANCHPREDICT_DM, FREQ_CHANGER);
+			restHandle= RestInit(REST_T_PROFILER, REST_BRANCHPREDICT_DM, REST_FREQ_CHANGER);
 		}
 		else if (choose_dm==3)
 		{
-			restHandle= RestInit(T_PROFILER, MARKOVPREDICT_DM, FREQ_CHANGER);
+			restHandle= RestInit(REST_T_PROFILER, REST_MARKOVPREDICT_DM, REST_FREQ_CHANGER);
 		}
 		else
 		{
@@ -377,7 +377,7 @@ int main(int argc,char ** argv)
 		
 	}
 
-
+/*
 	if(assigned_cpu==0)
 	{
 
@@ -404,12 +404,12 @@ int main(int argc,char ** argv)
 		//energy_stop=(*dlstop_func)();
 		//(*dlclose_func)();
 	}
-
+*/
 
 	    #ifndef ORACLE_MODE
 	    if(doing_rest)
 	    {    	
-	    	RestDestroy (T_PROFILER, restHandle), restHandle = NULL;
+	    	RestDestroy (REST_T_PROFILER, restHandle), restHandle = NULL;
 	    }
 	    #else
 	    destroyCpufreq(FreqStuff);
