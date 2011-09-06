@@ -11,7 +11,7 @@ fi
 PID=0
 
 #need to make this some kind of command in the future
-REST_PATH=$PWD/$(dirname $0)/../
+REST_PATH=$(dirname $0)/../
 source $REST_PATH/util/redo_sudo.rc
 
 
@@ -93,31 +93,57 @@ function on_controlc
 trap 'on_controlc' SIGINT
 
 
+#otherwise we should be running on guedron
+EVALLIB=/opt/microlaunch/power/timer.so
+
+
+
 function testFunc ()
 {
 
 	BASENAME=$1
-	shift 1
 
 if [ -e $TARGET_PATH/run_spec.sh ];
 then
-	echo "microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs \"$*\""
+	echo "microlaunch --basename $BASENAME --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs \"$*\""
 
-	microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs "$*"
+	microlaunch --basename $BASENAME --metarepetition 1 --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs "$*"
 
 else
-	microlaunch --basename $BASENAME --evallib /opt/microlaunch/power/timer.so --nbprocess=$NUMCORES --execname=$TOTAL_PATH --execargs "$*" 
+	shift 1
+	microlaunch --basename $BASENAME --metarepetition 1  --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TOTAL_PATH --execargs "$*" 
 fi
 	PID=$!
 
 }
-	
+
+echo "Building for REST with ThreadedProfiler"
 
 cd $TARGET_PATH
 if [ -e ./build_spec.sh ];
 then
 
-	./build_spec.sh $@
+	./build_spec.sh -threaded $* #ok
+
+else
+
+	make clean
+	make CFLAGS=-DTHREAD_REST
+fi
+cd $CURRENT_DIR
+date >> threaded.start
+testFunc -threaded $*
+date>>threaded.stop
+
+
+
+
+
+cd $TARGET_PATH
+if [ -e ./build_spec.sh ];
+then
+
+	./build_spec.sh $*
 
 else
 
@@ -131,7 +157,6 @@ cd $CURRENT_DIR
 #run the experiment!
 echo "Running the benchmark on $NUMCORES cores"
 
-
 for ((j=0;j<NUMFREQS;j++))
 do
 
@@ -143,30 +168,28 @@ do
 	done
 
 	echo "Frequency set to ${FREQS[$j]} userspace setting"
+	date >> ${FREQS[$j]}.start
 	testFunc ${FREQS[$j]} $@ 
+	date >> ${FREQS[$j]}.stop
+
 done
+echo "Using onDemand Governor"
 
+for ((i=0;i<NUMCORES;i++))
 
+do
+	echo ondemand > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor
+done
+date>>ondemand.start
+testFunc -ondemand $*
+date>>ondemand.stop
+:<< commenting
 
+commenting
 
-echo "Building for REST with ThreadedProfiler"
-
-cd $TARGET_PATH
-if [ -e ./build_spec.sh ];
-then
-
-	./build_spec.sh threaded all #ok
-
-else
-
-	make clean
-	make CFLAGS=-DTHREAD_REST
-fi
-cd $CURRENT_DIR
-
-testFunc threaded $@
 
 exit
+
 
 echo "Building for REST with VMAD"
 
@@ -174,7 +197,7 @@ cd $TARGET_PATH
 if [ -e ./build_spec.sh ];
 then
 
-	./build_spec.sh vmad all #ok
+	./build_spec.sh -vmad all #ok
 
 else
 
