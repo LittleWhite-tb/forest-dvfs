@@ -9,7 +9,7 @@ exit 1
 fi
 
 #need to make this some kind of command in the future
-REST_PATH=/home/users/klivingston/nfs/rest
+REST_PATH=$(dirname $0)/../
 
 
 CURRENT_DIR=$PWD
