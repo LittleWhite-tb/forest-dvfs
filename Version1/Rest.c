@@ -51,8 +51,12 @@ static int rest_main(int argc, char** argv, char** env)
     
     toolChainInit profiler = REST_T_PROFILER, algorithm = REST_NAIVE_DM, freqChanger = REST_FREQ_CHANGER;
     //LD PRELOAD Could work but we are not sure
-    strcpy (ldPreload, getenv ("LD_PRELOAD"));
-    setenv ("LD_PRELOAD"," ", 1);
+    char * tmp=getenv ("LD_PRELOAD");
+    if(tmp!=NULL)
+    {
+    	strcpy (ldPreload, tmp);
+    	setenv ("LD_PRELOAD"," ", 1);
+    }
     //Choosing which profiler need to use
     if(getenv("REST_PROFILER") !=NULL)
     {
