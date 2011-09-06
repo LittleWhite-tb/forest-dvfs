@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 #if 0
-#define PRINT_DEBUG
+#define PRINT_DEBUG 
 #endif
 
 
@@ -191,73 +191,85 @@ void * profilerThread (void * ContextPtr)
 		//get PAPI info from counters		
 		if(PAPI_OK != PAPI_accum (EventSet,values))
 		{
-			Log_output (5," PAPI accum failed: %s\n",PAPI_strerror(ret_code));
-		}	
-
+			Log_output (0, " PAPI accum failed: %s\n",PAPI_strerror(ret_code));
+			
+		}
+		
+		if(values [1] != 0)
 		//generate the bounded variable
-		if(values[0]==0 || values[1]==0)//no divide by zeros!
 		{
-			privateBounded=0.0;
-		}
-		else
-		{
-			val1=values[0];
-			val2=values[1];	
-			val3=values[2];
-			privateBounded=2*16*val1*val3/(val2*val2);
-			privateBounded=(privateBounded>1.0)?1.0:privateBounded;
-		}
-
-		
-
-		//fill in the report
-		myReport.data.tp.bounded=privateBounded;
-		endTime=getTicks ();	
-		myReport.data.tp.ticks=endTime-startTime;
-		myReport.data.tp.window=myWindow;
-		
-		#ifdef PRINT_DEBUG
-			printf ("Total Cycles is %lld\n",values[1]);
-			printf ("Super Queue was full %lld\n",values[0]);
-			printf ("L2 Misses is %lld\n",values[2]);
-			printf ("Debug: giving a report with bounded = %f, actual window=%f, expected the window to be %d\n",myReport.data.tp.bounded,
-				(float)myReport.data.tp.ticks * 1000 / (float) myKHZ,myWindow);//this math puts it in microsecond since we are usleeping now
-			fflush (stdout);
-		#endif
-
-		//reset my counters
-		values[0]=0;
-		values[1]=0;
-		values[2]=0;
-
-		//give the report
-		if (myReporter (myDM, &myReport))
-		{
-		  	myWindow=myReport.data.tp.nextWindow;
-			myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
-		   	algorithm=myReport.data.tp.algorithm;
-		   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
-		}
-		else
-		{
-			//self regulate
-			if(fabs (lastBoundedValue - privateBounded)>THRESHOLD) 
+			
+			Log_output (10,"PAPI accum succeeded!!\n");
+			if(values[0]==0 || values[1]==0)//no divide by zeros!
 			{
-				myWindow=1;
+				privateBounded=0.0;
 			}
 			else
 			{
-				myWindow++;
-				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
+				val1=values[0];
+				val2=values[1];	
+				val3=values[2];
+				privateBounded=2*16*val1*val3/(val2*val2);
+				privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 			}
+
+		
+		
+			//fill in the report
+			myReport.data.tp.bounded=privateBounded;
+			endTime=getTicks ();	
+			myReport.data.tp.ticks=endTime-startTime;
+			myReport.data.tp.window=myWindow;
+			
+			#ifdef PRINT_DEBUG
+				printf( "From core %d:\n",mycore);
+				printf ("Total Cycles is %lld\n",values[1]);
+				printf ("Super Queue was full %lld\n",values[0]);
+				printf ("L2 Misses is %lld\n",values[2]);
+				printf ("Debug: giving a report with bounded = %f, actual window=%f, expected the window to be %d\n",myReport.data.tp.bounded,
+					(float)myReport.data.tp.ticks * 1000 / (float) myKHZ,myWindow);//this math puts it in microsecond since we are usleeping now
+				fflush (stdout);
+			#endif
+	
+			//reset my counters
+			values[0]=0;
+			values[1]=0;
+			values[2]=0;
+	
+			//give the report
+			if (myReporter (myDM, &myReport))
+			{
+			  	myWindow=myReport.data.tp.nextWindow;
+				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;	
+			   	algorithm=myReport.data.tp.algorithm;
+			   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
+			}
+			else
+			{
+				//self regulate
+				if(fabs (lastBoundedValue - privateBounded)>THRESHOLD) 
+				{
+					myWindow=1;
+				}
+				else
+				{
+					myWindow++;
+					myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
+				}	
+			}
+			lastBoundedValue=privateBounded;
+			startTime=getTicks ();
+		}		
+		else
+		{
+			Log_output (0, "Silently failing PAPI accum!!");
+			exit(1);
 		}
-		lastBoundedValue=privateBounded;
-		startTime=getTicks ();
-		//printf("Usleeping for %d\n",myWindow);
 		usleep (pow(2,myWindow)*FIRSTSLEEP);
 	}
 
-	/* @todo destroy papi stuff properly*/
+	
+	
 	void (* myDestroyer)(void *)=myHandle->myFuncs.destroyFunc;
 	myDestroyer (myDM);
 	return NULL;
@@ -270,6 +282,12 @@ STPContext * threadedProfilerInit (SFuncsToUse funcPtrs)
 	STPContext * handle;
 
 	//we initialize papi
+	retval = PAPI_is_initialized();
+	if (retval == PAPI_LOW_LEVEL_INITED)
+	{
+		Log_output (0,"PAPI library already initialized error!\n");
+                exit (1);
+	}
 	retval=PAPI_library_init (PAPI_VER_CURRENT);
 	if (retval != PAPI_VER_CURRENT) 
 	{
