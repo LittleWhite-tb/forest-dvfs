@@ -37,12 +37,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 //single global variable for the linker to hook us in... internally used only
 static rest_main_t rest_original_main;
-void * restHandle;  //must be global so the atexit function can grab it
+profilerHandle restHandle;  //must be global so the atexit function can grab it
 char ldPreload[256]="\0";
 	
 static void restAtExit( void )
 {
-	RestDestroy(REST_T_PROFILER, restHandle);
+	RestDestroy(restHandle);
 }
 
 //wrapper for the original function
@@ -50,6 +50,7 @@ static int rest_main(int argc, char** argv, char** env)
 {
     
     toolChainInit profiler = REST_T_PROFILER, algorithm = REST_NAIVE_DM, freqChanger = REST_FREQ_CHANGER;
+    
     //LD PRELOAD Could work but we are not sure
     char * tmp=getenv ("LD_PRELOAD");
     if(tmp!=NULL)
@@ -87,7 +88,8 @@ static int rest_main(int argc, char** argv, char** env)
     }
     
     Log_output (0,"Configuration:\n profiler: %d \n algorithm: %d \n freqChanger: %d \n ",profiler, algorithm, freqChanger);
-    restHandle=RestInit(profiler, algorithm, freqChanger);
+	restHandle.profiler = profiler;
+    restHandle = RestInit(profiler, algorithm, freqChanger);
     atexit(restAtExit);
     return rest_original_main(argc, argv, env);
  
@@ -113,7 +115,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 }
 
 
-void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
+profilerHandle RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
 	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
         SFuncsToUse decisionFuncs; 
@@ -178,15 +180,16 @@ void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIn
 		memset (handle, 0, sizeof (*handle));
 		handle->myFuncs = decisionFuncs;
 	}
-	return handle;
+	restHandle.ptr = handle;
+	return restHandle;
 }
 
-void RestDestroy (toolChainInit profiler, void *ptr)
+void RestDestroy (profilerHandle handle)
 {
-    STPContext *handle = ptr;
+    STPContext *context = handle.ptr;
 	void (*profilerDestroyFunction) (STPContext * prof);
 
-	switch (profiler)
+	switch (handle.profiler)
 	{
 		case REST_T_PROFILER :
 			profilerDestroyFunction = threadedProfilerDestroy;
@@ -199,7 +202,7 @@ void RestDestroy (toolChainInit profiler, void *ptr)
 			break;
 	}
 	
-	profilerDestroyFunction(handle);
+	profilerDestroyFunction(context);
 
 	setenv ("LD_PRELOAD",ldPreload, 1);
 }
