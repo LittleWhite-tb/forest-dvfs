@@ -126,11 +126,5 @@ void Likwid_stopLibrary (void)
 	perfmon_finalize();
 	
 	free (m_likwidData->threads), m_likwidData->threads = NULL;
-	
-	for (i = 0; i < m_likwidData->nbCounters; i++)
-	{
-		free (m_likwidData->hardwareCountersNames[i]), m_likwidData->hardwareCountersNames[i] = NULL;
-	}
-	free (m_likwidData->hardwareCountersNames), m_likwidData->hardwareCountersNames = NULL;
 	free (m_likwidData), m_likwidData = NULL;
 }
