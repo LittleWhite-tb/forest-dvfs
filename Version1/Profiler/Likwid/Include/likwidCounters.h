@@ -37,5 +37,7 @@ void Likwid_stopCountersThread (unsigned threadId);
 void Likwid_readCounters (void);
 void Likwid_readCountersThread (unsigned threadId);
 uint64_t Likwid_getResult (unsigned threadId, unsigned counterId);
+unsigned Likwid_getCountersNumber ();
+char *Likwid_getCounterName (unsigned counterId);
 
 #endif

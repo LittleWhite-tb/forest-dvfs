@@ -129,6 +129,9 @@ static void initThread(int , int );
 #include <perfmon_k10.h>
 
 /* #####  EXPORTED  FUNCTION POINTERS   ################################### */
+void (*perfmon_startCountersThread) (int thread_id);
+void (*perfmon_stopCountersThread) (int thread_id);
+void (*perfmon_readCountersThread) (int thread_id);
 void (*perfmon_setupCounterThread) (int thread_id,
         PerfmonEvent* event, PerfmonCounterIndex index);
 void (*printDerivedMetrics) (PerfmonGroup group);
@@ -891,6 +894,23 @@ perfmon_readCounters(void)
     {
         perfmon_readCountersThread(i);
     }
+}
+
+void perfmon_startCountersOneThread (unsigned idX)
+{
+	perfmon_startCountersThread(idX);
+	timer_startCycles(&timeData);
+}
+
+void perfmon_stopCountersOneThread (unsigned idX)
+{
+	perfmon_stopCountersThread(idX);
+	rdtscTime = timer_printCyclesTime(&timeData);
+}
+
+void perfmon_readCountersOneThread (unsigned idX)
+{
+	perfmon_readCountersThread(idX);
 }
 
 

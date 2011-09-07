@@ -77,7 +77,7 @@ void Likwid_startCounters (void)
 
 void Likwid_startCountersThread (unsigned threadId)
 {
-	perfmon_startCountersThread (threadId);
+	perfmon_startCountersOneThread (threadId);
 }
 
 void Likwid_stopCounters (void)
@@ -87,7 +87,7 @@ void Likwid_stopCounters (void)
 
 void Likwid_stopCountersThread (unsigned threadId)
 {
-	perfmon_stopCountersThread (threadId);
+	perfmon_stopCountersOneThread (threadId);
 }
 
 void Likwid_readCounters (void)
@@ -97,12 +97,25 @@ void Likwid_readCounters (void)
 
 void Likwid_readCountersThread (unsigned threadId)
 {
-	perfmon_readCountersThread (threadId);
+	perfmon_readCountersOneThread (threadId);
 }
 
 uint64_t Likwid_getResult (unsigned threadId, unsigned counterId)
 {
 	return perfmon_getEventResult (threadId, counterId);
+}
+
+unsigned Likwid_getCountersNumber (void)
+{
+	assert (m_likwidData != NULL);
+	return m_likwidData->nbCounters;
+}
+
+char *Likwid_getCounterName (unsigned counterId)
+{
+	assert (m_likwidData != NULL);
+	assert (counterId < m_likwidData->nbCounters);
+	return m_likwidData->hardwareCountersNames[counterId];
 }
 
 void Likwid_stopLibrary (void)

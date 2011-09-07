@@ -8,7 +8,6 @@ DEFINES=-DMAX_NUM_THREADS=128 -DMAX_NUM_SOCKETS=4 -D_GNU_SOURCE -DMSR_DIRECT
 CC=gcc
 SRC=perfmon.c asciiTable.c bstrlib.c cpuid.c msr.c strUtil.c affinity.c numa.c tree.c timer.c
 OBJ=$(SRC:.c=.o)
-EXE=perftest
 STATICLIB=libperfmon.a
 
 all:$(STATICLIB)
@@ -18,10 +17,6 @@ $(STATICLIB): $(SRC)
 	ar rcs $@ $(OBJ)
 	rm -rf $(OBJ)
 
-$(EXE): ../perftest.c $(STATICLIB)
-	gcc $^ -o ../$(EXE) $(INCLUDES) $(CLIBS) $(DEFINES)
-
 clean:
 	rm -rf $(OBJ)
 	rm -rf $(STATICLIB)
-	rm -rf ../$(EXE)
