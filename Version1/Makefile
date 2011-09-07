@@ -7,6 +7,7 @@ CC=gcc
 MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))
 THREADED_PROFILER_OBJ := $(patsubst Profiler/ThreadProfiler/Src/%.c,obj/%.o,$(wildcard Profiler/ThreadProfiler/Src/*.c))
 PAPI_COUNTERS_OBJ := $(patsubst Profiler/Papi/Src/%.c,obj/%.o,$(wildcard Profiler/Papi/Src/*.c))
+LIKWID_COUNTERS_OBJ := $(patsubst Profiler/Likwid/Src/%.c,obj/%.o,$(wildcard Profiler/Likwid/Src/*.c))
 COMMON_OBJ := $(patsubst Common/Src/%.c,obj/%.o,$(wildcard Common/Src/*.c))
 MARKOV_OBJ := $(patsubst Markov/Src/%.c,obj/%.o,$(wildcard Markov/Src/*.c))
 DECISION_PREDICTIVE_OBJ := $(patsubst Decision/PredictiveDM/Src/%.c,obj/%.o,$(wildcard Decision/PredictiveDM/Src/*.c))
@@ -20,7 +21,7 @@ FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMO
 
 
 LIBS = -lpthread -lpapi -ldl
-REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include -I.
+REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IProfiler/Likwid/Include -IProfiler/Likwid/Src/likwid/includes -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include -I.
 
 VMAD_INCLUDE = -I../../vmad/VMAD_version_under_development/camus_vm/include -I../../vmad/VMAD_version_under_development/camus_vm/ressource/ -I../../vmad/VMAD_version_under_development/camus_vm/modules/
 OPT_INCLUDE = $(REST_INCLUDE) $(VMAD_INCLUDE)
@@ -57,6 +58,9 @@ $(THREADED_PROFILER_OBJ):obj/%.o: Profiler/ThreadProfiler/Src/%.c Profiler/Threa
 $(PAPI_COUNTERS_OBJ):obj/%.o: Profiler/Papi/Src/%.c Profiler/Papi/Include/%.h
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
+$(LIKWID_COUNTERS_OBJ):obj/%.o: Profiler/Likwid/Src/%.c Profiler/Likwid/Include/%.h
+	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
+
 $(COMMON_OBJ):obj/%.o: Common/Src/%.c Common/Include/%.h 
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
@@ -76,7 +80,7 @@ $(MARKOV_OBJ):obj/%.o: Markov/Src/%.c Markov/Include/%.h
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(MAIN_OBJ):obj/%.o: %.c %.h
-	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
+	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS) Profiler/Likwid/Src/likwid/libperfmon.a
 
 clean:
 	@rm $(OBJ) $(EXE) obj/*o tmp Log.txt doxygen_warn librest.so rest.a `find . -name "*~"` output/* *out 2> /dev/null || echo "Done cleaning"

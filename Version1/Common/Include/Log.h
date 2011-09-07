@@ -22,4 +22,14 @@ void Log_setOutput (FILE *f);
  */
 void Log_output (int verbosity, char *fmt, ...);
 
+/*
+ * @brief Initialization of log 
+ */
+void Log_init();
+
+/*
+ * @brief Destroy the log
+ */
+void Log_destroy();
+
 #endif

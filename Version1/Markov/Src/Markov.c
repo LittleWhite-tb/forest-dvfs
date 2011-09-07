@@ -641,6 +641,8 @@ static SGlobalAdd* Markov_FirstCall(SMarkov* m, SGlobalAdd* info)
 {
 	DPRINTF("Module markov FirstCall()\n");
 
+	(void) info;
+
 	//next time we call construct
 	if(m->depth==1) {
 		m->iter = 0;
@@ -1227,6 +1229,8 @@ static void Markov_CommitPred(SMarkov* m, SGlobalAdd* info)
 static SGlobalAdd* Markov_Idle(SMarkov* m, SGlobalAdd* info)
 {
 	//idle function...
+	(void) m;
+	(void) info;
 	return NULL;
 }
 
@@ -1236,9 +1240,12 @@ static SGlobalAdd* Markov_Predict(SMarkov* m,SGlobalAdd* info)
 {
 	SNode* tmp ,*tmp2;
 	SNodeList* ltmp;
-
+	
 	int max_vis;
 	int itmp;
+	
+	(void) m; 
+	(void) info;
 
 	//Check our accuracy
 #ifdef __OPT_VERIF__

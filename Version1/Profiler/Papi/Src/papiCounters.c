@@ -130,7 +130,7 @@ void initLibraryPapi ()
 void initThreadPapi (void)
 {
 
-	if (PAPI_thread_init (getTid) != PAPI_OK)
+	if (PAPI_thread_init ((unsigned long (*)(void)) getTid) != PAPI_OK)
 	{
 		fprintf (stderr,"Thread init function didn't register properly\n");
 		exit(1);

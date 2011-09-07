@@ -122,7 +122,7 @@ int main(int argc,char ** argv)
 	void * dlstop_func;
 
 	//handle for the Rest system
-	void * restHandle;
+	profilerHandle restHandle;
 
 	//These ratios are guedron specific... the first is the ratio of the loop bounds.. the second is the product of inner and outer loops
 	long cpu_2_mem_ratio=3793110/85;
@@ -177,15 +177,9 @@ int main(int argc,char ** argv)
     //Set logger
     Log_setOutput (stderr);
 	
-  
-    Log_setVerbosity (50000);
-
     //now start!
     Log_output (0, "REST Start\n");
 
-	
-   
-	
 
 	//make sure affinity is set high for the cpu we should run on
 
@@ -409,7 +403,7 @@ int main(int argc,char ** argv)
 	    #ifndef ORACLE_MODE
 	    if(doing_rest)
 	    {    	
-	    	RestDestroy (REST_T_PROFILER, restHandle), restHandle = NULL;
+	    	RestDestroy (restHandle), restHandle.ptr = NULL;
 	    }
 	    #else
 	    destroyCpufreq(FreqStuff);

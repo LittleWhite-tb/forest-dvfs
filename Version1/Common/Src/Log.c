@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Log.h"
 
 //Static variables
-static int logVerbosity = 0;     /**< @brief Log verbosity, used to check if we log something or not */
+static int logVerbosity = 0;     /**implicit declaration of function ‘Log_init’< @brief Log verbosity, used to check if we log something or not */
 static FILE *logOutput = NULL;   /**< @brief Log output */
 
 void Log_setVerbosity (int value)
@@ -41,7 +41,7 @@ void Log_setOutput (FILE *f)
 void Log_output (int verbosity, char *fmt, ...)
 {
 	char buf[1024];
-	
+
 	if (fmt == NULL)
 	{
 		return;
@@ -61,4 +61,25 @@ void Log_output (int verbosity, char *fmt, ...)
 			va_end (ap);
 		}
 	}
+}
+
+void Log_init()
+{
+	if(getenv("REST_OUTPUT") !=NULL)
+    	{
+		char *path = getenv("REST_OUTPUT");
+		strcat(path, "Log");
+
+		logOutput = fopen(path, "w+");
+	}
+	else
+	{
+		logOutput = stderr;	
+	}
+}
+
+void Log_destroy()
+{
+	if(getenv("REST_OUTPUT") !=NULL)
+    		fclose (logOutput);
 }

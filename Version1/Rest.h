@@ -48,6 +48,17 @@ typedef enum _toolChainInit
 	REST_FREQ_CHANGER       /**< @brief init the frequency changer driver*/
 }toolChainInit;
 
+/**
+ * @struct profilerHandle
+ * @brief this structure handle the profiler and the STPContext that allow rest to work with the parameters given
+ * by the user
+ **/
+ typedef struct _profilerHandle
+ {
+ 	void *ptr;
+ 	toolChainInit profiler;
+ }profilerHandle;
+
 
 /**
  * @brief initialize the rest system with the components you wish to use
@@ -56,14 +67,14 @@ typedef enum _toolChainInit
  * @param freqChanger specify the frequency changer you wish to use
  * @return a handle to the rest runtime context
  **/
-void * RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
+profilerHandle RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
 
 /**
  * @brief destroys the context of the rest runtime and returns the threads used for profiling
  * @param profiler the profiler used to init the runtime
  * @param ptr the handle used for the destroy
  **/
-void RestDestroy (toolChainInit profiler, void *ptr);
+void RestDestroy (profilerHandle handle);
 
  
 
