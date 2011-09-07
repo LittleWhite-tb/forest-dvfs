@@ -121,7 +121,6 @@ char *Likwid_getCounterName (unsigned counterId)
 void Likwid_stopLibrary (void)
 {
 	assert (m_likwidData != NULL);
-	unsigned i;
 	
 	perfmon_finalize();
 	
