@@ -46,7 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 //single global variable for the linker to hook us in... internally used only
 static rest_main_t rest_original_main;
-profilerHandle restHandle;  //must be global so the atexit function can grab it
+profilerHandle *restHandle = NULL;  //must be global so the atexit function can grab it
 char ldPreload[256]="\0";
 	
 static void restAtExit( void )
@@ -97,8 +97,8 @@ static int rest_main(int argc, char** argv, char** env)
     }
     
     Log_output (0,"Configuration:\n profiler: %d \n algorithm: %d \n freqChanger: %d \n ",profiler, algorithm, freqChanger);
-	restHandle.profiler = profiler;
     restHandle = RestInit(profiler, algorithm, freqChanger);
+    restHandle->profiler = profiler;
     atexit(restAtExit);
     return rest_original_main(argc, argv, env);
  
@@ -136,88 +136,101 @@ void waitThread (void* arg)
 
 
 
-profilerHandle RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
+profilerHandle *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
+	if((restHandle == NULL) || ((restHandle != NULL) && (profiler != restHandle->profiler)))
+	{
+		if(restHandle != NULL)
+		{
+			Log_output (0,"Rest Already initialized overwriting previous profiler \n");
+			RestDestroy(restHandle);
+		}
 
-	#ifdef SPECTESTING
-	pthread_t dummy;
-	pthread_create(&dummy ,NULL,waitThread,NULL);
-	#endif
-	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
-        SFuncsToUse decisionFuncs;
+		#ifdef SPECTESTING
+		pthread_t dummy;
+		pthread_create(&dummy ,NULL,waitThread,NULL);
+		#endif
+		STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
+		SFuncsToUse decisionFuncs;
 
-	Log_init();
-	fprintf(stderr,"Initializing REST...\n");
-	Log_output (0, "Bad allocation for SavedData structure in PredicitiveDM \n");
-	switch (profiler)
-	{
-		case REST_T_PROFILER :
-			profilerInitFunction = threadedProfilerInit;
-			break;
-		case REST_VMAD_PROFILER :
-			//Nothing to do here
-			break;
-		default :
-			fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
-			assert(0);
-			break;
-	}
+		Log_init();
+		fprintf(stderr,"Initializing REST...\n");
+
+		switch (profiler)
+		{
+			case REST_T_PROFILER :
+				profilerInitFunction = threadedProfilerInit;
+				break;
+			case REST_VMAD_PROFILER :
+				//Nothing to do here
+				break;
+			default :
+				fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
+				assert(0);
+				break;
+		}
 	
-	switch (decisionMaker)
-	{
-		case REST_NAIVE_DM:
-			decisionFuncs.initFunc =  naiveDecisionInit;
-			decisionFuncs.destroyFunc = naiveDecisionDestruct;
-			decisionFuncs.reportFunc =  naiveDecisionGiveReport;
-			break;
-		case REST_BRANCHPREDICT_DM:
-			decisionFuncs.initFunc =  branchDecisionInit;
-			decisionFuncs.destroyFunc = branchDecisionDestruct;
-			decisionFuncs.reportFunc =  branchDecisionGiveReport;
-			break;
-		case REST_MARKOVPREDICT_DM:
-			decisionFuncs.initFunc = markovDecisionInit;
-			decisionFuncs.destroyFunc = markovDecisionDestruct;
-			decisionFuncs.reportFunc = markovDecisionGiveReport;	
-			break;
-		default:
-			fprintf(stderr, "Undefined decision maker, the defined ones are : NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM\n");
-			assert(0);
-			break;
-	}
+		switch (decisionMaker)
+		{
+			case REST_NAIVE_DM:
+				decisionFuncs.initFunc =  naiveDecisionInit;
+				decisionFuncs.destroyFunc = naiveDecisionDestruct;
+				decisionFuncs.reportFunc =  naiveDecisionGiveReport;
+				break;
+			case REST_BRANCHPREDICT_DM:
+				decisionFuncs.initFunc =  branchDecisionInit;
+				decisionFuncs.destroyFunc = branchDecisionDestruct;
+				decisionFuncs.reportFunc =  branchDecisionGiveReport;
+				break;
+			case REST_MARKOVPREDICT_DM:
+				decisionFuncs.initFunc = markovDecisionInit;
+				decisionFuncs.destroyFunc = markovDecisionDestruct;
+				decisionFuncs.reportFunc = markovDecisionGiveReport;	
+				break;
+			default:
+				fprintf(stderr, "Undefined decision maker, the defined ones are : NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM\n");
+				assert(0);
+				break;
+		}
 	
-	switch (freqChanger)
-	{
-		case REST_FREQ_CHANGER:
-			break;
-		default:
-			fprintf(stderr, "Undefined decision maker, the defined ones are : FREQ_CHANGER\n");
-			assert(0);
-			break;
-	}
+		switch (freqChanger)
+		{
+			case REST_FREQ_CHANGER:
+				break;
+			default:
+				fprintf(stderr, "Undefined decision maker, the defined ones are : FREQ_CHANGER\n");
+				assert(0);
+				break;
+		}
 	
-	STPContext *handle = NULL;
-	if (profilerInitFunction != NULL)
-	{
-		handle = profilerInitFunction (decisionFuncs);
+		STPContext *handle = NULL;
+		if (profilerInitFunction != NULL)
+		{
+			handle = profilerInitFunction (decisionFuncs);
+		}
+		else
+		{
+			handle = malloc (sizeof (*handle));
+			assert (handle != NULL);
+			memset (handle, 0, sizeof (*handle));
+			handle->myFuncs = decisionFuncs;
+		}
+
+		restHandle = malloc(sizeof (*restHandle));
+		restHandle->ptr = handle;
 	}
 	else
-	{
-		handle = malloc (sizeof (*handle));
-		assert (handle != NULL);
-		memset (handle, 0, sizeof (*handle));
-		handle->myFuncs = decisionFuncs;
-	}
-	restHandle.ptr = handle;
+		Log_output (15,"Rest Already initialized same profiler detected, Rest continues. \n");
+
 	return restHandle;
 }
 
-void RestDestroy (profilerHandle handle)
+void RestDestroy (profilerHandle *handle)
 {
-    STPContext *context = handle.ptr;
+    	STPContext *context = handle->ptr;
 	void (*profilerDestroyFunction) (STPContext * prof);
 
-	switch (handle.profiler)
+	switch (handle->profiler)
 	{
 		case REST_T_PROFILER :
 			profilerDestroyFunction = threadedProfilerDestroy;

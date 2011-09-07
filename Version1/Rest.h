@@ -67,14 +67,14 @@ typedef enum _toolChainInit
  * @param freqChanger specify the frequency changer you wish to use
  * @return a handle to the rest runtime context
  **/
-profilerHandle RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
+profilerHandle *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
 
 /**
  * @brief destroys the context of the rest runtime and returns the threads used for profiling
  * @param profiler the profiler used to init the runtime
  * @param ptr the handle used for the destroy
  **/
-void RestDestroy (profilerHandle handle);
+void RestDestroy (profilerHandle *handle);
 
  
 
