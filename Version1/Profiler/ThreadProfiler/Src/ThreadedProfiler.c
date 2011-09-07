@@ -300,7 +300,7 @@ STPContext * threadedProfilerInit (SFuncsToUse funcPtrs)
 	current_cpu=sched_getcpu ();
 
 	// register the thread specificier
-	 if (PAPI_thread_init (getTid) != PAPI_OK)
+	 if (PAPI_thread_init ((unsigned long (*)(void)) getTid) != PAPI_OK)
 	{
 		Log_output (0,"Thread init function didn't register properly\n");
 	}

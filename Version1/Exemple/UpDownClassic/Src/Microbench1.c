@@ -177,15 +177,9 @@ int main(int argc,char ** argv)
     //Set logger
     Log_setOutput (stderr);
 	
-  
-    Log_setVerbosity (50000);
-
     //now start!
     Log_output (0, "REST Start\n");
 
-	
-   
-	
 
 	//make sure affinity is set high for the cpu we should run on
 

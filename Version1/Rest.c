@@ -118,8 +118,11 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 profilerHandle RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
 	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
-        SFuncsToUse decisionFuncs; 
+        SFuncsToUse decisionFuncs;
+
+	Log_init();
 	fprintf(stderr,"Initializing REST...\n");
+	Log_output (0, "Bad allocation for SavedData structure in PredicitiveDM \n");
 	switch (profiler)
 	{
 		case REST_T_PROFILER :
@@ -133,7 +136,6 @@ profilerHandle RestInit (toolChainInit profiler, toolChainInit decisionMaker, to
 			assert(0);
 			break;
 	}
-	
 	
 	switch (decisionMaker)
 	{
@@ -203,8 +205,9 @@ void RestDestroy (profilerHandle handle)
 	}
 	
 	profilerDestroyFunction(context);
-
+	
 	setenv ("LD_PRELOAD",ldPreload, 1);
+	Log_destroy ();
 }
 
 #ifdef _VMAD
