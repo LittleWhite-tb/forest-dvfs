@@ -34,6 +34,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "camus_definitions.h"
 #endif
 
+#if 0
+#include <pthread.h>
+#include <unistd.h>
+
+#define SPECTESTING
+#define TESTTIME 5 //in seconds
+#endif
+
+
 
 //single global variable for the linker to hook us in... internally used only
 static rest_main_t rest_original_main;
@@ -113,8 +122,25 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 }
 
 
+#ifdef SPECTESTING
+
+void waitThread (void* arg)
+{
+	sleep(TESTTIME);
+	printf("You are in testing mode... undefine sPECTESTING in Rest.c for this\n");
+	exit(5);
+}
+#endif
+
+
+
 void *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
+
+	#ifdef SPECTESTING
+	pthread_t dummy;
+	pthread_create(&dummy ,NULL,waitThread,NULL);
+	#endif
 	STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
         SFuncsToUse decisionFuncs; 
 	fprintf(stderr,"Initializing REST...\n");
