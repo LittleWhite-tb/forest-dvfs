@@ -52,6 +52,8 @@ static SLikwidData *m_likwidData = NULL;
 
 void Likwid_startLibrary (unsigned nbThreads)
 {
+	char hardCountersBuf[256];
+	
 	assert (nbThreads != 0 && m_likwidData == NULL);
 	m_likwidData = malloc (sizeof (*m_likwidData));
 	assert (m_likwidData != NULL);
@@ -67,7 +69,25 @@ void Likwid_startLibrary (unsigned nbThreads)
 	msr_init ();
 	perfmon_init (m_likwidData->nbThreads, m_likwidData->threads, stderr);
 	
-	m_likwidData->nbCounters = perfmon_setupEventSetC ("INSTR_RETIRED_ANY:FIXC0,CPU_CLK_UNHALTED_CORE:FIXC1,SQ_FULL_STALL_CYCLES:PMC0,L2_RQSTS_MISS:PMC1", &m_likwidData->hardwareCountersNames);
+	switch (cpuid_info.model)
+	{
+		 case NEHALEM_WESTMERE_M:
+		 case NEHALEM_WESTMERE:
+		 case NEHALEM_BLOOMFIELD:
+         case NEHALEM_LYNNFIELD:
+         case NEHALEM_EX:
+			snprintf (hardCountersBuf, sizeof (hardCountersBuf), "INSTR_RETIRED_ANY:FIXC0,CPU_CLK_UNHALTED_CORE:FIXC1,SQ_FULL_STALL_CYCLES:PMC0,L2_RQSTS_MISS:PMC1");
+			break;
+		 case SANDYBRIDGE:
+         case XEON_SANDYBRIDGE:
+         	snprintf (hardCountersBuf, sizeof (hardCountersBuf), "INSTR_RETIRED_ANY:FIXC0,CPU_CLK_UNHALTED_CORE:FIXC1,OFFCORE_REQUESTS_BUFFER_SQ_FULL:PMC0,L2_RQSTS_MISS:PMC1");
+			break;
+		default:
+			fprintf (stderr, "Unknown processor with code %p\n", cpuid_info.model);
+			assert (0);
+			break;
+	}
+	m_likwidData->nbCounters = perfmon_setupEventSetC (hardCountersBuf, &m_likwidData->hardwareCountersNames);
 }
 
 void Likwid_startCounters (void)
