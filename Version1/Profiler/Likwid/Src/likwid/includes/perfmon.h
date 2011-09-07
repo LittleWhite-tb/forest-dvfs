@@ -47,9 +47,9 @@ extern int perfmon_verbose;
 extern PerfmonThread* perfmon_threadData;
 extern int perfmon_numThreads;
 
-void perfmon_startCountersThread (int thread_id);
-void perfmon_stopCountersThread (int thread_id);
-void perfmon_readCountersThread (int thread_id);
+void perfmon_readCountersOneThread (unsigned idX);
+void perfmon_startCountersOneThread (unsigned idX);
+void perfmon_stopCountersOneThread (unsigned idX);
 
 extern int  (*perfmon_getIndex) (bstring reg, PerfmonCounterIndex* index);
 extern void (*perfmon_setupCounterThread) (int thread_id,

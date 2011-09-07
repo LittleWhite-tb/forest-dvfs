@@ -293,7 +293,7 @@ perfmon_stopCountersThread_nehalemEX(int thread_id)
     }
 
     flags = msr_read(cpu_id,MSR_PERF_GLOBAL_STATUS);
-    printf ("Status: 0x%llX \n", LLU_CAST flags);
+    //printf ("Status: 0x%llX \n", LLU_CAST flags);
     if((flags & 0x3) || (flags & (0x3ULL<<32)) ) 
     {
         printf ("Overflow occured \n");
