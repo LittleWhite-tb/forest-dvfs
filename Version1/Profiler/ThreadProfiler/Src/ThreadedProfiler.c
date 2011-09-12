@@ -199,7 +199,7 @@ void * profilerThread (void * ContextPtr)
 		//generate the bounded variable
 		{
 			
-			Log_output (10,"PAPI accum succeeded!!\n");
+			Log_output (1,"PAPI accum succeeded!!\n");
 			if(values[0]==0 || values[1]==0)//no divide by zeros!
 			{
 				privateBounded=0.0;
