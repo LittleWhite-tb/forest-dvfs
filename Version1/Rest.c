@@ -39,7 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <unistd.h>
 
 #define SPECTESTING
-#define TESTTIME 5 //in seconds
+#define TESTTIME 300 //in seconds
 #endif
 
 
@@ -49,10 +49,6 @@ static rest_main_t rest_original_main;
 profilerHandle *restHandle = NULL;  //must be global so the atexit function can grab it
 char ldPreload[256]="\0";
 	
-static void restAtExit( void )
-{
-	RestDestroy(restHandle);
-}
 
 //wrapper for the original function
 static int rest_main(int argc, char** argv, char** env)
@@ -97,9 +93,8 @@ static int rest_main(int argc, char** argv, char** env)
     }
     
     Log_output (0,"Configuration:\n profiler: %d \n algorithm: %d \n freqChanger: %d \n ",profiler, algorithm, freqChanger);
-    restHandle = RestInit(profiler, algorithm, freqChanger);
-    restHandle->profiler = profiler;
-    atexit(restAtExit);
+    RestInit(profiler, algorithm, freqChanger);
+    atexit(RestDestroy);
     return rest_original_main(argc, argv, env);
  
 }
@@ -126,7 +121,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 
 #ifdef SPECTESTING
 
-void waitThread (void* arg)
+void * waitThread ()
 {
 	sleep(TESTTIME);
 	printf("You are in testing mode... undefine sPECTESTING in Rest.c for this\n");
@@ -136,14 +131,14 @@ void waitThread (void* arg)
 
 
 
-profilerHandle *RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
+void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
 {
 	if((restHandle == NULL) || ((restHandle != NULL) && (profiler != restHandle->profiler)))
 	{
 		if(restHandle != NULL)
 		{
 			Log_output (0,"Rest Already initialized overwriting previous profiler \n");
-			RestDestroy(restHandle);
+			RestDestroy();
 		}
 
 		#ifdef SPECTESTING
@@ -218,35 +213,38 @@ profilerHandle *RestInit (toolChainInit profiler, toolChainInit decisionMaker, t
 
 		restHandle = malloc(sizeof (*restHandle));
 		restHandle->ptr = handle;
+		restHandle->profiler=profiler;
 	}
 	else
 		Log_output (15,"Rest Already initialized same profiler detected, Rest continues. \n");
-
-	return restHandle;
 }
 
-void RestDestroy (profilerHandle *handle)
+void RestDestroy ( void )
 {
-    	STPContext *context = handle->ptr;
-	void (*profilerDestroyFunction) (STPContext * prof);
-
-	switch (handle->profiler)
+	if(restHandle)
 	{
-		case REST_T_PROFILER :
-			profilerDestroyFunction = threadedProfilerDestroy;
-			break;
-		case REST_VMAD_PROFILER :
-			break;
-		default :
-			fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
-			assert(0);
-			break;
+    		STPContext *context = restHandle->ptr;
+		void (*profilerDestroyFunction) (STPContext * prof);
+	
+		switch (restHandle->profiler)
+		{
+			case REST_T_PROFILER :
+				profilerDestroyFunction = threadedProfilerDestroy;
+				break;
+			case REST_VMAD_PROFILER :
+				break;
+			default :
+				fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
+				assert(0);
+				break;
+		}
+		
+		profilerDestroyFunction(context);
+		
+		setenv ("LD_PRELOAD",ldPreload, 1);
+		Log_destroy ();
+		restHandle=NULL;
 	}
-	
-	profilerDestroyFunction(context);
-	
-	setenv ("LD_PRELOAD",ldPreload, 1);
-	Log_destroy ();
 }
 
 #ifdef _VMAD
