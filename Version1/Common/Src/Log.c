@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Log.h"
 
 //Static variables
-static int logVerbosity = 0;     /**implicit declaration of function ‘Log_init’< @brief Log verbosity, used to check if we log something or not */
+static int logVerbosity = 5;     /**implicit declaration of function ‘Log_init’< @brief Log verbosity, used to check if we log something or not */
 static FILE *logOutput = NULL;   /**< @brief Log output */
 
 void Log_setVerbosity (int value)
