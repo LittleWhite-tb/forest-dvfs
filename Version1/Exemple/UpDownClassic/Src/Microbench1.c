@@ -121,8 +121,6 @@ int main(int argc,char ** argv)
 	void * dlstart_func;
 	void * dlstop_func;
 
-	//handle for the Rest system
-	profilerHandle *restHandle;
 
 	//These ratios are guedron specific... the first is the ratio of the loop bounds.. the second is the product of inner and outer loops
 	long cpu_2_mem_ratio=3793110/85;
@@ -238,15 +236,15 @@ int main(int argc,char ** argv)
 		if(choose_dm==1)
 		{
 			
-			restHandle= RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
+			RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
 		}
 		else if (choose_dm==2)
 		{
-			restHandle= RestInit(REST_T_PROFILER, REST_BRANCHPREDICT_DM, REST_FREQ_CHANGER);
+			RestInit(REST_T_PROFILER, REST_BRANCHPREDICT_DM, REST_FREQ_CHANGER);
 		}
 		else if (choose_dm==3)
 		{
-			restHandle= RestInit(REST_T_PROFILER, REST_MARKOVPREDICT_DM, REST_FREQ_CHANGER);
+			RestInit(REST_T_PROFILER, REST_MARKOVPREDICT_DM, REST_FREQ_CHANGER);
 		}
 		else
 		{
@@ -403,7 +401,7 @@ int main(int argc,char ** argv)
 	    #ifndef ORACLE_MODE
 	    if(doing_rest)
 	    {    	
-	    	RestDestroy (restHandle), restHandle = NULL;
+	    	RestDestroy ();
 	    }
 	    #else
 	    destroyCpufreq(FreqStuff);
