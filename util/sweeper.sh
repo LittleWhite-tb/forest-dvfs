@@ -94,7 +94,7 @@ trap 'on_controlc' SIGINT
 
 
 #otherwise we should be running on guedron
-EVALLIB=/opt/microlaunch/power/timer.so
+EVALLIB=/opt/microlaunch/Libraries/power/timer.so
 
 
 
@@ -105,7 +105,7 @@ function testFunc ()
 
 if [ -e $TARGET_PATH/run_spec.sh ];
 then
-	echo "microlaunch --basename $BASENAME --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs \"$*\""
+	echo "microlaunch  --basename $BASENAME --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs \"$*\""
 
 	microlaunch --basename $BASENAME --metarepetition 1 --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs "$*"
 
@@ -116,7 +116,7 @@ fi
 	PID=$!
 
 }
-
+:<<takeout
 echo "Building for REST with ThreadedProfiler"
 
 cd $TARGET_PATH
@@ -138,7 +138,7 @@ date>>threaded.stop
 
 
 
-
+takeout
 cd $TARGET_PATH
 if [ -e ./build_spec.sh ];
 then
