@@ -262,8 +262,8 @@ void * profilerThread (void * ContextPtr)
 		}		
 		else
 		{
-			Log_output (0, "Silently failing PAPI accum!!");
-			exit(1);
+			Log_output (6, "Silently failing PAPI accum!!\n");
+			exit(4);
 		}
 		usleep (pow(2,myWindow)*FIRSTSLEEP);
 	}
