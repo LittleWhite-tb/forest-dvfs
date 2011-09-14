@@ -16,8 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef _DEFINE_H_
-#define _DEFINE_H_
+#ifndef H_DEFINE
+#define H_DEFINE
 
 /**@brief data structure containing all the needed information for the decision system*/
 typedef struct _freqData
