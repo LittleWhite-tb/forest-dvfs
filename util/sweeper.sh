@@ -22,6 +22,10 @@ CURRENT_DIR=$PWD
 mkdir output
 mkdir resume_data
 
+REST_OUTPUT=$CURRENT_DIR/output
+
+export REST_OUTPUT
+
 TOTAL_PATH=$1
 
 TARGET_PATH=$(dirname $1)
@@ -107,11 +111,11 @@ if [ -e $TARGET_PATH/run_spec.sh ];
 then
 	echo "microlaunch  --basename $BASENAME --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs \"$*\""
 
-	microlaunch --basename $BASENAME --metarepetition 1 --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs "$*"
+	microlaunch --basename $BASENAME --output-dir $REST_OUTPUT --metarepetition 1 --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs "$*"
 
 else
 	shift 1
-	microlaunch --basename $BASENAME --metarepetition 1  --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TOTAL_PATH --execargs "$*" 
+	microlaunch --basename $BASENAME --output-dir $REST_OUTPUT --metarepetition 1  --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TOTAL_PATH --execargs "$*" 
 fi
 	PID=$!
 
