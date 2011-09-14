@@ -93,7 +93,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 void * waitThread ()
 {
 	sleep(TESTTIME);
-	Log_output (20, "You are in testing mode... undefine sPECTESTING in Rest.c for this\n");
+	Log_output (2000, "You are in testing mode... undefine SPECTESTING in Rest.c for this\n");
 	exit(5);
 }
 #endif
