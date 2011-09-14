@@ -88,7 +88,7 @@ SFreqData * initCpufreq (void)
 {
 	SFreqData * handle;
 	
-	int i;
+	int i, j;
 	char char_buff[1024]="";
 	int globalFrequency[NUM_STATIC_FREQ];//this is a place to temporarily store all the values until we alloc on the heap
 	int num_frequency=0;//another temp holder
@@ -173,6 +173,25 @@ SFreqData * initCpufreq (void)
 	handle->freqMax=globalFrequency[0];
 	handle->freqMin=globalFrequency[num_frequency-1];
 	handle->thisSample=0;
+
+	//allocate the number of time we call each frequency
+	handle->freqTrack = malloc(num_cores * sizeof (int *));
+	
+	//initialize all the array of cores
+	for(i = 0; i < num_cores; i++)
+	{
+		handle->freqTrack[i] = malloc (num_frequency * sizeof (long int));
+	}
+	
+	//i is the core and j the frequeny and we initialize them to 0
+	for(i = 0; i < num_cores; i++)
+	{
+		for(j = 0; j < num_frequency; j++)
+		{
+			handle->freqTrack[i][j] = 0;
+		}
+	}
+
 	for(i=0; i<num_frequency;i++)
 	{
 		handle->availableFreqs[i]=globalFrequency[i];//copy frequencies into data structure
@@ -240,11 +259,10 @@ void changeFreq (SFreqData * context, int core, int i)
 			context->thisSample++;
 			if(context->thisSample > NUMSAMPLES)
 			{
-			context->thisSample=NUMSAMPLES;
+				context->thisSample=NUMSAMPLES;
 			}
 
-
-
+			context->freqTrack[j][i]++;
 
 			fseek (context->setFile[j],0,SEEK_SET);
 			fprintf (context->setFile[j],"%d\n",context->availableFreqs[i]);
@@ -263,7 +281,7 @@ void changeFreq (SFreqData * context, int core, int i)
 			context->thisSample=NUMSAMPLES;
 		}
 
-
+		context->freqTrack[core][i]++;
 
 		fseek (context->setFile[core],0,SEEK_SET);
 		fprintf (context->setFile[core],"%d\n",context->availableFreqs[i]);
@@ -314,7 +332,22 @@ void destroyCpufreq (SFreqData * context)
 			}		
 		}
 		fclose (dumpfile);
-		
+
+		//dump our frequencies per core to a file
+		sprintf (char_buff,"core_frequency_count");
+		strcat (char_buff,num);
+		strcat (char_buff,".txt");
+		dumpfile=fopen (char_buff,"a");
+	
+		fprintf (dumpfile,"Core, Frequency\n");
+		for (i=0;i< context->numFreq; i++ )
+		{
+			if(context->sampler[i].core==j)
+			{		
+				fprintf (dumpfile,"%d, %ld\n",j,context->freqTrack[j][i]);	
+			}		
+		}
+		fclose (dumpfile);
 
 	}
 
