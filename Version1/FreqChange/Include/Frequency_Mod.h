@@ -53,6 +53,8 @@ typedef struct sfreqData
 	int thisSample;	/**< @brief tracks where we are in our sample array*/
 	struct samples sampler[NUMSAMPLES]; /**< @brief a sample array for profiling the frequency changer's actions*/
 	
+
+	long int **freqTrack; /**< @brief track the frequencies values by core*/
 		
 }SFreqData;
 
