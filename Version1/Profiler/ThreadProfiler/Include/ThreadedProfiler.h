@@ -20,6 +20,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define H_THREADEDPROFILER
 #include "Profilers.h"
 
+#define FAILURERATE .75
+#define MINSAMPLESTOFAIL 100
+
+
 /**
  * @brief initializes the profiler through a pthread_create
 * @return returns a pointer to the profiler thread's context

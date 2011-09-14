@@ -2,7 +2,7 @@
 #include "likwidCounters.h"
 
 #define NBTHREADS 4
-#define SIZE 10000
+q#define SIZE 10000
 
 int main (int argc, char *argv[])
 {
