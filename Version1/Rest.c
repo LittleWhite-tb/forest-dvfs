@@ -285,12 +285,11 @@ void RestDestroy ( void )
 		}
 		
 		profilerDestroyFunction(context);
-		
 		setenv ("LD_PRELOAD",ldPreload, 1);
-		Log_destroy ();
-		restHandle=NULL;
 
-		Log_output(6,"Rest Destroy Done!\n");
+		restHandle=NULL;
+		Log_output(15,"Rest Destroy Done!\n");
+		Log_destroy ();
 	}
 }
 

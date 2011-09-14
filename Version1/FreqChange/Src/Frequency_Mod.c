@@ -320,48 +320,79 @@ void destroyCpufreq (SFreqData * context)
 			exit (1);		
 		}
 
-		//dump our samples per core to a file
-		sprintf (char_buff,"frequency_dump");
-		strcat (char_buff,num);
-		strcat (char_buff,".txt");
-		dumpfile=fopen (char_buff,"a");
-	
-		fprintf (dumpfile,"Time, Core, Frequency\n");
-		for (i=0;i<context->thisSample;i++ )
-		{
-			if (context->sampler[i].core==j)
-			{		
-				fprintf (dumpfile,"%lld, %d, %d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
-			}		
-		}
-		fclose (dumpfile);
 
-		//dump our frequencies per core to a file
-		sprintf (char_buff,"core_frequency_count");
-		strcat (char_buff,num);
-		strcat (char_buff,".txt");
-		dumpfile=fopen (char_buff,"a");
-	
-		fprintf (dumpfile,"Core, Frequency\n");
-		for (i=0;i< context->numFreq; i++ )
-		{
-			if(context->sampler[i].core==j)
-			{		
-				fprintf (dumpfile,"%d, %ld\n",j,context->freqTrack[j][i]);	
-			}		
-		}
-		fclose (dumpfile);
+		sprintf(char_buff, "%s", getenv("REST_OUTPUT"));
+		
+		if(getenv("REST_OUTPUT") != NULL && char_buff[(strlen(char_buff)-1)] != '/')
+		{		
+			strcat(char_buff, "/");
 
+			//dump our samples per core to a file
+			strcat (char_buff,"frequency_dump");
+			strcat (char_buff,num);
+			strcat (char_buff,".txt");
+			dumpfile=fopen (char_buff,"a");
+	
+			if(dumpfile != NULL)
+			{
+				fprintf (dumpfile,"Time, Core, Frequency\n");
+				for (i=0;i<context->thisSample;i++ )
+				{
+					if (context->sampler[i].core==j)
+					{		
+						fprintf (dumpfile,"%lld, %d, %d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
+					}		
+				}
+				fclose (dumpfile);
+			}
+			else
+				Log_output(15, "REST_OUTPUT: failed to open directory: %s sampler stats output aborted");
+		}
+		else
+			Log_output(15, "REST_OUTPUT: failed no directory specified sampler stats output aborted");
+
+		sprintf(char_buff, "%s", getenv("REST_OUTPUT"));
+		
+		if(getenv("REST_OUTPUT") != NULL && char_buff[(strlen(char_buff)-1)] != '/')
+		{
+			strcat(char_buff, "/");
+		
+			//dump our frequencies per core to a file
+			strcat (char_buff,"core_frequency_count");
+			strcat (char_buff,".txt");
+			dumpfile=fopen (char_buff,"a");
+		
+			if(dumpfile != NULL)
+			{
+				fprintf (dumpfile,"Core, Frequency\n");
+				for (i=0;i< context->numFreq; i++ )
+				{
+					if(context->sampler[i].core==j)
+					{		
+						fprintf (dumpfile,"%d, %ld\n",j,context->freqTrack[j][i]);
+					}		
+				}
+				fclose (dumpfile);
+			}
+			else
+				Log_output(15, "REST_OUTPUT: failed to open directory: %s frequency per core output aborted");
+		}
+		else
+				Log_output(15, "REST_OUTPUT: failed no directory specified frequency per core output aborted");
+		
 	}
 
 	//free up our memory
+	for(i = 0; i < context->numCores; i++)
+	{
+		free(context->freqTrack[i]), context->freqTrack[i] = NULL;
+	}
+		
+	free(context->freqTrack), context->freqTrack = NULL;
 	free (context->setFile); context->setFile=NULL;
 	free (context->availableFreqs); context->availableFreqs=NULL;
 	free (context->currentFreqs); context->currentFreqs=NULL;
 	free (context); context=NULL;
-
-	
-
 
 }
 
