@@ -36,7 +36,10 @@ static __inline__ unsigned long long getTicks (void)
 
 
 
-//this function is implemented with a high overhead! So we Only read the frequency once and then store it somewhere.
+/**
+ * @brief Read the available frequencies in the file and check the validity of the current frequency
+ * @param context context the context we wish to use
+ * @param procId id of the the core*/
 static int helperReadFreq (SFreqData * context, int procId)
 {
 	char curFreqString[1024]="";
@@ -55,7 +58,7 @@ static int helperReadFreq (SFreqData * context, int procId)
   	if (fp==NULL)
 	{
 		printf ("Failed to open cpufreq datafile\n");
-		exit (EXIT_FAILURE);
+		return -1;
 	}
 	else
 	{
@@ -66,7 +69,7 @@ static int helperReadFreq (SFreqData * context, int procId)
 		else
 		{
 			printf ("fopen call failed somehow 1\n");
-			exit (EXIT_FAILURE);
+			return -1;
 		}
 		
 	}
@@ -102,7 +105,7 @@ SFreqData * initCpufreq (void)
 	if (fp==NULL)
 	{
 		printf ("Failed to open cpufreq datafile\n");
-		exit (EXIT_FAILURE);
+		return NULL;
 	}
 	else
 	{
@@ -122,7 +125,7 @@ SFreqData * initCpufreq (void)
 				if (num_frequency == NUM_STATIC_FREQ)
 				{
 					printf ("Ran out of allocation for frequencies, set NUM_STATIC_FREQ higher\n");
-					exit (EXIT_FAILURE);
+					return NULL;
 				}
 				pch = strtok (NULL, " ");
 			}
@@ -130,7 +133,7 @@ SFreqData * initCpufreq (void)
 		else
 		{
 			printf ("fopen call failed somehow 2\n");
-			exit (EXIT_FAILURE);
+			return NULL;
 		}
 	}
 	fclose (fp);
@@ -140,7 +143,7 @@ SFreqData * initCpufreq (void)
 	if (fp==NULL)
 	{
 		printf ("Failed to find number of cpus in /proc/cpuinfo\n");
-		exit (EXIT_FAILURE);
+		return NULL;
 	}
 	else
 	{
@@ -189,7 +192,7 @@ SFreqData * initCpufreq (void)
 		if (fp==NULL)
 		{
 			perror ( "Error opening file" );
-        	    	printf ( "Error opening file: %s - %s\n", char_buff, strerror( errno ) );
+			printf ( "Error opening file: %s - %s\n", char_buff, strerror( errno ) );
 			printf ( "Perhaps you don't have sudo rights?\n");
 		}
 		assert (f != NULL);
@@ -205,7 +208,7 @@ SFreqData * initCpufreq (void)
 		if (fp==NULL)
 		{
 			perror ( "Error opening file" );
-        	    	printf ( "Error opening file: %s\n", strerror( errno ) );
+			printf ( "Error opening file: %s\n", strerror( errno ) );
 			printf ( "Perhaps you don't have sudo rights?\n");
 		}
 
@@ -317,10 +320,10 @@ void destroyCpufreq (SFreqData * context)
 	}
 
 	//free up our memory
-	free (context->setFile);
-	free (context->availableFreqs);
-	free (context->currentFreqs);
-	free (context);
+	free (context->setFile); context->setFile=NULL;
+	free (context->availableFreqs); context->availableFreqs=NULL;
+	free (context->currentFreqs); context->currentFreqs=NULL;
+	free (context); context=NULL;
 
 	
 
