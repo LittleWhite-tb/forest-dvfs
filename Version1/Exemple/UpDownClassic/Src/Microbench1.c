@@ -91,8 +91,6 @@ static __inline__ int fastRand()
 
 int main(int argc,char ** argv)
 {
-
-
 	int doing_rest=1;
 	int mem_bound_only=0;
 	int proc_bound_only=0;
@@ -109,7 +107,7 @@ int main(int argc,char ** argv)
 	SFreqData * FreqStuff;
 
 	int assigned_cpu=0;
-	int choose_dm=1;
+	int choose_dm=2;
 	float expected_loop_interval=1000;//this variable is for anticapted ms for each loops interval
 	int numcores;
 	int opt;
@@ -219,7 +217,6 @@ int main(int argc,char ** argv)
 	}
 */
 	
-
 	//touch the file so the script spawns the children
 	if(assigned_cpu==0)
 	{
@@ -229,7 +226,6 @@ int main(int argc,char ** argv)
 	}
 
 	#ifndef ORACLE_MODE
-
 
 	if(doing_rest)    
 	{
@@ -256,6 +252,8 @@ int main(int argc,char ** argv)
 	FreqStuff= initCpufreq();
 	#endif
 	
+	fprintf(stderr,"Starting bench 1\n");
+
 	//we seed random number generator
 	fastSrand();
  
@@ -279,7 +277,7 @@ int main(int argc,char ** argv)
 		if(!mem_bound_only)
 		{	
 
-			
+					fprintf(stderr, "");
 			#ifdef ORACLE_MODE			
 			if(doing_rest)
 			{
@@ -309,14 +307,16 @@ int main(int argc,char ** argv)
 			temp[1]=DummyVec1[1];
 			temp[2]=DummyVec1[2];
 			temp[3]=DummyVec1[3];
+			
 			for(j=0;j<CPU_BOUND_ITER;j++)
 			{
 				temp[0]=temp[0]*temp[0];
 				temp[1]=temp[1]*temp[1];
 				temp[2]=temp[2]*temp[2];
 				temp[3]=temp[3]*temp[3];
-				
 			}
+			
+
 			DummyVec2[0]=temp[0];
 			DummyVec2[1]=temp[1];
 			DummyVec2[2]=temp[2];
@@ -326,9 +326,7 @@ int main(int argc,char ** argv)
 		}
 		//printf("Switching to Memory Bound on CPU %d\n",current_cpu);
 		//Now we do something mem bound
-		
-		
-		
+
 		if(!proc_bound_only)
 		{
 			
@@ -359,7 +357,7 @@ int main(int argc,char ** argv)
 			double temp[8];
 			for(j=0;j<MEM_BOUND_ITER;j++)
 			{
-				
+						
 				memcpy(&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],&BigVec[fastRand()%(MEM_BOUND_FOOTPRINT*31)],
 					MEM_BOUND_FOOTPRINT/2*sizeof(*BigVec));
 				
@@ -397,7 +395,7 @@ int main(int argc,char ** argv)
 		//(*dlclose_func)();
 	}
 */
-
+	    fprintf(stderr,"Ending bench 1\n");
 	    #ifndef ORACLE_MODE
 	    if(doing_rest)
 	    {    	

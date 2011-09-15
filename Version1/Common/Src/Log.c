@@ -49,7 +49,8 @@ void Log_output (int verbosity, char *fmt, ...)
 	
 	snprintf(buf, 24, "#%d: ", getpid());
 	strncat(buf, fmt, 1000);
-    //We accept anything under 0 or it has to be above logVerbosity
+    
+	//We accept anything under 0 or it has to be above logVerbosity
 	if (verbosity < 0 || verbosity >= logVerbosity)
 	{
 		if (logOutput != NULL)
@@ -65,21 +66,32 @@ void Log_output (int verbosity, char *fmt, ...)
 
 void Log_init()
 {
-	if(getenv("REST_OUTPUT") !=NULL)
+	if(getenv("REST_OUTPUT") !=NULL && strcmp(getenv("REST_OUTPUT"), " ") == 0)
     	{
-		char *path = getenv("REST_OUTPUT");
+		char path[256];
+		sprintf(path, "%s", getenv("REST_OUTPUT"));
+		
+		if(path[(strlen(path)-1)] != '/')
+			sprintf(path, "/");
+		
 		strcat(path, "Log");
 
 		logOutput = fopen(path, "w+");
+		if(logOutput == NULL)
+		{
+			logOutput = stderr;
+			Log_output(15, "REST_OUTPUT: Wrong directory: %s output will be redirected on stderr.\n", path);
+		}
 	}
 	else
 	{
 		logOutput = stderr;	
+		Log_output(15, "REST_OUTPUT: output will be redirected on stderr.\n");
 	}
 }
 
 void Log_destroy()
 {
-	if(getenv("REST_OUTPUT") !=NULL)
+	if(getenv("REST_OUTPUT") !=NULL && strcmp(getenv("REST_OUTPUT"), " ") == 0)
     		fclose (logOutput);
 }

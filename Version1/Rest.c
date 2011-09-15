@@ -48,55 +48,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 static rest_main_t rest_original_main;
 profilerHandle *restHandle = NULL;  //must be global so the atexit function can grab it
 char ldPreload[256]="\0";
-	
 
 //wrapper for the original function
 static int rest_main(int argc, char** argv, char** env)
 {
-    
-    toolChainInit profiler = REST_T_PROFILER, algorithm = REST_NAIVE_DM, freqChanger = REST_FREQ_CHANGER;
-    
     //LD PRELOAD Could work but we are not sure
     char * tmp=getenv ("LD_PRELOAD");
-    if(tmp!=NULL)
+    int rest_ret = 0;
+	
+	if(tmp!=NULL)
     {
     	strcpy (ldPreload, tmp);
     	setenv ("LD_PRELOAD"," ", 1);
     }
-    //Choosing which profiler need to use
-    if(getenv("REST_PROFILER") !=NULL)
-    {
-    	if(strcmp(getenv("REST_PROFILER"), "vmad_profiler") == 0)
-    	{
-    		profiler = REST_VMAD_PROFILER;
-    	}
-    }
-
-    //Choosing which algorithm need to use
-    if(getenv("REST_DM") !=NULL)
-    {
-    	if(strcmp(getenv("REST_DM"), "predictive_dm") == 0)
-    	{
-    		algorithm = REST_BRANCHPREDICT_DM;
-    	}
-    	else
-    		if(strcmp(getenv("REST_DM"), "markov_dm") == 0)
-    		{
-    			algorithm = REST_MARKOVPREDICT_DM;
-    		}
-    }
     
-    //Choosing which algorithm need to use
-    if(getenv("REST_FREQ_CHANGER") !=NULL)
-    {
-    	//Will be useful when we will have more than one freq changer
-    }
+    rest_ret = RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
     
-    Log_output (0,"Configuration:\n profiler: %d \n algorithm: %d \n freqChanger: %d \n ",profiler, algorithm, freqChanger);
-    RestInit(profiler, algorithm, freqChanger);
-    atexit(RestDestroy);
-    return rest_original_main(argc, argv, env);
- 
+	atexit(RestDestroy);
+	return rest_original_main(argc, argv, env);
 }
 
 
@@ -124,21 +93,61 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
 void * waitThread ()
 {
 	sleep(TESTTIME);
-	printf("You are in testing mode... undefine sPECTESTING in Rest.c for this\n");
+	Log_output (2000, "You are in testing mode... undefine SPECTESTING in Rest.c for this\n");
 	exit(5);
 }
 #endif
 
 
 
-void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger)
+int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolChainInit freqChangerArg)
 {
-	if((restHandle == NULL) || ((restHandle != NULL) && (profiler != restHandle->profiler)))
+	toolChainInit profiler = profilerArg, decisionMaker = decisionMakerArg, freqChanger = freqChangerArg;
+	int isLdPreload = 0;
+	int isRestEnvVar = 0;
+
+	if(ldPreload != NULL && strcmp(ldPreload, "") != 0)
+		isLdPreload = 1;
+	
+	if((getenv("REST_PROFILER") !=NULL) || (getenv("REST_DM") !=NULL) || (getenv("REST_FREQ_CHANGER") !=NULL))
+		isRestEnvVar = 1;
+
+	if((restHandle == NULL) || ((restHandle != NULL) && !isRestEnvVar && !isLdPreload))
 	{
-		if(restHandle != NULL)
+
+		if((restHandle != NULL))
 		{
-			Log_output (0,"Rest Already initialized overwriting previous profiler \n");
+			Log_output (15,"Rest Already initialized overwriting previous parameters \n");
 			RestDestroy();
+		}
+		else
+			Log_init();
+
+		//Choosing which profiler need to use
+		if(getenv("REST_PROFILER") !=NULL && (strcmp(getenv("REST_PROFILER"), "vmad_profiler") == 0))
+		{
+				profiler = REST_VMAD_PROFILER;
+		}
+
+		//Choosing which algorithm need to use
+		if(getenv("REST_DM") !=NULL)
+		{
+			if(strcmp(getenv("REST_DM"), "predictive_dm") == 0)
+			{
+				decisionMaker = REST_BRANCHPREDICT_DM;
+			}
+			else
+				if(strcmp(getenv("REST_DM"), "markov_dm") == 0)
+				{
+					decisionMaker = REST_MARKOVPREDICT_DM;
+				}
+			isRestEnvVar = 1;		
+		}
+
+		//Choosing which algorithm need to use
+		if(getenv("REST_FREQ_CHANGER") !=NULL)
+		{
+			//Will be useful when we will have more than one freq changer
 		}
 
 		#ifdef SPECTESTING
@@ -148,8 +157,28 @@ void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIni
 		STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
 		SFuncsToUse decisionFuncs;
 
-		Log_init();
-		fprintf(stderr,"Initializing REST...\n");
+		Log_output (20, "Initializing REST...\n");
+
+		if(isLdPreload == 1)
+		{
+			if(isRestEnvVar == 1)		
+				Log_output (15,"Rest will be initialized overwriting parameters and LD_PRELOAD with REST environement variables.\n");
+			else
+				Log_output (15,"Rest will be initialized overwriting parameters with LD_PRELOAD's.\n");
+		}
+		else
+		{
+			if(isRestEnvVar == 1)		
+			{
+				Log_output (15,"Rest will be initialized overwriting parameters with REST environement variables.\n");
+			}				
+			else
+			{
+				Log_output (15,"Rest will be initialized with specified parameters inside the bench program.\n");
+			}		
+		}
+
+		Log_output (1,"\nConfiguration:\n\tprofiler: %d \n\talgorithm: %d \n\tfreqChanger: %d \n ",profiler, decisionMaker, freqChanger);
 
 		switch (profiler)
 		{
@@ -160,11 +189,11 @@ void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIni
 				//Nothing to do here
 				break;
 			default :
-				fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
+				Log_output (20,"Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
 				assert(0);
 				break;
 		}
-	
+
 		switch (decisionMaker)
 		{
 			case REST_NAIVE_DM:
@@ -183,21 +212,21 @@ void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIni
 				decisionFuncs.reportFunc = markovDecisionGiveReport;	
 				break;
 			default:
-				fprintf(stderr, "Undefined decision maker, the defined ones are : NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM\n");
+				Log_output (20,"Undefined decision maker, the defined ones are : NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM\n");
 				assert(0);
 				break;
 		}
-	
+
 		switch (freqChanger)
 		{
 			case REST_FREQ_CHANGER:
 				break;
 			default:
-				fprintf(stderr, "Undefined decision maker, the defined ones are : FREQ_CHANGER\n");
+				Log_output (20, "Undefined decision maker, the defined ones are : FREQ_CHANGER\n");
 				assert(0);
 				break;
 		}
-	
+
 		STPContext *handle = NULL;
 		if (profilerInitFunction != NULL)
 		{
@@ -214,9 +243,25 @@ void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainIni
 		restHandle = malloc(sizeof (*restHandle));
 		restHandle->ptr = handle;
 		restHandle->profiler=profiler;
+		restHandle->decisionMaker=decisionMaker;
+		restHandle->freqChanger=freqChanger;
+
+		Log_output (20, "Initializing REST Done!\n");
+
+		return 0;
 	}
 	else
-		Log_output (15,"Rest Already initialized same profiler detected, Rest continues. \n");
+	{
+		if(isLdPreload)
+		{
+			if(isRestEnvVar)		
+					Log_output (15,"Rest Already initialized parameters and LD_PRELOAD ignored, Rest with environement varialbes continues. \n");
+		}
+		else
+			Log_output (15,"Rest Already initialized parameters ignored, Rest with LD_PRELOAD continues. \n");
+	}
+
+	return 1;
 }
 
 void RestDestroy ( void )
@@ -234,16 +279,17 @@ void RestDestroy ( void )
 			case REST_VMAD_PROFILER :
 				break;
 			default :
-				fprintf(stderr, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
+				Log_output (20, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
 				assert(0);
 				break;
 		}
 		
 		profilerDestroyFunction(context);
-		
 		setenv ("LD_PRELOAD",ldPreload, 1);
-		Log_destroy ();
+
 		restHandle=NULL;
+		Log_output(15,"Rest Destroy Done!\n");
+		Log_destroy ();
 	}
 }
 

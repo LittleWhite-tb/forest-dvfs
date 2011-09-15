@@ -25,6 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Log.h"
 #include "ThreadedProfiler.h"
 
+
+#define BINARYMODE
+
 #define DECISION_MAKER_SEARCH 0
 
 void* naiveDecisionInit (void)
@@ -37,9 +40,13 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 {
 	SFreqData *freqData = handle;
 
+	#ifdef BINARYMODE
+	int newFrequency = (report->data.tp.bounded < 0.5)?0:freqData->numFreq-1;
+	#else
 	int newFrequency = round ((int) (report->data.tp.bounded * freqData->numFreq));
 	newFrequency=(report->data.tp.bounded == 0.0)?1:newFrequency;//unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
 	newFrequency=(report->data.tp.bounded == 1.0)?freqData->numFreq-1:newFrequency;//if it's exactly 1.0 then we set it to the lowest frequency
+	#endif
 	int currentCore = report->proc_id;
 	
 	//Too change: 0 only for now

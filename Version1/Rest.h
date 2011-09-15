@@ -57,6 +57,8 @@ typedef enum _toolChainInit
  {
  	void *ptr;
  	toolChainInit profiler;
+	toolChainInit decisionMaker;
+	toolChainInit freqChanger;
  }profilerHandle;
 
 
@@ -66,7 +68,7 @@ typedef enum _toolChainInit
  * @param decisionMaker specify the decisionmaker you wish to use
  * @param freqChanger specify the frequency changer you wish to use
  **/
-void RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
+int RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
 
 /**
  * @brief destroys the context of the rest runtime, returns threads back used for profiling, and dumps all statistics to files

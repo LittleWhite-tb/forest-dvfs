@@ -18,20 +18,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
+#define _GNU_SOURCE
+#include <sched.h>
 
 #include "DecisionStructures.h"
 #include "Log.h"
 #include "rdtsc.h"
 #include "papiCounters.h"
+#include "ThreadedProfiler.h"
 
 #include <assert.h>
 #include <math.h>
 #include <papi.h>
 #include <pthread.h>
-#define _GNU_SOURCE
-#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -40,6 +42,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #if 0
 #define PRINT_DEBUG 
 #endif
+
+#define STATS
 
 
 //internal declarations
@@ -141,6 +145,17 @@ void * profilerThread (void * ContextPtr)
 	float lastBoundedValue=.5;//just initializing to .5 so it's valid
 	float privateBounded;
 	unsigned long long startTime, endTime;
+
+	#ifdef STATS
+	/*Log related data*/
+	int failureBackoff=0;	
+	int numGoodSamples=0;
+	int numBadSamples=0;
+	float totalOfBounded=0.0;
+	float minValue=1.0;
+	float maxValue=0.0;
+	#endif
+	
 	
 
 	#ifdef PRINT_DEBUG
@@ -193,6 +208,21 @@ void * profilerThread (void * ContextPtr)
 		{
 			Log_output (0, " PAPI accum failed: %s\n",PAPI_strerror(ret_code));
 			
+			#ifdef STATS			
+			numBadSamples++;
+			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
+			{
+				Log_output (10, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
+				exit(4);
+			}
+			failureBackoff++;
+			if (failureBackoff>4)
+			{
+				myWindow++;
+				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
+			}
+			#endif
+			
 		}
 		
 		if(values [1] != 0)
@@ -200,20 +230,21 @@ void * profilerThread (void * ContextPtr)
 		{
 			
 			Log_output (1,"PAPI accum succeeded!!\n");
-			if(values[0]==0 || values[1]==0)//no divide by zeros!
-			{
-				privateBounded=0.0;
-			}
-			else
-			{
-				val1=values[0];
-				val2=values[1];	
-				val3=values[2];
-				privateBounded=2*16*val1*val3/(val2*val2);
-				privateBounded=(privateBounded>1.0)?1.0:privateBounded;
-			}
-
-		
+					
+			val1=values[0];
+			val2=values[1];	
+			val3=values[2];
+			privateBounded=2*16*val1*val3/(val2*val2);
+			privateBounded=(privateBounded>1.0)?1.0:privateBounded;
+			
+			#ifdef STATS
+			//Doing statistics
+			failureBackoff=0;
+			minValue=(minValue>privateBounded)?privateBounded:minValue;
+			maxValue=(maxValue>privateBounded)?maxValue:privateBounded;
+			totalOfBounded+=privateBounded;
+			numGoodSamples++;
+			#endif
 		
 			//fill in the report
 			myReport.data.tp.bounded=privateBounded;
@@ -262,13 +293,50 @@ void * profilerThread (void * ContextPtr)
 		}		
 		else
 		{
-			Log_output (10, "Silently failing PAPI accum on PID %d!!",getpid());
-			exit(4);
+			Log_output (6, "Silently failing PAPI accum!!\n");
+			#ifdef STATS			
+			numBadSamples++;
+			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
+			{
+				Log_output (10, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
+				exit(4);
+			}
+			failureBackoff++;
+			if (failureBackoff>4)
+			{
+				myWindow++;
+				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
+			}
+			#endif
 		}
+		assert(pow(2,myWindow)*FIRSTSLEEP!=0);
 		usleep (pow(2,myWindow)*FIRSTSLEEP);
 	}
 
+	#ifdef STATS
+	float goodSamp=	numGoodSamples;
+	float badSamp=numBadSamples;
 	
+	//dump profiler stats to a file
+	char char_buff[256]="\0";
+	if(getenv("REST_OUTPUT")!=NULL)
+	{
+		strcat (char_buff,getenv("REST_OUTPUT"));
+	}
+	sprintf (char_buff,"%s%d%s","ProfilerStats",mycore,".txt");
+	FILE * dumpfile=fopen (char_buff,"a");
+	if(dumpfile!=NULL)
+	{
+		fprintf(dumpfile,"PAPI Failure Rate: %f\n",badSamp/(goodSamp+badSamp));
+		fprintf(dumpfile,"Minimum Boundedness: %f\n",minValue);
+		fprintf(dumpfile,"Maximum Boundedness: %f\n",maxValue);
+		fprintf(dumpfile,"Average Boundedness: %f\n",totalOfBounded/goodSamp);	
+	}
+	else
+	{
+		Log_output (3,"Unable to open file for dumping profiler data\n");
+	}
+	#endif
 	
 	void (* myDestroyer)(void *)=myHandle->myFuncs.destroyFunc;
 	myDestroyer (myDM);
