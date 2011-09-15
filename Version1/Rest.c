@@ -34,12 +34,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "camus_definitions.h"
 #endif
 
-#if 0
+#if 1
 #include <pthread.h>
 #include <unistd.h>
 
 #define SPECTESTING
-#define TESTTIME 300 //in seconds
+#define TESTTIME 100 //in seconds
 #endif
 
 

@@ -116,7 +116,8 @@ fi
 	PID=$!
 
 }
-:<<takeout
+:<<commenting
+
 echo "Building for REST with ThreadedProfiler"
 
 cd $TARGET_PATH
@@ -136,9 +137,9 @@ testFunc -threaded $*
 date>>threaded.stop
 
 
+commenting
 
 
-takeout
 cd $TARGET_PATH
 if [ -e ./build_spec.sh ];
 then
@@ -183,9 +184,7 @@ done
 date>>ondemand.start
 testFunc -ondemand $*
 date>>ondemand.stop
-:<< commenting
 
-commenting
 
 
 exit
