@@ -46,14 +46,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define STATS
 
 
+
+
 //internal declarations
 //static void initPapiHelper ( int * EventSet, STPContext * handle);
 //static __inline__ pid_t getTid (void);
 //static __inline__ unsigned long long getTicks ( void );
 
 
-
-/*static __inline__ unsigned long long getTicks ( void )
+/*
+static __inline__ unsigned long long getTicks ( void )
 {
    unsigned long long ret;
    rdtscll (ret);
@@ -210,6 +212,8 @@ void * profilerThread (void * ContextPtr)
 			
 			#ifdef STATS			
 			numBadSamples++;
+			printf("BadSamples should get bigger!%d\n",			numBadSamples);
+
 			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
 			{
 				Log_output (10, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
@@ -225,7 +229,7 @@ void * profilerThread (void * ContextPtr)
 			
 		}
 		
-		if(values [1] != 0)
+		else if(values [1] != 0)
 		//generate the bounded variable
 		{
 			
@@ -244,6 +248,8 @@ void * profilerThread (void * ContextPtr)
 			maxValue=(maxValue>privateBounded)?maxValue:privateBounded;
 			totalOfBounded+=privateBounded;
 			numGoodSamples++;
+			printf("GoodSamples should get bigger!%d\n",			numGoodSamples);
+
 			#endif
 		
 			//fill in the report
@@ -296,6 +302,8 @@ void * profilerThread (void * ContextPtr)
 			Log_output (6, "Silently failing PAPI accum!!\n");
 			#ifdef STATS			
 			numBadSamples++;
+			printf("BadSamples should get bigger%d!\n",			numBadSamples);
+
 			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
 			{
 				Log_output (10, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
@@ -319,23 +327,31 @@ void * profilerThread (void * ContextPtr)
 	
 	//dump profiler stats to a file
 	char char_buff[256]="\0";
+	char numCoreString[10];
 	if(getenv("REST_OUTPUT")!=NULL)
 	{
 		strcat (char_buff,getenv("REST_OUTPUT"));
+		strcat (char_buff,"/");
 	}
-	sprintf (char_buff,"%s%d%s","ProfilerStats",mycore,".txt");
+	strcat(char_buff,"ProfilerStats");
+	sprintf (numCoreString,"%d",mycore);
+	strcat(char_buff,numCoreString);
+	strcat(char_buff,".txt");
+		fprintf (stderr, "%s: is the file name we are trying to appending to\n", char_buff);
+	
 	FILE * dumpfile=fopen (char_buff,"a");
 	if(dumpfile!=NULL)
 	{
-		fprintf(dumpfile,"PAPI Failure Rate: %f\n",badSamp/(goodSamp+badSamp));
+		fprintf(dumpfile,"PAPI Failure Rate: %f  Good Samples: %d  Bad Samples: %d \n",badSamp/(goodSamp+badSamp),numGoodSamples,numBadSamples);
 		fprintf(dumpfile,"Minimum Boundedness: %f\n",minValue);
 		fprintf(dumpfile,"Maximum Boundedness: %f\n",maxValue);
 		fprintf(dumpfile,"Average Boundedness: %f\n",totalOfBounded/goodSamp);	
 	}
 	else
 	{
-		Log_output (3,"Unable to open file for dumping profiler data\n");
+		Log_output (2000,"Unable to open file for dumping profiler data\n");
 	}
+	fclose(dumpfile);
 	#endif
 	
 	void (* myDestroyer)(void *)=myHandle->myFuncs.destroyFunc;
@@ -353,13 +369,13 @@ STPContext * threadedProfilerInit (SFuncsToUse funcPtrs)
 	retval = PAPI_is_initialized();
 	if (retval == PAPI_LOW_LEVEL_INITED)
 	{
-		Log_output (0,"PAPI library already initialized error!\n");
+		Log_output (20,"PAPI library already initialized error!\n");
                 exit (1);
 	}
 	retval=PAPI_library_init (PAPI_VER_CURRENT);
 	if (retval != PAPI_VER_CURRENT) 
 	{
-		Log_output (0,"PAPI library init error!\n");
+		Log_output (20,"PAPI library init error!\n");
 		exit (1);
 	}
 
