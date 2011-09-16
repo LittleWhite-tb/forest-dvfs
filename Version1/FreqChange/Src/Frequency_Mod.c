@@ -319,11 +319,8 @@ void destroyCpufreq (SFreqData * context)
 			Log_output (0,"System call failed! WHAT!?\n");
 			exit (1);		
 		}
-
-
-		sprintf(char_buff, "%s", getenv("REST_OUTPUT"));
 		
-		if(getenv("REST_OUTPUT") != NULL && char_buff[(strlen(char_buff)-1)] != '/')
+		if(getenv("REST_OUTPUT") != NULL)
 		{		
 			strcat(char_buff, "/");
 
@@ -350,10 +347,8 @@ void destroyCpufreq (SFreqData * context)
 		}
 		else
 			Log_output(15, "REST_OUTPUT: failed no directory specified sampler stats output aborted");
-
-		sprintf(char_buff, "%s", getenv("REST_OUTPUT"));
 		
-		if(getenv("REST_OUTPUT") != NULL && char_buff[(strlen(char_buff)-1)] != '/')
+		if(getenv("REST_OUTPUT") != NULL)
 		{
 			strcat(char_buff, "/");
 		
