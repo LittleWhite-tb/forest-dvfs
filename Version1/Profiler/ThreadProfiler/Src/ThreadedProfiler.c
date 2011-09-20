@@ -212,7 +212,6 @@ void * profilerThread (void * ContextPtr)
 			
 			#ifdef STATS			
 			numBadSamples++;
-			printf("BadSamples should get bigger!%d\n",			numBadSamples);
 
 			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
 			{
@@ -248,7 +247,6 @@ void * profilerThread (void * ContextPtr)
 			maxValue=(maxValue>privateBounded)?maxValue:privateBounded;
 			totalOfBounded+=privateBounded;
 			numGoodSamples++;
-			printf("GoodSamples should get bigger!%d\n",			numGoodSamples);
 
 			#endif
 		
@@ -302,7 +300,6 @@ void * profilerThread (void * ContextPtr)
 			Log_output (6, "Silently failing PAPI accum!!\n");
 			#ifdef STATS			
 			numBadSamples++;
-			printf("BadSamples should get bigger%d!\n",			numBadSamples);
 
 			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
 			{
@@ -384,7 +381,7 @@ STPContext * threadedProfilerInit (SFuncsToUse funcPtrs)
 	current_cpu=sched_getcpu ();
 
 	// register the thread specificier
-	 if (PAPI_thread_init ((unsigned long (*)(void)) getTid) != PAPI_OK)
+	 if (PAPI_thread_init ((unsigned long (*)(void)) getpid) != PAPI_OK)
 	{
 		Log_output (0,"Thread init function didn't register properly\n");
 	}
