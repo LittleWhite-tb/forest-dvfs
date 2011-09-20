@@ -299,8 +299,8 @@ void destroyCpufreq (SFreqData * context)
 {
 	int j;
 	int ret;
-	char char_buff[1024]="";
-	char num[10]="";
+	char char_buff[1024]="\0";
+	char num[10]="\0";
 	FILE * dumpfile;
 	int i;
 
@@ -308,7 +308,7 @@ void destroyCpufreq (SFreqData * context)
 	{	
 		fclose (context->setFile[j]);//first close our file descriptors;
 		//then set the govenor back to ondemand
-		sprintf (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
+		strcpy (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
 		sprintf (num,"%d",j);
 		strcat (char_buff,num);
 		strcat (char_buff,"/cpufreq/scaling_governor");
@@ -320,10 +320,13 @@ void destroyCpufreq (SFreqData * context)
 			exit (1);		
 		}
 		
+
+		strcpy(char_buff,"");
 		if(getenv("REST_OUTPUT") != NULL)
 		{		
+			strcpy(char_buff,getenv("REST_OUTPUT"));
 			strcat(char_buff, "/");
-
+		}
 			//dump our samples per core to a file
 			strcat (char_buff,"frequency_dump");
 			strcat (char_buff,num);
@@ -343,18 +346,17 @@ void destroyCpufreq (SFreqData * context)
 				fclose (dumpfile);
 			}
 			else
-				Log_output(15, "REST_OUTPUT: failed to open directory: %s sampler stats output aborted");
-		}
-		else
-			Log_output(15, "REST_OUTPUT: failed no directory specified sampler stats output aborted");
+				Log_output(15, "REST_OUTPUT: failed to open directory: %s sampler stats output aborted\n",char_buff );
 		
+		strcpy(char_buff,"");
+
 		if(getenv("REST_OUTPUT") != NULL)
 		{
+			strcpy (char_buff, getenv("REST_OUTPUT"));
 			strcat(char_buff, "/");
-		
+		}
 			//dump our frequencies per core to a file
-			strcat (char_buff,"core_frequency_count");
-			strcat (char_buff,".txt");
+			strcat (char_buff,"core_frequency_count.txt");
 			dumpfile=fopen (char_buff,"a");
 		
 			if(dumpfile != NULL)
@@ -370,10 +372,7 @@ void destroyCpufreq (SFreqData * context)
 				fclose (dumpfile);
 			}
 			else
-				Log_output(15, "REST_OUTPUT: failed to open directory: %s frequency per core output aborted");
-		}
-		else
-				Log_output(15, "REST_OUTPUT: failed no directory specified frequency per core output aborted");
+				Log_output(15, "REST_OUTPUT: failed to open directory: %s frequency per core output aborted\n",char_buff);
 		
 	}
 
