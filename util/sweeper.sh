@@ -22,9 +22,7 @@ CURRENT_DIR=$PWD
 mkdir output
 mkdir resume_data
 
-REST_OUTPUT=$CURRENT_DIR/output
 
-export REST_OUTPUT
 
 TOTAL_PATH=$1
 
@@ -97,7 +95,7 @@ function on_controlc
 trap 'on_controlc' SIGINT
 
 
-#otherwise we should be running on guedron
+#you need to change this if you run on a machine other than guedron
 EVALLIB=/opt/microlaunch/Libraries/power/timer.so
 
 
@@ -109,7 +107,6 @@ function testFunc ()
 
 if [ -e $TARGET_PATH/run_spec.sh ];
 then
-	echo "microlaunch  --basename $BASENAME --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs \"$*\""
 
 	microlaunch --basename $BASENAME --output-dir $REST_OUTPUT --metarepetition 1 --repetition 1 --evallib $EVALLIB --nbprocess=$NUMCORES --execname=$TARGET_PATH/run_spec.sh --execargs "$*"
 
@@ -120,8 +117,6 @@ fi
 	PID=$!
 
 }
-:<<commenting
-
 echo "Building for REST with ThreadedProfiler"
 
 cd $TARGET_PATH
@@ -136,14 +131,53 @@ else
 	make CFLAGS=-DTHREAD_REST
 fi
 cd $CURRENT_DIR
-date >> threaded.start
-testFunc -threaded $*
-date>>threaded.stop
+
+mkdir naive
+REST_OUTPUT=$CURRENT_DIR/naive
 
 
-commenting
+echo "Rest output directory set to $REST_OUTPUT"
+export REST_OUTPUT
+
+REST_DM=naive_dm
+export REST_DM
 
 
+date >> naive.start
+testFunc naive $*
+date>>naive.stop
+
+
+mkdir predictive
+REST_OUTPUT=$CURRENT_DIR/predictive
+
+
+echo "Rest output directory set to $REST_OUTPUT"
+export REST_OUTPUT
+
+REST_DM=predictive_dm
+export REST_DM
+
+date >> predictive.start
+testFunc predictive $*
+date>>predictive.stop
+
+mkdir markov
+REST_OUTPUT=$CURRENT_DIR/markov
+
+
+echo "Rest output directory set to $REST_OUTPUT"
+export REST_OUTPUT
+
+REST_DM=markov_dm
+export REST_DM
+
+date >> markov.start
+testFunc markov $*
+date>>markov.stop
+
+
+#now rebuild and run without rest for other sweeps
 cd $TARGET_PATH
 if [ -e ./build_spec.sh ];
 then
@@ -173,11 +207,16 @@ do
 	done
 
 	echo "Frequency set to ${FREQS[$j]} userspace setting"
+#this is a dirty hack but I use REST_OUTPUT to set the output directory for microlaunch so I need to redefine it
+	REST_OUTPUT=${FREQS[${j}]}
 	date >> ${FREQS[$j]}.start
 	testFunc ${FREQS[$j]} $@ 
 	date >> ${FREQS[$j]}.stop
 
 done
+
+
+
 echo "Using onDemand Governor"
 
 for ((i=0;i<NUMCORES;i++))
@@ -185,9 +224,13 @@ for ((i=0;i<NUMCORES;i++))
 do
 	echo ondemand > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor
 done
+
+REST_OUTPUT="onDemand"
 date>>ondemand.start
 testFunc -ondemand $*
 date>>ondemand.stop
+
+
 
 
 
@@ -209,6 +252,6 @@ else
 fi
 cd $CURRENT_DIR
 
-testFunc thread $@
+testFunc vmad $@
 
 
