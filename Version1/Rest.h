@@ -22,6 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 //prototypes
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 typedef int (*rest_main_t)(int argc, char** argv, char** env);
 
@@ -74,6 +78,10 @@ int RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit
  * @brief destroys the context of the rest runtime, returns threads back used for profiling, and dumps all statistics to files
  **/
 void RestDestroy ( void );
+
+#ifdef __cplusplus
+}
+#endif
 
  
 
