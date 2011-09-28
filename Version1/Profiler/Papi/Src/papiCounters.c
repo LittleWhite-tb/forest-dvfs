@@ -16,10 +16,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
  
+#define _GNU_SOURCE
+#include <sched.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <papi.h>
-#define _GNU_SOURCE
 #include <unistd.h>
 #include <syscall.h>
 #include <sys/types.h>
@@ -31,8 +33,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  
 pid_t getTid (void)
 {
-	pid_t answer =  syscall (__NR_gettid);
-	return answer;
+	#ifdef SYS_gettid
+		return (pid_t)syscall(SYS_gettid);
+	#elif defined(__NR_gettid)
+		return (pid_t)syscall(__NR_gettid);
+	#else
+		#error "Unable to implement gettid."
+	#endif
+
+
+//	pid_t answer =  syscall (__NR_gettid);
+//	return answer;
 }
 unsigned long long getTicks ( void )
 {
