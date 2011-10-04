@@ -66,7 +66,7 @@ void Log_output (int verbosity, char *fmt, ...)
 
 void Log_init()
 {
-	if(getenv("REST_OUTPUT") !=NULL && strcmp(getenv("REST_OUTPUT"), " ") == 0)
+	if(getenv("REST_OUTPUT") !=NULL)
     	{
 		char path[256];
 		sprintf(path, "%s", getenv("REST_OUTPUT"));

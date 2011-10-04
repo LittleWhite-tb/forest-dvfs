@@ -335,12 +335,14 @@ void destroyCpufreq (SFreqData * context)
 	
 			if(dumpfile != NULL)
 			{
-				fprintf (dumpfile,"Time, Core, Frequency\n");
+				if(j == 0)	
+					fprintf (dumpfile,"Time\t\t\tCore\tFreq\n");
+	
 				for (i=0;i<context->thisSample;i++ )
 				{
 					if (context->sampler[i].core==j)
 					{		
-						fprintf (dumpfile,"%lld, %d, %d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
+						fprintf (dumpfile,"%lld\t%d\t%d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
 					}		
 				}
 				fclose (dumpfile);
@@ -361,12 +363,14 @@ void destroyCpufreq (SFreqData * context)
 		
 			if(dumpfile != NULL)
 			{
-				fprintf (dumpfile,"Core, Frequency\n");
+				if(j == 0)						
+					fprintf (dumpfile,"Core\tFreq\tFreq changes\n");
+				
 				for (i=0;i< context->numFreq; i++ )
 				{
 					if(context->sampler[i].core==j)
 					{		
-						fprintf (dumpfile,"%d, %ld\n",j,context->freqTrack[j][i]);
+						fprintf (dumpfile,"%d\t%d\t%ld\n",j,i,context->freqTrack[j][i]);
 					}		
 				}
 				fclose (dumpfile);
