@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 current_path=pwd
 cd /opt/rest/Version1
@@ -26,24 +26,24 @@ for i in `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies
 	
 			echo "** Setting ondemand gov"
 			sudo /opt/util/bin/set_all_ondemand_gov.sh
-			echo "*** Verification"
-			cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+			echo "*** Verification [ `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor` ]"
+			
 			sleep 1
 
 			# Run program using different frequency
 			echo "** Setting userspace gov"
 			sudo /opt/util/bin/set_userspace_gov.sh
-			echo "*** Verification"
-			cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+			echo "*** Verification [ `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor` ]"
 			sleep 1
 
 			echo "** Setting the chosen freq"
-			sudo /opt/util/bin/set_freq_ug.sh $i
+			sudo /opt/util/bin/set_freq_ug.sh $i > /dev/null
 
 			sleep 1
 		fi
 
 		#Now check
+		"*** Verification [ `cat /sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq` vs `cat /sys/devices/system/cpu/cpu11/cpufreq/scaling_cur_freq` ]"
 		freq1=`cat /sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq`
 		freq11=`cat /sys/devices/system/cpu/cpu11/cpufreq/scaling_cur_freq`
 
