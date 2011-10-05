@@ -1,6 +1,8 @@
 #!/bin/bash
 
-current_path=pwd
+export LD_LIBRARY_PATH=/opt/rest/Version1/:/opt/microlaunch/Libraries/power/:/opt/microlaunch/Libraries/power/esrv/
+
+current_path=`pwd`
 cd /opt/rest/Version1
 make clean && make
 
@@ -18,12 +20,13 @@ for i in `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies
 	freq1=0
 	freq11=0
 	cnt=0
+	echo ""
+	echo ""
 	echo "* Selected frequency [ $i ]"
 
 	while [ $cnt -lt 10 ]; do
 	
 		if [ $freq1 -ne $i -o $freq11 -ne $i ]; then
-	
 			echo "** Setting ondemand gov"
 			sudo /opt/util/bin/set_all_ondemand_gov.sh
 			echo "*** Verification [ `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor` ]"
@@ -43,7 +46,7 @@ for i in `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies
 		fi
 
 		#Now check
-		"*** Verification [ `cat /sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq` vs `cat /sys/devices/system/cpu/cpu11/cpufreq/scaling_cur_freq` ]"
+		#echo "*** Verification [ `cat /sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq` vs `cat /sys/devices/system/cpu/cpu11/cpufreq/scaling_cur_freq` ]"
 		freq1=`cat /sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq`
 		freq11=`cat /sys/devices/system/cpu/cpu11/cpufreq/scaling_cur_freq`
 
@@ -53,7 +56,8 @@ for i in `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies
 	runprog $i 
 done
 
-
+echo ""
+echo ""
 echo "** Setting ondemand gov"
 sudo /opt/util/bin/set_all_ondemand_gov.sh
 echo "*** Verification"
