@@ -124,5 +124,13 @@ date >> $REST_OUTPUT/markov.stop
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+NUMCORES=$(cat /proc/cpuinfo | grep "processor" | wc -l)
 
-
+for DM in "`pwd`/naive `pwd`/predictive `pwd`/markov"
+do
+	for core_num in `seq 0 1 $NUMCORES`
+	do
+		echo Results from core_frequency_count$core_num >> $DM/agregated_core_frequency_count.txt
+		cat core_frequency_count$core_num >> $DM/agregated_core_frequency_count.txt
+	done
+done

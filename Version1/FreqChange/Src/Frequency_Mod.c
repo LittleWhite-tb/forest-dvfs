@@ -361,7 +361,6 @@ void destroyCpufreq (SFreqData * context)
 		//dump our frequencies per core to a file
 		strcat (char_buff,"core_frequency_count");
 		strcat (char_buff,num);
-		strcat (char_buff,".txt");
 		dumpfile=fopen (char_buff,"a");
 	
 		if(dumpfile != NULL)
