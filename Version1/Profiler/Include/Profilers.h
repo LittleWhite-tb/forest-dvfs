@@ -32,7 +32,7 @@ typedef enum eProfType
 
 //common define for all the profilers/decisions 
 #define THRESHOLD (.05)
-#define FIRSTSLEEP (600)  
+#define FIRSTSLEEP (6000)  
 #define LONGESTSLEEP (128000)
 
 #define FIRSTSLEEPITERATION (10)  

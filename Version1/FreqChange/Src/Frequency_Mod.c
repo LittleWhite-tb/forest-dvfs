@@ -303,85 +303,88 @@ void destroyCpufreq (SFreqData * context)
 	char num[10]="\0";
 	FILE * dumpfile;
 	int i;
+	int current_cpu=sched_getcpu ();
+	if(current_cpu == 0)
+	{
+		for (j=0;j<(context->numCores);j++)
+		{	
+			fclose (context->setFile[j]);//first close our file descriptors;
+			//then set the govenor back to ondemand
+			strcpy (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
+			sprintf (num,"%d",j);
+			strcat (char_buff,num);
+			strcat (char_buff,"/cpufreq/scaling_governor");
+			ret = system (char_buff);
 
-	for (j=0;j<(context->numCores);j++)
-	{	
-		fclose (context->setFile[j]);//first close our file descriptors;
-		//then set the govenor back to ondemand
-		strcpy (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
-		sprintf (num,"%d",j);
-		strcat (char_buff,num);
-		strcat (char_buff,"/cpufreq/scaling_governor");
-		ret = system (char_buff);
-
-		if (WIFSIGNALED(ret) && (WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
-		{
-			Log_output (0,"System call failed! WHAT!?\n");
-			exit (1);		
-		}
-	
-		strcpy(char_buff,"");
-		if(getenv("REST_OUTPUT") != NULL)
-		{		
-			strcpy(char_buff,getenv("REST_OUTPUT"));
-			strcat(char_buff, "/");
-		}
-		
-		//dump our samples per core to a file
-		strcat (char_buff,"frequency_dump");
-		strcat (char_buff,num);
-		strcat (char_buff,".txt");
-		dumpfile=fopen (char_buff,"a");
-
-		if(dumpfile != NULL)
-		{
-			fprintf (dumpfile,"Time\t\t\tCore\tFreq\n");
-
-			for (i=0;i<context->thisSample;i++ )
+			if (WIFSIGNALED(ret) && (WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
 			{
-				if (context->sampler[i].core==j)
-				{		
-					fprintf (dumpfile,"%lld\t%d\t%d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
-				}		
+				Log_output (0,"System call failed! WHAT!?\n");
+				exit (1);		
 			}
-			fclose (dumpfile);
-		}
-		else
-		{
-			Log_output(15, "REST_OUTPUT: failed to open directory: %s sampler stats output aborted\n",char_buff );
-		}
 		
-		strcpy(char_buff,"");
-
-		if(getenv("REST_OUTPUT") != NULL)
-		{
-			strcpy (char_buff, getenv("REST_OUTPUT"));
-			strcat(char_buff, "/");
-		}
-		//dump our frequencies per core to a file
-		strcat (char_buff,"core_frequency_count");
-		strcat (char_buff,num);
-		dumpfile=fopen (char_buff,"a");
-	
-		if(dumpfile != NULL)
-		{
-			if(j == 0)						
-				fprintf (dumpfile,"Core\tFreq\tFreq changes\n");
+			strcpy(char_buff,"");
+			if(getenv("REST_OUTPUT") != NULL)
+			{		
+				strcpy(char_buff,getenv("REST_OUTPUT"));
+				strcat(char_buff, "/");
+			}
 			
-			for (i=0;i<context->numFreq; i++ )
+			//dump our samples per core to a file
+			strcat (char_buff,"frequency_dump");
+			strcat (char_buff,num);
+			strcat (char_buff,".txt");
+			dumpfile=fopen (char_buff,"a");
+
+			if(dumpfile != NULL)
 			{
-				if(context->sampler[i].core==j)
-				{		
-					fprintf (dumpfile,"%d\t%d\t%ld\n",j,i,context->freqTrack[j][i]);
-				}		
+				fprintf (dumpfile,"Time\t\t\tCore\tFreq\n");
+
+				for (i=0;i<context->thisSample;i++ )
+				{
+					if (context->sampler[i].core==j)
+					{		
+						fprintf (dumpfile,"%lld\t%d\t%d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
+					}		
+				}
+				fclose (dumpfile);
 			}
-			fclose (dumpfile);
+			else
+			{
+				Log_output(15, "REST_OUTPUT: failed to open directory: %s sampler stats output aborted\n",char_buff );
+			}
+			
+			strcpy(char_buff,"");
+
+			if(getenv("REST_OUTPUT") != NULL)
+			{
+				strcpy (char_buff, getenv("REST_OUTPUT"));
+				strcat(char_buff, "/");
+			}
+			//dump our frequencies per core to a file
+			strcat (char_buff,"core_frequency_count");
+			strcat (char_buff,num);
+			dumpfile=fopen (char_buff,"a");
+		
+			if(dumpfile != NULL)
+			{
+				if(j == 0)						
+					fprintf (dumpfile,"Core\tFreq\tFreq changes\n");
+				
+				for (i=0;i<context->numFreq; i++ )
+				{
+					if(context->sampler[i].core==j)
+					{		
+						fprintf (dumpfile,"%d\t%d\t%ld\n",j,i,context->freqTrack[j][i]);
+					}		
+				}
+				fclose (dumpfile);
+			}
+			else
+			{
+				Log_output(15, "REST_OUTPUT: failed to open directory: %s frequency per core output aborted\n",char_buff);
+			}
+		
 		}
-		else
-		{
-			Log_output(15, "REST_OUTPUT: failed to open directory: %s frequency per core output aborted\n",char_buff);
-		}
-	
 	}
 
 	//free up our memory
