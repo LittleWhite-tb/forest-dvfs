@@ -81,17 +81,23 @@ echo "*** Verification [ `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_gover
 sleep 1
 
 #NaiveDM ***************************************************************
-mkdir naive
-REST_OUTPUT=`pwd`/naive
-echo "**** Rest output directory set to $REST_OUTPUT"
-export REST_OUTPUT
+for i in `seq 600 1000 6600`
+do
+	REST_PADING=$i
+	export REST_PADING
 
-REST_DM=naive_dm
-export REST_DM
+	mkdir naive_$REST_PADING
+	REST_OUTPUT=`pwd`/naive_$REST_PADING
+	echo "**** Rest output directory set to $REST_OUTPUT"
+	export REST_OUTPUT
 
-date >> $REST_OUTPUT/naive.start
-runprog Naive REST_RTM
-date >> $REST_OUTPUT/naive.stop
+	REST_DM=naive_dm
+	export REST_DM
+
+	date >> $REST_OUTPUT/naive.start
+	runprog Naive REST_RTM
+	date >> $REST_OUTPUT/naive.stop
+done
 #***********************************************************************
 
 #PredictiveDM **********************************************************
