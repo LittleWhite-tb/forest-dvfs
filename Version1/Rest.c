@@ -50,10 +50,11 @@ profilerHandle *restHandle = NULL;  //must be global so the atexit function can 
 char ldPreload[256]="\0";
 
 //wrapper for the original function
-static int rest_main(int argc, char** argv, char** env)
+/*static int rest_main(int argc, char** argv, char** env)
 {
     //LD PRELOAD Could work but we are not sure
-    char * tmp=getenv ("LD_PRELOAD");
+    char * tmp = NULL;
+    tmp = getenv ("LD_PRELOAD");
     int rest_ret = 0;
 	
 	if(tmp!=NULL)
@@ -85,7 +86,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
     
     //call the wrapper with the real libc_start_main
     return real_start(rest_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
-}
+}*/
 
 
 #ifdef SPECTESTING

@@ -17,7 +17,7 @@ cd $current_path
 runprog() 
 {
 	 local restOrnot=$2
-	 microlaunch --basename test_RTM --output-dir RTM_test_output_$1 --metarepet 1 --repetition 1 --evallib "/opt/microlaunch/Libraries/power/timer.so;/opt/microlaunch/Libraries/timer/timer.so" --nbprocess=12 --execname=/opt/rest/Version1/Exemple/RTM_test_kernel/$restOrnot/test_kernel
+	 microlaunch --basename test_RTM --output-dir RTM_test_output_$1 --metarepet 1 --repetition 1 --evallib "/opt/microlaunch/Libraries/power/timer.so;/opt/microlaunch/Libraries/timer/timer.so" --nbprocess=4 --execname=/opt/rest/Version1/Exemple/RTM_test_kernel/$restOrnot/test_kernel
 }
 
 #run of RTM without REST and, any governor, to see the consumption of RTM on various frequencies
