@@ -148,7 +148,6 @@ void * profilerThread (void * ContextPtr)
 	float privateBounded;
 	unsigned long long startTime, endTime;
 
-	int sleepPadding = 0;
 
 	#ifdef STATS
 	/*Log related data*/
@@ -197,11 +196,7 @@ void * profilerThread (void * ContextPtr)
 		Log_output (5," PAPI start failed: %s\n",PAPI_strerror(ret_code));
 	}
 	
-	if(getenv("REST_PADING") !=NULL)
-	{
-		sleepPadding = atoi(getenv("REST_PADING"));
-		fprintf(stderr, "Le padding est de %d \n",sleepPadding);
-	}
+	
 	
 	startTime=getTicks ();
 
@@ -284,7 +279,7 @@ void * profilerThread (void * ContextPtr)
 			if (myReporter (myDM, &myReport))
 			{
 			  	myWindow=myReport.data.tp.nextWindow;
-				myWindow= (myWindow>log2(LONGESTSLEEP/sleepPadding))?log2(LONGESTSLEEP/sleepPadding):myWindow;	
+				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;	
 			   	algorithm=myReport.data.tp.algorithm;
 			   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
 			}
@@ -298,7 +293,7 @@ void * profilerThread (void * ContextPtr)
 				else
 				{
 					myWindow++;
-					myWindow= (myWindow>log2(LONGESTSLEEP/sleepPadding))?log2(LONGESTSLEEP/sleepPadding):myWindow;
+					myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
 				}	
 			}
 			lastBoundedValue=privateBounded;
@@ -319,13 +314,13 @@ void * profilerThread (void * ContextPtr)
 			if (failureBackoff>4)
 			{
 				myWindow++;
-				myWindow= (myWindow>log2(LONGESTSLEEP/sleepPadding))?log2(LONGESTSLEEP/sleepPadding):myWindow;
+				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
 			}
 			#endif
 		}
-		assert(pow(2,myWindow)*sleepPadding!=0);
+		assert(pow(2,myWindow)*FIRSTSLEEP!=0);
 	
-		usleep (pow(2,myWindow)*(sleepPadding));
+		usleep (pow(2,myWindow)*(FIRSTSLEEP));
 	}
 
 	#ifdef STATS

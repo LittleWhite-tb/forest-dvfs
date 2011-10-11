@@ -310,7 +310,7 @@ void destroyCpufreq (SFreqData * context)
 		fclose (context->setFile[j]);//first close our file descriptors;
 		//then set the govenor back to ondemand
 		strcpy (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
-		sprintf (pid, "%d", getpid());
+		//sprintf (pid, "%d", getpid());
 		sprintf (num,"%d",j);
 		strcat (char_buff,num);
 		strcat (char_buff,"/cpufreq/scaling_governor");
@@ -330,9 +330,9 @@ void destroyCpufreq (SFreqData * context)
 		}
 		
 		//dump our samples per core to a file
-		strcat (char_buff,"[");
-		strcat (char_buff,pid);
-		strcat (char_buff,"]");
+		//strcat (char_buff,"[");
+		//strcat (char_buff,pid);
+		//strcat (char_buff,"]");
 		strcat (char_buff,"frequency_dump");
 		strcat (char_buff,num);
 		strcat (char_buff,".txt");
@@ -364,11 +364,11 @@ void destroyCpufreq (SFreqData * context)
 			strcat(char_buff, "/");
 		}
 		//dump our frequencies per core to a file
-		strcat (char_buff,"[");
-		strcat (char_buff,pid);
-		strcat (char_buff,"]");
+		//strcat (char_buff,"[");
+		//strcat (char_buff,pid);
+		//strcat (char_buff,"]");
 		strcat (char_buff,"core_frequency_count");
-		strcat (char_buff,num);
+		//strcat (char_buff,num);
 		dumpfile=fopen (char_buff,"a");
 	
 		if(dumpfile != NULL)
