@@ -17,29 +17,40 @@
  */
 
 /**
-  @file LibProf.h
-  @brief The LibProf class header is in this file 
+  @file Naive.h
+  @brief The Naive class header is in this file 
  */
-#ifndef H_LIBPROF
-#define H_LIBPROF
+#ifndef H_NAIVE
+#define H_NAIVE
+
+#include "Decision.h"
+#include "Profiler.h"
 
 /**
- * @class LibProf
- * @brief The LibProf of a Profiler
+ * @class Naive
+ * @brief Naive algorithm to give the action to do depending on the boundness of the program
  */
-class LibProf
+class Naive:public Decision
 {
-	
 	public:
 		/**
 		 * @brief Constructor
 		 */
-		LibProf (void);
+		Naive (void);
 		
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~LibProf (void);
+		virtual ~Naive (void);
+		
+		/**
+		 * @brief function return 0 if no additional action is required by the profiler and 1 if 
+		 * context needs to be examined and what the frequency changer should do
+		 * @param profiler the report to give
+		 * @param data a handle to the Decision Maker context
+		 * @return 0 if it has to self regulate
+		 **/
+		virtual int decisionGiveReport (void *data, Profiler *profiler);
 };
 
 #endif

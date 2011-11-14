@@ -17,29 +17,44 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is in this file 
+  @file Likwid.cpp
+  @brief The Likwid class is in this file 
  */
-#ifndef H_THREADEDPROFILER
-#define H_THREADEDPROFILER
+ 
+#include "Likwid.h"
 
-/**
- * @class ThreadedProfiler
- * @brief The ThreadedProfiler of a Papi or Likwid Profiler
- */
-class ThreadedProfiler
+
+Likwid::Likwid (void)
 {
-	
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		ThreadedProfiler (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~ThreadedProfiler (void);
-};
 
-#endif
+}
+
+Likwid::~Likwid (void)
+{
+
+}
+
+bool Likwid::creatCounters (void)
+{
+	return false;
+}
+
+void Likwid::accumulators (void)
+{
+
+}
+ 
+bool Likwid::closeCounters (void)
+{
+	return false;
+}
+
+unsigned long long Likwid::getTicks ( void )
+{
+	return 0;
+}
+
+void Likwid::startLibrary (...)
+{
+
+}

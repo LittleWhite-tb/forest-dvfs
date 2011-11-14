@@ -17,29 +17,40 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is in this file 
+  @file Decision.h
+  @brief The Decision class header is in this file 
  */
-#ifndef H_PROFILER
-#define H_PROFILER
+#ifndef H_DECISION
+#define H_DECISION
+
+#include "DecisionServer.h"
+#include "Profiler.h"
 
 /**
- * @class Profiler
- * @brief The Profiler of ThreadedProfiler and ProfilerServer 
+ * @class Decision
+ * @brief Manage the decision following the right algorithm
  */
-class Profiler
+class Decision:public DecisionServer
 {
-	
 	public:
 		/**
 		 * @brief Constructor
 		 */
-		Profiler (void);
+		Decision (void);
 		
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~Profiler (void);
+		virtual ~Decision (void);
+		
+		/**
+		 * @brief function return 0 if no additional action is required by the profiler and 1 if 
+		 * context needs to be examined and what the frequency changer should do
+		 * @param profiler the report to give
+		 * @param data a handle to the Decision Maker context
+		 * @return 0 if it has to self regulate
+		 **/
+		virtual int decisionGiveReport (void *data, Profiler *profiler);
 };
 
 #endif

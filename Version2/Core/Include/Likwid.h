@@ -17,29 +17,59 @@
  */
 
 /**
-  @file LibProf.h
-  @brief The LibProf class header is in this file 
+  @file Likwid.h
+  @brief The Likwid class header is in this file 
  */
-#ifndef H_LIBPROF
-#define H_LIBPROF
+#ifndef H_LIKWID
+#define H_LIKWID
+
+#include "LibProf.h"
 
 /**
- * @class LibProf
- * @brief The LibProf of a Profiler
+ * @class Likwid
+ * @brief The Likwid profiler
  */
-class LibProf
+class Likwid:public LibProf
 {
 	
 	public:
 		/**
 		 * @brief Constructor
 		 */
-		LibProf (void);
+		Likwid (void);
 		
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~LibProf (void);
+		virtual ~Likwid (void);
+		
+		/**
+		 * @brief Create the counter listener to profile
+ 		 * @return return true if success
+		 */
+		virtual bool creatCounters (void);
+		
+		/**
+		 * @brief accumulate values readden
+		 */
+		virtual void accumulators (void);
+		 
+		/**
+		 * @brief closing the listen of counters
+		 * @return return true if success
+		 */
+		virtual bool closeCounters (void);
+		
+		/**
+		 * @brief getTicks gives the clock's tick
+		 * @return unsigned long long tick of the clock
+		 */
+		virtual unsigned long long getTicks ( void );
+		
+		/**
+		 * @brief startLibrary initialize the profiler's library
+		 */
+		virtual void startLibrary (...);
 };
 
 #endif

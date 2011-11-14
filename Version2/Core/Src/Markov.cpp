@@ -17,29 +17,25 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is in this file 
+  @file Markov.cpp
+  @brief The Markov class is in this file 
  */
-#ifndef H_PROFILER
-#define H_PROFILER
+ 
+#include "Markov.h"
 
-/**
- * @class Profiler
- * @brief The Profiler of ThreadedProfiler and ProfilerServer 
- */
-class Profiler
+Markov::Markov (void)
 {
-	
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		Profiler (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~Profiler (void);
-};
 
-#endif
+}
+		
+Markov::~Markov (void)
+{
+
+}
+
+int Markov::decisionGiveReport (void *data, Profiler *profiler)
+{
+	(void) profiler;
+	(void) data;
+	return 0;
+}

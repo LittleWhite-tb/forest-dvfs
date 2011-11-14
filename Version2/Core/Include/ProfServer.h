@@ -17,29 +17,31 @@
  */
 
 /**
-  @file LibProf.h
-  @brief The LibProf class header is in this file 
+  @file ProfServer.h
+  @brief The ProfServer class header is in this file 
  */
-#ifndef H_LIBPROF
-#define H_LIBPROF
+ 
+#ifndef H_PROFSERVER
+#define H_PROFSERVER
+
+#include "Profiler.h"
 
 /**
- * @class LibProf
- * @brief The LibProf of a Profiler
+ * @class ProfServer
+ * @brief Use to handle external and internal Profiler informations
  */
-class LibProf
+class ProfServer: public Profiler
 {
-	
 	public:
 		/**
 		 * @brief Constructor
 		 */
-		LibProf (void);
+		ProfServer (void);
 		
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~LibProf (void);
+		virtual ~ProfServer (void);	
 };
 
 #endif

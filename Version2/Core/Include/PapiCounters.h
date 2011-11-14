@@ -17,29 +17,35 @@
  */
 
 /**
-  @file Papi.h
-  @brief The Papi class header is in this file 
+  @file PapiCounters.h
+  @brief The PapiCounters class header is in this file 
  */
-#ifndef H_PAPI
-#define H_PAPI
+#ifndef H_PAPICOUNTERS
+#define H_PAPICOUNTERS
+
+#include <papi.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "LibProf.h"
 
 /**
- * @class Papi
- * @brief The Papi for hardware counters
+ * @class PapiCounters
+ * @brief The PapiCounters for hardware counters
  */
-class Papi
+class PapiCounters:public LibProf
 {
 	
 	public:
 		/**
 		 * @brief Constructor
 		 */
-		Papi (void);
+		PapiCounters (void);
 		
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~Papi (void);
+		virtual ~PapiCounters (void);
 		
 		/**
 		 * @brief getTid gives the id of a thread
@@ -48,34 +54,40 @@ class Papi
 		virtual pid_t getTid ( void );
 		
 		/**
-		 * @brief getTicks gives the clock's tick
-		 * @return unsigned long long tick of the clock
-		 */
-		unsigned long long getTicks ( void );
-		
-		/**
 		 * @brief initPapiHelper Check to see if the PAPI natives are available
-		 * @param int EventSet allows to creat the events corresponding to papi counters
+		 * @param EventSet allows to creat the events corresponding to papi counters
 		 */
 		void initPapiHelper ( int * EventSet);
 		
 		/**
 		 * @brief start listening to papi counters
-		 * @param int EventSet the event related
+		 * @param EventSet the event related
 		 */
-		void start (int EventSet);
+		virtual void startCounters (int EventSet);
 		
 		/**
 		 * @brief accumulator This function adds the value you pass to the readings in the hardware counter.
-		 * @param int EventSet the event related		 
-		 * @param long_long *values values to add in the accumulator
+		 * @param EventSet the event related		 
+		 * @param values values to add in the accumulator
 		 */
-		void accumulator (int EventSet, long_long *values);
+		virtual void accumulator (int EventSet, long_long *values);
 		
 		/**
-		 * @brief initLibraryPapi initialize the papi library
+		 * @brief closing the listen of counters
+		 * @return return true if success
 		 */
-		void initLibraryPapi ();
+		virtual bool closeCounters (void);
+		
+		/**
+		 * @brief getTicks gives the clock's tick
+		 * @return unsigned long long tick of the clock
+		 */
+		virtual unsigned long long getTicks ( void );
+		
+		/**
+		 * @brief startLibrary initialize the profiler's library
+		 */
+		virtual void startLibrary (...);
 		
 		/**
 		 * @brief intiThreadPapi verify that the init function registered well 

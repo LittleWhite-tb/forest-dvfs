@@ -17,29 +17,25 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is in this file 
+  @file Naive.cpp
+  @brief The Naive class is in this file 
  */
-#ifndef H_PROFILER
-#define H_PROFILER
-
-/**
- * @class Operand
- * @brief The Profiler of ThreadedProfiler and ProfilerServer 
- */
-class Profiler
+ 
+#include "Naive.h"
+ 
+Naive::Naive (void)
 {
-	
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		Profiler (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~Profiler (void);
-};
 
-#endif
+}
+		
+Naive::~Naive (void)
+{
+
+}
+
+int Naive::decisionGiveReport (void *data, Profiler *profiler)
+{
+	(void) profiler;
+	(void) data;
+	return 0;
+}

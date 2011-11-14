@@ -17,53 +17,35 @@
  */
 
 /**
-  @file Papi.h
-  @brief The Papi class header is in this file 
+  @file DecisionServer.h
+  @brief The DecisionServer class header is in this file 
  */
-#ifndef H_PAPI
-#define H_PAPI
+#ifndef H_DECISIONSERVER
+#define H_DECISIONSERVER
+
+#include "Rest.h"
 
 /**
- * @class Papi
- * @brief The Papi for hardware counters
+ * @class DecisionServer
+ * @brief Communicate actions with Rest children of this instance
  */
-class Papi
+class DecisionServer: public Rest
 {
-	
 	public:
 		/**
 		 * @brief Constructor
 		 */
-		Papi (void);
+		DecisionServer (void);
 		
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~Papi (void);
+		virtual ~DecisionServer (void);
 		
 		/**
-		 * @brief getTid gives the id of a thread
-		 * @return pid_t the thread id
+		 * @brief gives informations concerning the current state return must be set
 		 */
-		virtual pid_t getTid ( void );
-		
-		/**
-		 * @brief getTicks gives the clock's tick
-		 * @return unsigned long long tick of the clock
-		 */
-		unsigned long long getTicks ( void );
-		
-		/**
-		 * @brief initPapiHelper Check to see if the PAPI natives are available
-		 * @param EventSet allows to creat the events corresponding to papi counters
-		 * @param 
-		 */
-		void initPapiHelper ( int * EventSet);
-		void start (int EventSet);
-		void accumulator (int EventSet, long_long *values);
-		void initLibraryPapi ();
-		void initThreadPapi (void);
-		PAPI_thread_id_t threadIdPapi ();
+		virtual void getInformation (void);
 };
 
 #endif

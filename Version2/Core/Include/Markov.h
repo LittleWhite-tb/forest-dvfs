@@ -17,29 +17,39 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is in this file 
+  @file Markov.h
+  @brief The Markov class header is in this file 
  */
-#ifndef H_THREADEDPROFILER
-#define H_THREADEDPROFILER
+#ifndef H_MARKOV
+#define H_MARKOV
+
+#include "Decision.h"
+#include "Profiler.h"
 
 /**
- * @class ThreadedProfiler
- * @brief The ThreadedProfiler of a Papi or Likwid Profiler
+ * @class Markov
+ * @brief Markov algorithm to give the action to do depending on the boundness of the program
  */
-class ThreadedProfiler
+class Markov:public Decision
 {
-	
 	public:
 		/**
 		 * @brief Constructor
 		 */
-		ThreadedProfiler (void);
+		Markov (void);
 		
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~ThreadedProfiler (void);
+		virtual ~Markov (void);
+		
+		/**
+		 * @brief function return 0 if no additional action is required by the profiler and 1 
+		 * if context needs to be examined and what the frequency changer should do
+		 * @param profiler the report to give
+		 * @param data a handle to the Decision Maker context
+		 **/
+		virtual int decisionGiveReport (void *data, Profiler *profiler);
 };
 
 #endif
