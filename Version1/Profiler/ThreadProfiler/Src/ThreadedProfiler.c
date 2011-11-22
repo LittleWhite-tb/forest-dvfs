@@ -39,11 +39,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <unistd.h>
 
 
-#if 0
-#define PRINT_DEBUG 
-#endif
 
-#define STATS
+//#define PRINT_DEBUG_BOUND
+
+
+//#define STATS
 
 
 
@@ -148,6 +148,7 @@ void * profilerThread (void * ContextPtr)
 	float privateBounded;
 	unsigned long long startTime, endTime;
 
+	int sleepingPadding = FIRSTSLEEP;
 
 	#ifdef STATS
 	/*Log related data*/
@@ -157,6 +158,7 @@ void * profilerThread (void * ContextPtr)
 	float totalOfBounded=0.0;
 	float minValue=1.0;
 	float maxValue=0.0;
+	int numMyWindow[10] = {0,0,0,0,0,0,0,0,0,0};
 	#endif
 	
 	
@@ -196,7 +198,12 @@ void * profilerThread (void * ContextPtr)
 		Log_output (5," PAPI start failed: %s\n",PAPI_strerror(ret_code));
 	}
 	
-	
+	if(getenv("REST_PADING") !=NULL)
+	{
+		sleepingPadding = atoi(getenv("REST_PADING"));
+		fprintf(stdout, " *** sleeping pading = %d\n",sleepingPadding);
+	}
+
 	
 	startTime=getTicks ();
 
@@ -226,7 +233,7 @@ void * profilerThread (void * ContextPtr)
 			if (failureBackoff>4)
 			{
 				myWindow++;
-				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
+				myWindow= (myWindow>log2(LONGESTSLEEP/sleepingPadding))?log2(LONGESTSLEEP/sleepingPadding):myWindow;
 			}
 			#endif
 			
@@ -241,7 +248,7 @@ void * profilerThread (void * ContextPtr)
 			val1=values[0];
 			val2=values[1];	
 			val3=values[2];
-			privateBounded=2*16*val1*val3/(val2*val2);
+			privateBounded=(3*16*val1*val3)/(val2*val2);
 			privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 			
 			#ifdef STATS
@@ -251,7 +258,6 @@ void * profilerThread (void * ContextPtr)
 			maxValue=(maxValue>privateBounded)?maxValue:privateBounded;
 			totalOfBounded+=privateBounded;
 			numGoodSamples++;
-
 			#endif
 		
 			//fill in the report
@@ -260,13 +266,13 @@ void * profilerThread (void * ContextPtr)
 			myReport.data.tp.ticks=endTime-startTime;
 			myReport.data.tp.window=myWindow;
 			
-			#ifdef PRINT_DEBUG
+			#ifdef PRINT_DEBUG_BOUND
 				printf( "From core %d:\n",mycore);
 				printf ("Total Cycles is %lld\n",values[1]);
 				printf ("Super Queue was full %lld\n",values[0]);
 				printf ("L2 Misses is %lld\n",values[2]);
-				printf ("Debug: giving a report with bounded = %f, actual window=%f, expected the window to be %d\n",myReport.data.tp.bounded,
-					(float)myReport.data.tp.ticks * 1000 / (float) myKHZ,myWindow);//this math puts it in microsecond since we are usleeping now
+				printf ("Debug: giving a report with bounded = %f, expected the window to be %d\n",myReport.data.tp.bounded,myWindow);
+					//(float)myReport.data.tp.ticks * 1000 / (float) myKHZ,myWindow);//this math puts it in microsecond since we are usleeping now
 				fflush (stdout);
 			#endif
 	
@@ -279,7 +285,7 @@ void * profilerThread (void * ContextPtr)
 			if (myReporter (myDM, &myReport))
 			{
 			  	myWindow=myReport.data.tp.nextWindow;
-				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;	
+				myWindow= (myWindow>log2(LONGESTSLEEP/sleepingPadding))?log2(LONGESTSLEEP/sleepingPadding):myWindow;	
 			   	algorithm=myReport.data.tp.algorithm;
 			   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
 			}
@@ -293,7 +299,7 @@ void * profilerThread (void * ContextPtr)
 				else
 				{
 					myWindow++;
-					myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
+					myWindow= (myWindow>log2(LONGESTSLEEP/sleepingPadding))?log2(LONGESTSLEEP/sleepingPadding):myWindow;
 				}	
 			}
 			lastBoundedValue=privateBounded;
@@ -314,13 +320,13 @@ void * profilerThread (void * ContextPtr)
 			if (failureBackoff>4)
 			{
 				myWindow++;
-				myWindow= (myWindow>log2(LONGESTSLEEP/FIRSTSLEEP))?log2(LONGESTSLEEP/FIRSTSLEEP):myWindow;
+				myWindow= (myWindow>log2(LONGESTSLEEP/sleepingPadding))?log2(LONGESTSLEEP/sleepingPadding):myWindow;
 			}
 			#endif
 		}
-		assert(pow(2,myWindow)*FIRSTSLEEP!=0);
+		assert(pow(2,myWindow)*sleepingPadding!=0);
 	
-		usleep (pow(2,myWindow)*(FIRSTSLEEP));
+		usleep (pow(2,myWindow)*(sleepingPadding));
 	}
 
 	#ifdef STATS
@@ -345,6 +351,7 @@ void * profilerThread (void * ContextPtr)
 	if(dumpfile!=NULL)
 	{
 		fprintf(dumpfile,"PAPI Failure Rate: %f  Good Samples: %d  Bad Samples: %d \n",badSamp/(goodSamp+badSamp),numGoodSamples,numBadSamples);
+		fprintf(dumpfile,"myWindow: %d\n",myWindow);
 		fprintf(dumpfile,"Minimum Boundedness: %f\n",minValue);
 		fprintf(dumpfile,"Maximum Boundedness: %f\n",maxValue);
 		fprintf(dumpfile,"Average Boundedness: %f\n",totalOfBounded/goodSamp);	

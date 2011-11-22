@@ -29,18 +29,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Rest.h"
 #include "ThreadedProfiler.h"
 #include "Log.h"
-
-#ifdef _VMAD
-#include "camus_definitions.h"
-#endif
-
-#if 0
 #include <pthread.h>
 #include <unistd.h>
 
-#define SPECTESTING
-#define TESTTIME 2 //in seconds
-#endif
+#include <mpi.h>
+#include <dlfcn.h>
 
 
 
@@ -50,11 +43,14 @@ profilerHandle *restHandle = NULL;  //must be global so the atexit function can 
 char ldPreload[256]="\0";
 
 //wrapper for the original function
-static int rest_main(int argc, char** argv, char** env)
+/*static int rest_main(int argc, char** argv, char** env)
 {
-    //LD PRELOAD Could work but we are not sure
+     fprintf(stderr,"\n\n [DEBUG] Je suis dans le rest_main\n");
+     //LD PRELOAD Could work but we are not sure
     char * tmp = NULL;
     tmp = getenv ("LD_PRELOAD");
+     fprintf(stderr,"\n\n [DEBUG] LD_PRELOAD = %s\n",tmp);
+    	
     int rest_ret = 0;
 	
 	if(tmp!=NULL)
@@ -65,8 +61,8 @@ static int rest_main(int argc, char** argv, char** env)
     
     rest_ret = RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
     
-	atexit(RestDestroy);
-	return rest_original_main(argc, argv, env);
+    atexit(RestDestroy);
+    return rest_original_main(argc, argv, env);
 }
 
 
@@ -75,7 +71,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
         rest_lsm_t init, rest_lsm_t fini, rest_lsm_t rtld_fini,
         void* stack_end)
 {
-
+    fprintf(stderr,"\n\n [DEBUG] Je suis dans le libc_start_main\n");
     //reset main to our global variable so our wrapper can call it easily
     rest_original_main = main;
     //Initialisation :
@@ -86,18 +82,7 @@ int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
     
     //call the wrapper with the real libc_start_main
     return real_start(rest_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
-}
-
-
-#ifdef SPECTESTING
-
-void * waitThread ()
-{
-	sleep(TESTTIME);
-	Log_output (2000, "You are in testing mode... undefine SPECTESTING in Rest.c for this\n");
-	exit(5);
-}
-#endif
+}*/
 
 
 
@@ -151,10 +136,6 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 			//Will be useful when we will have more than one freq changer
 		}
 
-		#ifdef SPECTESTING
-		pthread_t dummy;
-		pthread_create(&dummy ,NULL,waitThread,NULL);
-		#endif
 		STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
 		SFuncsToUse decisionFuncs;
 
@@ -294,19 +275,80 @@ void RestDestroy ( void )
 	}
 }
 
-#ifdef _VMAD
 
-void camus_empty (camus_module_t module)
+void loadlibraries()
 {
+        dl = dlopen("/opt/rest_modifications/power/timer.so",RTLD_LAZY);
+        assert(dl != NULL);
+        evaluationInit =(evalInit) dlsym(dl,"evaluationInit");
+        assert(evaluationInit != NULL);
+        evaluationStart =(evalGet) dlsym(dl,"evaluationStart");
+        assert(evaluationStart != NULL);
+        evaluationStop = (evalGet) dlsym(dl,"evaluationStop");
+        assert(evaluationStop != NULL);
+        evaluationClose = (evalClose) dlsym(dl,"evaluationClose");
+        assert(evaluationClose != NULL);
 }
 
-void camus_bind (camus_module_t module) 
+int MPI_Init(int *argc, char ***argv)
 {
-	module->init = camus_empty;
-	module->on = camus_empty;
-	module->off = camus_empty;
-	module->quit = camus_empty;
-	module->reset = camus_empty;
-}
-#endif
+        E.start = -1;
+        E.stop = -1;
+        E.elapsed = -1;
+        int rc,rank;
+        void * evaldata = NULL;
+        rc = PMPI_Init(argc, argv);
+        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
+        if(rank == 0)
+        {       
+                loadlibraries();
+                (*evaluationInit) ();
+                E.start  = (*evaluationStart)(evaldata);
+        }
+        RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
+        return rc;
+}
+
+int mpi_init_(int *ierr)
+{
+        return MPI_Init(NULL, NULL);
+}
+
+int MPI_Finalize()
+{
+        int rc, rank;
+        void *evaldata = NULL;
+        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+        if(rank == 0)
+        {
+                E.stop = (*evaluationStop)(evaldata);
+                (*evaluationClose)(evaldata);
+                E.elapsed = E.stop - E.start;
+
+                char buff_tmp[100]="\0";
+
+                if(getenv("REST_OUTPUT") !=NULL)
+                {
+                        strcat(buff_tmp,getenv("REST_OUTPUT"));
+                }
+                strcat(buff_tmp,"/RTM_mpi_power");
+                FILE *outputPower = fopen(buff_tmp,"w");
+
+                fprintf(outputPower, "Start\t, Stop\t, Elapsed\n");
+                fprintf(outputPower, "%f,%f,%f\n",E.start, E.stop, E.elapsed);
+                fclose(outputPower);
+                dlclose(dl);
+
+
+        }
+        RestDestroy();
+        rc = PMPI_Finalize();
+        return rc;
+
+}
+
+int mpi_finalize_(int *ierr)
+{
+        return MPI_Finalize();
+}

@@ -34,6 +34,7 @@ struct samples
 	long long time;/**@brief the time in ticks from RDTSC*/
 	int freq;/**@brief frequency given as an index in the index table*/
 	int core;/**@brief core id between 0 and numCores*/
+	int window;
 };
 
 
@@ -53,7 +54,7 @@ typedef struct sfreqData
 	int thisSample;	/**< @brief tracks where we are in our sample array*/
 	struct samples sampler[NUMSAMPLES]; /**< @brief a sample array for profiling the frequency changer's actions*/
 	
-
+	int windowTrack;
 	long int **freqTrack; /**< @brief track the frequencies values by core*/
 		
 }SFreqData;

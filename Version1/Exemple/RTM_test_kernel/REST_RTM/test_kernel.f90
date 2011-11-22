@@ -987,8 +987,8 @@ program test
   !call mypl_open();
   !call mypl_write(funcval);
   !call mygetticks(inticks)
-  !call RestInitFortranWrapper()	
-  call test_kernel_init(ctx,1,300,1,200,1,200,                         &
+  call RestInitFortranWrapper()	
+  call test_kernel_init(ctx,1,700,1,200,1,200,                         &
        20.,20.,20.,                                                    &
        26,26,26,                                                          &
        3,3,6,                                                          &
@@ -998,7 +998,7 @@ program test
      stop
   endif
 
-  call test_kernel(ctx,50,ierr,errmsg)
+  call test_kernel(ctx,3000,ierr,errmsg)
 
   !call test_kernel_inner(ctx,50,ierr,errmsg)
 
@@ -1007,7 +1007,7 @@ program test
      write(6,'(a)') errmsg
      stop
   endif
-  !call RestDestroyFortranWrapper()
+  call RestDestroyFortranWrapper()
 
 !call mygetticks(outicks)
 !call mypl_write(funcval);

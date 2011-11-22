@@ -929,7 +929,8 @@ contains
     ptr_u0=>ctx%u0 ! Time step # n-1.
     ptr_u1=>ctx%u1 ! Time step # n.
 
-    npo=int(nstep/10)
+    !npo=int(nstep/10)
+    npo=10
 
     do it=1,nstep
 
@@ -988,7 +989,7 @@ program test
   !call mypl_write(funcval);
   !call mygetticks(inticks)
   !call RestInitFortranWrapper()	
-  call test_kernel_init(ctx,1,900,1,200,1,200,                         &
+  call test_kernel_init(ctx,1,700,1,200,1,200,                         &
        20.,20.,20.,                                                    &
        26,26,26,                                                          &
        3,3,6,                                                          &
@@ -998,7 +999,7 @@ program test
      stop
   endif
 
-  call test_kernel(ctx,50,ierr,errmsg)
+  call test_kernel(ctx,3000,ierr,errmsg)
 
   !call test_kernel_inner(ctx,50,ierr,errmsg)
 

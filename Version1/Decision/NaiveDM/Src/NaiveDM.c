@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "ThreadedProfiler.h"
 
 
-#define BINARYMODE
+//#define BINARYMODE
 
 #define DECISION_MAKER_SEARCH 0
 
@@ -41,28 +41,48 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 	SFreqData *freqData = handle;
 
 	#ifdef BINARYMODE
-	int newFrequency = (report->data.tp.bounded < 0.5)?0:freqData->numFreq-1;
+	int newFrequency = (report->data.tp.bounded < 0.5)?1:freqData->numFreq-1;
 	#else
 	int newFrequency = round ((int) (report->data.tp.bounded * freqData->numFreq));
 	newFrequency=(report->data.tp.bounded == 0.0)?1:newFrequency;//unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
 	newFrequency=(report->data.tp.bounded == 1.0)?freqData->numFreq-1:newFrequency;//if it's exactly 1.0 then we set it to the lowest frequency
 	#endif
-	int currentCore = report->proc_id;
+
+	//Trick to adjuste the right freq
+	if(report->data.tp.bounded <= 0.1)
+		newFrequency=1;
+	//else
+	//	newFrequency=freqData->numFreq-1;
 	
+	int currentCore = report->proc_id;
+
 	//Too change: 0 only for now
 	//
 	int currentFreq = readFreq (freqData, currentCore);
 
+	int FreqDistance = abs(newFrequency - currentFreq);
+
+	
 	if(newFrequency != currentFreq)
 	{
-		Log_output (0, "changing frequency %d\n", newFrequency);
-		changeFreq (freqData, currentCore, newFrequency);
-		report->data.tp.nextWindow=1;
-		return 1;
+		if(FreqDistance > 1 || (FreqDistance <= 1 && newFrequency > currentFreq))
+		{
+			Log_output (0, "changing frequency %d\n", newFrequency);
+			report->data.tp.nextWindow=1;
+			changeFreq (freqData, currentCore, newFrequency);
+			freqData->windowTrack = report->data.tp.nextWindow;
+			return 1;
+		}
+		else
+		{
+	//		report->data.tp.nextWindow=report->data.tp.window++;
+	                freqData->windowTrack++;
+		}
 	}
 	else
 	{
 		report->data.tp.nextWindow=report->data.tp.window++;
+		freqData->windowTrack = report->data.tp.nextWindow;
 		return 1;
 	}
 	

@@ -36,6 +36,7 @@ staticlib : $(FULL_OBJ)
 	@ar -rv $(STATICLIB) $(FULL_OBJ)
 dynamiclib : $(FULL_OBJ)
 	@gcc -o $(DYNAMICLIB) -shared $(FULL_OBJ) $(OPT) $(CFLAGS) $(LIBS)
+	cp $(DYNAMICLIB) /usr/local/lib
 	
 librest_vmad_bootstrap: rest_vmad_bootstrap
 	@gcc -o librest_vmad_bootstrap.so -shared obj/rest_vmad_bootstrap.o $(OPT) $(CFLAGS) $(LIBS)
@@ -65,7 +66,7 @@ $(COMMON_OBJ):obj/%.o: Common/Src/%.c Common/Include/%.h
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(DECISION_NAIVE_OBJ):obj/%.o: Decision/NaiveDM/Src/%.c Decision/NaiveDM/Include/%.h 
-	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
+	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS) -DPRINT_DEBUG
 	
 $(DECISION_MARKOV_OBJ):obj/%.o: Decision/MarkovDM/Src/%.c Decision/MarkovDM/Include/%.h 
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
@@ -80,10 +81,10 @@ $(MARKOV_OBJ):obj/%.o: Markov/Src/%.c Markov/Include/%.h
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(MAIN_OBJ):obj/%.o: %.c %.h
-	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS) Profiler/Likwid/Src/likwid/libperfmon.a
+	@mpicc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 clean:
-	@rm $(OBJ) $(EXE) obj/*o tmp Log.txt doxygen_warn librest.so rest.a `find . -name "*~"` output/* *out 2> /dev/null || echo "Done cleaning"
+	@rm $(OBJ) $(EXE) obj/*o tmp Log.txt doxygen_warn librest.so rest.a /usr/local/lib/librest.so `find . -name "*~"` output/* *out 2> /dev/null || echo "Done cleaning"
 
 count:
 	wc `find . -name "*\.c"|grep -v utils` `find . -name "*\.h"|grep -v utils` 

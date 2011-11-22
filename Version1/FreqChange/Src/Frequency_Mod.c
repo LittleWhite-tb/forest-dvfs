@@ -176,7 +176,9 @@ SFreqData * initCpufreq (void)
 	handle->freqMax=globalFrequency[0];
 	handle->freqMin=globalFrequency[num_frequency-1];
 	handle->thisSample=0;
-
+	
+	handle->windowTrack = 1;
+	
 	//allocate the number of time we call each frequency
 	handle->freqTrack = malloc(num_cores * sizeof (int *));
 	
@@ -193,7 +195,7 @@ SFreqData * initCpufreq (void)
 		{
 			handle->freqTrack[i][j] = 0;
 		}
-	}
+	}        
 
 	for(i=0; i<num_frequency;i++)
 	{
@@ -259,6 +261,7 @@ void changeFreq (SFreqData * context, int core, int i)
 			context->sampler[context->thisSample].time=getTicks ();
 			context->sampler[context->thisSample].freq=i;
 			context->sampler[context->thisSample].core=j;
+			context->sampler[context->thisSample].window=context->windowTrack;
 			context->thisSample++;
 			if (context->thisSample > NUMSAMPLES)
 			{
@@ -278,6 +281,7 @@ void changeFreq (SFreqData * context, int core, int i)
 		context->sampler[context->thisSample].time=getTicks ();
 		context->sampler[context->thisSample].freq=i;
 		context->sampler[context->thisSample].core=core;
+		context->sampler[context->thisSample].window=context->windowTrack;
 		context->thisSample++;
 		
 		if (context->thisSample > NUMSAMPLES)
@@ -310,7 +314,7 @@ void destroyCpufreq (SFreqData * context)
 		fclose (context->setFile[j]);//first close our file descriptors;
 		//then set the govenor back to ondemand
 		strcpy (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
-		//sprintf (pid, "%d", getpid());
+		sprintf (pid, "%d", getpid());
 		sprintf (num,"%d",j);
 		strcat (char_buff,num);
 		strcat (char_buff,"/cpufreq/scaling_governor");
@@ -330,9 +334,9 @@ void destroyCpufreq (SFreqData * context)
 		}
 		
 		//dump our samples per core to a file
-		//strcat (char_buff,"[");
-		//strcat (char_buff,pid);
-		//strcat (char_buff,"]");
+		strcat (char_buff,"[");
+		strcat (char_buff,pid);
+		strcat (char_buff,"]");
 		strcat (char_buff,"frequency_dump");
 		strcat (char_buff,num);
 		strcat (char_buff,".txt");
@@ -340,13 +344,13 @@ void destroyCpufreq (SFreqData * context)
 
 		if(dumpfile != NULL)
 		{
-			fprintf (dumpfile,"Time\t\t\tCore\tFreq\n");
+			fprintf (dumpfile,"Time\t\t\tCore\tFreq\tWindow\n");
 
 			for (i=0;i<context->thisSample;i++ )
 			{
 				if (context->sampler[i].core==j)
 				{		
-					fprintf (dumpfile,"%lld\t%d\t%d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq);	
+					fprintf (dumpfile,"%lld\t%d\t%d\t%d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq,context->sampler[i].window);	
 				}		
 			}
 			fclose (dumpfile);
@@ -364,11 +368,11 @@ void destroyCpufreq (SFreqData * context)
 			strcat(char_buff, "/");
 		}
 		//dump our frequencies per core to a file
-		//strcat (char_buff,"[");
-		//strcat (char_buff,pid);
-		//strcat (char_buff,"]");
+		strcat (char_buff,"[");
+		strcat (char_buff,pid);
+		strcat (char_buff,"]");
 		strcat (char_buff,"core_frequency_count");
-		//strcat (char_buff,num);
+		strcat (char_buff,num);
 		dumpfile=fopen (char_buff,"a");
 	
 		if(dumpfile != NULL)
@@ -396,7 +400,7 @@ void destroyCpufreq (SFreqData * context)
 	{
 		free(context->freqTrack[i]), context->freqTrack[i] = NULL;
 	}
-		
+
 	free(context->freqTrack), context->freqTrack = NULL;
 	free (context->setFile); context->setFile=NULL;
 	free (context->availableFreqs); context->availableFreqs=NULL;

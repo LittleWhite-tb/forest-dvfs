@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2011 Exascale Research Center
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
 
 #include <assert.h>
 #include <stdio.h>
@@ -6,19 +24,22 @@
 #include "esrv/esrv_lib.h"
 #include "timer.h"
 
-#define CONFIGURATION_NAME "../../../power/esrv/config_y210.txt"
+#define CONFIGURATION_NAME "Libraries/power/esrv/config_y210.txt"
 
 static ESRV_LIB_DATA reading;
 
 void display_esrv_lib_data(PESRV_LIB_DATA reading);
 
-unsigned long long timer_init (void)     
+void *evaluationInit (void)     
 {
+	char buf[256];
     ESRV_STATUS ret = ESRV_FAILURE;
+    
+    snprintf (buf, sizeof (buf), "%s/%s", MLDIR, CONFIGURATION_NAME);
 
     //Open library
-    fprintf (stderr, "Opening configuration file: %s\n", CONFIGURATION_NAME);
-    ret = esrv_lib_open (CONFIGURATION_NAME);
+    fprintf (stderr, "Opening configuration file: %s\n", buf);
+    ret = esrv_lib_open (buf);
     assert (ret == ESRV_SUCCESS);
 
     //Allocate channel
@@ -28,10 +49,10 @@ unsigned long long timer_init (void)
     ret = esrv_lib_start();
     assert(ret == ESRV_SUCCESS);
 
-    return EXIT_SUCCESS; 
+    return NULL; 
 }
 
-unsigned long long timer_close (void) 
+int evaluationClose (void *data) 
 {
     ESRV_STATUS ret = ESRV_FAILURE;
 
@@ -53,6 +74,7 @@ unsigned long long timer_close (void)
     ret = esrv_lib_free_channels(&reading);
     assert(ret == ESRV_SUCCESS);
 
+	(void) data;
     return EXIT_SUCCESS;
 }
 
@@ -73,16 +95,17 @@ static double timer_read (void)
 
     ret = esrv_lib_read(&reading);
     assert(ret == ESRV_SUCCESS);
-
     return reading.channels_data[0].energy*3600;
 }
 
-double timer_start (void)
-{ 
+double evaluationStart (void *data)
+{
+	(void) data;
     return timer_read ();
 }
 
-double timer_stop (void) 
-{ 
+double evaluationStop (void *data) 
+{
+	(void) data;
     return timer_read ();
 }

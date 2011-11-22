@@ -11,7 +11,8 @@ fi
 PID=0
 
 #need to make this some kind of command in the future
-REST_PATH=$(dirname $0)/../
+REST_PATH=/opt/rest_modifications/
+echo "*********************************************************[$REST_PATH]"
 source $REST_PATH/util/redo_sudo.rc
 
 
@@ -130,6 +131,15 @@ else
 	make clean
 	make CFLAGS=-DTHREAD_REST
 fi
+
+SAVE_CURRENT_DIR=$CURRENT_DIR
+
+if  [ $REST_OUTPUT != " " ]
+then
+	export CURRENT_DIR=$REST_OUTPUT/output
+fi
+
+mkdir $CURRENT_DIR/
 cd $CURRENT_DIR
 
 mkdir naive
@@ -147,88 +157,89 @@ date >> naive.start
 testFunc naive $*
 date>>naive.stop
 
+#mkdir predictive
 
-mkdir predictive
-REST_OUTPUT=$CURRENT_DIR/predictive
+#REST_OUTPUT=$CURRENT_DIR/predictive
+
+#echo "Rest output directory set to $REST_OUTPUT"
+#export REST_OUTPUT
+
+#REST_DM=predictive_dm
+#export REST_DM
+
+#date >> predictive.start
+#testFunc predictive $*
+#date>>predictive.stop
+
+#mkdir markov
+#REST_OUTPUT=$CURRENT_DIR/markov
 
 
-echo "Rest output directory set to $REST_OUTPUT"
-export REST_OUTPUT
+#echo "Rest output directory set to $REST_OUTPUT"
+#export REST_OUTPUT
 
-REST_DM=predictive_dm
-export REST_DM
+#REST_DM=markov_dm
+#export REST_DM
 
-date >> predictive.start
-testFunc predictive $*
-date>>predictive.stop
+#date >> markov.start
+#testFunc markov $*
+#date>>markov.stop
 
-mkdir markov
-REST_OUTPUT=$CURRENT_DIR/markov
-
-
-echo "Rest output directory set to $REST_OUTPUT"
-export REST_OUTPUT
-
-REST_DM=markov_dm
-export REST_DM
-
-date >> markov.start
-testFunc markov $*
-date>>markov.stop
 
 
 #now rebuild and run without rest for other sweeps
-cd $TARGET_PATH
-if [ -e ./build_spec.sh ];
-then
+#cd $TARGET_PATH
+#if [ -e ./build_spec.sh ];
+#then
 
-	./build_spec.sh $*
+#	./build_spec.sh $*
 
-else
+#else
 
-	make clean
-	make
-fi
-cd $CURRENT_DIR
+#	make clean
+#	make
+#fi
 
+#cd $CURRENT_DIR
 
 
 #run the experiment!
-echo "Running the benchmark on $NUMCORES cores"
+#echo "Running the benchmark on $NUMCORES cores"
 
-for ((j=0;j<NUMFREQS;j++))
-do
+#for ((j=0;j<NUMFREQS;j++))
+#do
 
-	for ((i=0;i<NUMCORES;i++))
+#for ((i=0;i<NUMCORES;i++))
 
-	do
-		echo userspace > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor
-		echo ${FREQS[${j}]} > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_setspeed
-	done
+#do
+#echo userspace > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor
+#echo ${FREQS[${j}]} > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_setspeed
+#done
 
-	echo "Frequency set to ${FREQS[$j]} userspace setting"
+echo "Frequency set to ${FREQS[$j]} userspace setting"
 #this is a dirty hack but I use REST_OUTPUT to set the output directory for microlaunch so I need to redefine it
-	REST_OUTPUT=${FREQS[${j}]}
-	date >> ${FREQS[$j]}.start
-	testFunc ${FREQS[$j]} $@ 
-	date >> ${FREQS[$j]}.stop
+#REST_OUTPUT=${FREQS[${j}]}
+#date >> ${FREQS[$j]}.start
+#testFunc ${FREQS[$j]} $@ 
+#date >> ${FREQS[$j]}.stop
 
-done
+#done
 
 
 
-echo "Using onDemand Governor"
 
-for ((i=0;i<NUMCORES;i++))
+#echo "Using onDemand Governor"
 
-do
-	echo ondemand > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor
-done
+#for ((i=0;i<NUMCORES;i++))
 
-REST_OUTPUT="onDemand"
-date>>ondemand.start
-testFunc -ondemand $*
-date>>ondemand.stop
+#do
+#	echo ondemand > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor
+#done
+
+#REST_OUTPUT="onDemand"
+#date>>ondemand.start
+#testFunc ondemand $*
+#date>>ondemand.stop
 
 
 
