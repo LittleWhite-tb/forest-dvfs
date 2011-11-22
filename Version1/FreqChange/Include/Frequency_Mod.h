@@ -33,7 +33,6 @@ struct samples
 {
 	long long time;/**@brief the time in ticks from RDTSC*/
 	int freq;/**@brief frequency given as an index in the index table*/
-	int core;/**@brief core id between 0 and numCores*/
 	int window;
 };
 
@@ -47,15 +46,15 @@ typedef struct sfreqData
 	int freqMax;         /**< @brief the highest available frequence*/
 	int freqMin;         /**< @brief the lowest available frequence*/
 	int numFreq;    /**< @brief the number of available frequences*/
-	int numCores;	    /**< @brief the number of available cores*/
-	FILE **setFile;	/**< @brief pointer to an array of File descriptors of size numCores used to change frequency */
-	int *currentFreqs;/**< @brief pointer to an array of size numCores of ints that holds the currentFrequency for */
+	int idCore;	    /**< @brief the id of the core associated to its profile informations*/
+	FILE *setFile;	/**< @brief pointer to an array of File descriptors of size numCores used to change frequency */
+	int currentFreqs;/**< @brief ints that holds the currentFrequency for */
 	int *availableFreqs; /**< @brief the available frequences on the system of size numFreq*/
 	int thisSample;	/**< @brief tracks where we are in our sample array*/
 	struct samples sampler[NUMSAMPLES]; /**< @brief a sample array for profiling the frequency changer's actions*/
 	
 	int windowTrack;
-	long int **freqTrack; /**< @brief track the frequencies values by core*/
+	long int *freqTrack; /**< @brief track the frequencies values by core*/
 		
 }SFreqData;
 

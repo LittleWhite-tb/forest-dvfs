@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <assert.h>
 #include <errno.h>
+#include <sched.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -138,164 +139,99 @@ SFreqData * initCpufreq (void)
 	}
 	fclose (fp);
 
-	//find number of cores
-	fp= fopen ("/proc/cpuinfo", "r");
-	if (fp==NULL)
-	{
-		printf ("Failed to find number of cpus in /proc/cpuinfo\n");
-		return NULL;
-	}
-	else
-	{
-		while (fgets (char_buff, sizeof (char_buff), fp))
-		{
-			//Check if there is something
-			if (strstr (char_buff, "processor") != NULL)
-			{
-				num_cores++;
-			}
-		}	
-		fclose (fp);
-	}
 
-	assert (num_cores > 0);
-	/*now allocate a context with all my mallocs
-	*/
-	
+	/*now allocate a context with all my mallocs */
+
 	handle= malloc ( sizeof(* handle));
 	assert (handle!=NULL);
-	handle->setFile=malloc (sizeof (*(handle->setFile))*num_cores);
+	handle->setFile=malloc (sizeof (*(handle->setFile)));
 	assert (handle->setFile!=NULL);
-	handle->currentFreqs=malloc (sizeof (*(handle->currentFreqs))*num_cores);
+	handle->currentFreqs=malloc (sizeof (*(handle->currentFreqs)));
 	assert (handle->currentFreqs!=NULL);
 	handle->availableFreqs=malloc (sizeof (*(handle->availableFreqs))*num_frequency );
 	
 
 	handle->numFreq=num_frequency;
-	handle->numCores=num_cores;
+	handle->idCore=sched_getcpu ();
 	handle->freqMax=globalFrequency[0];
 	handle->freqMin=globalFrequency[num_frequency-1];
 	handle->thisSample=0;
-	
-	handle->windowTrack = 1;
-	
-	//allocate the number of time we call each frequency
-	handle->freqTrack = malloc(num_cores * sizeof (int *));
-	
-	//initialize all the array of cores
-	for(i = 0; i < num_cores; i++)
+
+	handle->freqTrack = malloc (num_frequency * sizeof (handle->freqTrack));
+
+	for(i = 0; i < num_frequency; i++)
 	{
-		handle->freqTrack[i] = malloc (num_frequency * sizeof (long int));
+		handle->freqTrack[i] = 0;
 	}
-	
-	//i is the core and j the frequeny and we initialize them to 0
-	for(i = 0; i < num_cores; i++)
-	{
-		for(j = 0; j < num_frequency; j++)
-		{
-			handle->freqTrack[i][j] = 0;
-		}
-	}        
 
 	for(i=0; i<num_frequency;i++)
 	{
 		handle->availableFreqs[i]=globalFrequency[i];//copy frequencies into data structure
 	}
 
-	for (i=0; i<num_cores;i++)
+	//first set the govenor to userspace
+	sprintf (char_buff,"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", handle->idCore);
+
+	FILE *f = fopen (char_buff, "w");
+
+	if (fp==NULL)
 	{
-		//first set the govenor to userspace
-		sprintf (char_buff,"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", i);
+		perror ( "Error opening file" );
+		printf ( "Error opening file: %s - %s\n", char_buff, strerror( errno ) );
+		printf ( "Perhaps you don't have sudo rights?\n");
+	}
+	assert (f != NULL);
 
-		FILE *f = fopen (char_buff, "w");
+	fprintf (f, "userspace");
 
-		if (fp==NULL)
-		{
-			perror ( "Error opening file" );
-			printf ( "Error opening file: %s - %s\n", char_buff, strerror( errno ) );
-			printf ( "Perhaps you don't have sudo rights?\n");
-		}
-		assert (f != NULL);
+	fclose (f), f = NULL;
 
-		fprintf (f, "userspace");
+	//now open the file descriptor
+	sprintf (char_buff,"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", handle->idCore);
+	fp = fopen (char_buff,"w");
 
-		fclose (f), f = NULL;
-
-		//now open the file descriptor
-		sprintf (char_buff,"/sys/devices/system/cpu/cpu%d/cpufreq/scaling_setspeed", i);
-		fp = fopen (char_buff,"w");
-
-		if (fp==NULL)
-		{
-			perror ( "Error opening file" );
-			printf ( "Error opening file: %s\n", strerror( errno ) );
-			printf ( "Perhaps you don't have sudo rights?\n");
-		}
-
-		handle->setFile[i]=fp;//file * opened so now we place it in the context
+	if (fp==NULL)
+	{
+		perror ( "Error opening file" );
+		printf ( "Error opening file: %s\n", strerror( errno ) );
+		printf ( "Perhaps you don't have sudo rights?\n");
 	}
 
-	for (i=0; i<num_cores;i++)
-	{
-		handle->currentFreqs[i]=helperReadFreq (handle, i);
-	}	
+	handle->setFile=fp;//file * opened so now we place it in the context
+
+
+
+	handle->currentFreqs = helperReadFreq (handle, handle->idCore);
 
 	return handle;	
 }
 
 
-int readFreq (SFreqData * context, int procId)
+int readFreq (SFreqData * context)
 {
-	return context->currentFreqs[procId];
+	return context->currentFreqs;
 }
 
 
-void changeFreq (SFreqData * context, int core, int i)
+void changeFreq (SFreqData * context, int i)
 {
+	context->sampler[context->thisSample].time=getTicks ();
+	context->sampler[context->thisSample].freq=i;
+	context->sampler[context->thisSample].window=context->windowTrack;
+	context->thisSample++;
 
-	if(core == -1)//this means change all the cores
+	if (context->thisSample > NUMSAMPLES)
 	{
-		int j;
-		for (j=0;j<(context->numCores);j++)
-		{	
-			context->sampler[context->thisSample].time=getTicks ();
-			context->sampler[context->thisSample].freq=i;
-			context->sampler[context->thisSample].core=j;
-			context->sampler[context->thisSample].window=context->windowTrack;
-			context->thisSample++;
-			if (context->thisSample > NUMSAMPLES)
-			{
-				context->thisSample=NUMSAMPLES;
-			}
-
-			context->freqTrack[j][i]++;
-
-			fseek (context->setFile[j],0,SEEK_SET);
-			fprintf (context->setFile[j],"%d\n",context->availableFreqs[i]);
-			fflush (context->setFile[j]);
-			context->currentFreqs[j]=i;
-		}
+		context->thisSample=NUMSAMPLES;
 	}
-	else//just the core the decision maker wants
-	{	
-		context->sampler[context->thisSample].time=getTicks ();
-		context->sampler[context->thisSample].freq=i;
-		context->sampler[context->thisSample].core=core;
-		context->sampler[context->thisSample].window=context->windowTrack;
-		context->thisSample++;
-		
-		if (context->thisSample > NUMSAMPLES)
-		{
-			context->thisSample=NUMSAMPLES;
-		}
 
-		context->freqTrack[core][i]++;
+	context->freqTrack[i]++;
 
-		fseek (context->setFile[core],0,SEEK_SET);
-		fprintf (context->setFile[core],"%d\n",context->availableFreqs[i]);
-		fflush (context->setFile[core]);
-		context->currentFreqs[core]=i;
-	}
+	fseek (context->setFile,0,SEEK_SET);
+	fprintf (context->setFile,"%d\n",context->availableFreqs[i]);
+	fflush (context->setFile);
+	context->currentFreqs=i;
+
 	
 }
 
@@ -309,98 +245,79 @@ void destroyCpufreq (SFreqData * context)
 	FILE * dumpfile;
 	int i;
 	
-	for (j=0;j<(context->numCores);j++)
-	{	
-		fclose (context->setFile[j]);//first close our file descriptors;
-		//then set the govenor back to ondemand
-		strcpy (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
-		sprintf (pid, "%d", getpid());
-		sprintf (num,"%d",j);
-		strcat (char_buff,num);
-		strcat (char_buff,"/cpufreq/scaling_governor");
-		ret = system (char_buff);
 
-		if (WIFSIGNALED(ret) && (WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
-		{
-			Log_output (0,"System call failed! WHAT!?\n");
-			exit (1);		
-		}
-	
-		strcpy(char_buff,"");
-		if(getenv("REST_OUTPUT") != NULL)
-		{		
-			strcpy(char_buff,getenv("REST_OUTPUT"));
-			strcat(char_buff, "/");
-		}
-		
-		//dump our samples per core to a file
-		strcat (char_buff,"[");
-		strcat (char_buff,pid);
-		strcat (char_buff,"]");
-		strcat (char_buff,"frequency_dump");
-		strcat (char_buff,num);
-		strcat (char_buff,".txt");
-		dumpfile=fopen (char_buff,"a");
+	fclose (context->setFile);//first close our file descriptors;
+	//then set the govenor back to ondemand
+	strcpy (char_buff,"echo ondemand > /sys/devices/system/cpu/cpu");
+	sprintf (num,"%d",context->idCore);
+	strcat (char_buff,num);
+	strcat (char_buff,"/cpufreq/scaling_governor");
+	ret = system (char_buff);
 
-		if(dumpfile != NULL)
-		{
-			fprintf (dumpfile,"Time\t\t\tCore\tFreq\tWindow\n");
-
-			for (i=0;i<context->thisSample;i++ )
-			{
-				if (context->sampler[i].core==j)
-				{		
-					fprintf (dumpfile,"%lld\t%d\t%d\t%d\n",context->sampler[i].time,context->sampler[i].core,context->sampler[i].freq,context->sampler[i].window);	
-				}		
-			}
-			fclose (dumpfile);
-		}
-		else
-		{
-			Log_output(15, "REST_OUTPUT: failed to open directory: %s sampler stats output aborted\n",char_buff );
-		}
-		
-		strcpy(char_buff,"");
-
-		if(getenv("REST_OUTPUT") != NULL)
-		{
-			strcpy (char_buff, getenv("REST_OUTPUT"));
-			strcat(char_buff, "/");
-		}
-		//dump our frequencies per core to a file
-		strcat (char_buff,"[");
-		strcat (char_buff,pid);
-		strcat (char_buff,"]");
-		strcat (char_buff,"core_frequency_count");
-		strcat (char_buff,num);
-		dumpfile=fopen (char_buff,"a");
-	
-		if(dumpfile != NULL)
-		{
-			if(j == 0)						
-				fprintf (dumpfile,"Core\tFreq\tFreq changes\n");
-			
-			for (i=0;i<context->numFreq; i++ )
-			{
-				if(context->sampler[i].core==j)
-				{		
-					fprintf (dumpfile,"%d\t%d\t%ld\n",j,i,context->freqTrack[j][i]);
-				}		
-			}
-			fclose (dumpfile);
-		}
-		else
-		{
-			Log_output(15, "REST_OUTPUT: failed to open directory: %s frequency per core output aborted\n",char_buff);
-		}
+	if (WIFSIGNALED(ret) && (WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
+	{
+		Log_output (0,"System call failed! WHAT!?\n");
+		exit (1);
 	}
+
+	strcpy(char_buff,"");
+	if(getenv("REST_OUTPUT") != NULL)
+	{
+		strcpy(char_buff,getenv("REST_OUTPUT"));
+		strcat(char_buff, "/");
+	}
+
+	//dump our samples per core to a file
+	strcat (char_buff,"frequency_dump");
+	strcat (char_buff,num);
+	strcat (char_buff,".txt");
+	dumpfile=fopen (char_buff,"a");
+
+	if(dumpfile != NULL)
+	{
+		fprintf (dumpfile,"Time\t\t\tCore\tFreq\tWindow\n");
+
+		for (i=0;i<context->thisSample;i++ )
+		{
+			fprintf (dumpfile,"%lld\t%d\t%d\t%d\n",context->sampler[i].time,context->idCore,context->sampler[i].freq,context->sampler[i].window);
+		}
+		fclose (dumpfile);
+	}
+	else
+	{
+		Log_output(15, "REST_OUTPUT: failed to open directory: %s sampler stats output aborted\n",char_buff );
+	}
+	
+	strcpy(char_buff,"");
+
+	if(getenv("REST_OUTPUT") != NULL)
+	{
+		strcpy (char_buff, getenv("REST_OUTPUT"));
+		strcat(char_buff, "/");
+	}
+	//dump our frequencies per core to a file
+	strcat (char_buff,"core_frequency_count");
+	strcat (char_buff,num);
+	dumpfile=fopen (char_buff,"a");
+
+	if(dumpfile != NULL)
+	{
+		
+		fprintf (dumpfile,"Core\tFreq\tFreq changes\n");
+
+		for (i=0;i<context->numFreq; i++ )
+		{
+			fprintf (dumpfile,"%d\t%d\t%ld\n",context->idCore,i,context->freqTrack[i]);
+		}
+		fclose (dumpfile);
+	}
+	else
+	{
+		Log_output(15, "REST_OUTPUT: failed to open directory: %s frequency per core output aborted\n",char_buff);
+	}
+
 
 	//free up our memory
-	for(i = 0; i < context->numCores; i++)
-	{
-		free(context->freqTrack[i]), context->freqTrack[i] = NULL;
-	}
-
 	free(context->freqTrack), context->freqTrack = NULL;
 	free (context->setFile); context->setFile=NULL;
 	free (context->availableFreqs); context->availableFreqs=NULL;
