@@ -178,8 +178,8 @@ void * profilerThread (void * ContextPtr)
 
 	//first we initialize our decision maker functions and call the init
 	int (* myReporter) (void *, SProfReport *)=myHandle->myFuncs.reportFunc;
-	void * (* myInit) (void)=myHandle->myFuncs.initFunc;
-	myDM=myInit ();
+	void * (* myInit) (int)=myHandle->myFuncs.initFunc;
+	myDM=myInit (mycore);
 
 
 	//call the papi helper to init stuff
@@ -213,7 +213,6 @@ void * profilerThread (void * ContextPtr)
 	while (killSignal==0)
 	{
 
-
 		float val1, val2, val3;
 
 		//get PAPI info from counters		
@@ -242,13 +241,12 @@ void * profilerThread (void * ContextPtr)
 		else if(values [1] != 0)
 		//generate the bounded variable
 		{
-			
 			Log_output (1,"PAPI accum succeeded!!\n");
 					
 			val1=values[0];
 			val2=values[1];	
 			val3=values[2];
-			privateBounded=(3*16*val1*val3)/(val2*val2);
+			privateBounded=(4*16*val1*val3)/(val2*val2);
 			privateBounded=(privateBounded>1.0)?1.0:privateBounded;
 			
 			#ifdef STATS
@@ -292,6 +290,7 @@ void * profilerThread (void * ContextPtr)
 			else
 			{
 				//self regulate
+
 				if(fabs (lastBoundedValue - privateBounded)>THRESHOLD) 
 				{
 					myWindow=1;
@@ -325,7 +324,6 @@ void * profilerThread (void * ContextPtr)
 			#endif
 		}
 		assert(pow(2,myWindow)*sleepingPadding!=0);
-	
 		usleep (pow(2,myWindow)*(sleepingPadding));
 	}
 

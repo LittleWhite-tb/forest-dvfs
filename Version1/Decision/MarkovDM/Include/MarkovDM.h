@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /**
  * @brief init the markov based decision maker
  **/
-void * markovDecisionInit (void);
+void * markovDecisionInit (int coreId);
 
 /**
  * @brief free all that has to be free

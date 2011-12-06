@@ -1,0 +1,22 @@
+mkdir: impossible de créer le répertoire « RTM_MPI_Naive »: Le fichier existe
+Opening configuration file: /home/users/ntriquenaux/MTOOL/utils/MTOOL/microlaunch/Libraries/power/esrv/config_y210.txt
+forrtl: severe (174): SIGSEGV, segmentation fault occurred
+Image              PC                Routine            Line        Source             
+libc.so.6          00002AECD6CE7038  Unknown               Unknown  Unknown
+libc.so.6          00002AECD6D093B9  Unknown               Unknown  Unknown
+libc.so.6          00002AECD6CF02F8  Unknown               Unknown  Unknown
+fd_iso             0000000000403C46  Unknown               Unknown  Unknown
+fd_iso             00000000004162A8  Unknown               Unknown  Unknown
+fd_iso             00000000004037BC  Unknown               Unknown  Unknown
+libc.so.6          00002AECD6CC1EAD  Unknown               Unknown  Unknown
+fd_iso             00000000004036B9  Unknown               Unknown  Unknown
+forrtl: severe (174): SIGSEGV, segmentation fault occurred
+Image              PC                Routine            Line        Source             
+libc.so.6          00002B600F9B4038  Unknown               Unknown  Unknown
+libc.so.6          00002B600F9D63B9  Unknown               Unknown  Unknown
+libc.so.6          00002B600F9BD2F8  Unknown               Unknown  Unknown
+fd_iso             0000000000403C46  Unknown               Unknown  Unknown
+fd_iso             00000000004162A8  Unknown               Unknown  Unknown
+fd_iso             00000000004037BC  Unknown               Unknown  Unknown
+libc.so.6          00002B600F98EEAD  Unknown               Unknown  Unknown
+fd_iso             00000000004036B9  Unknown               Unknown  Unknown

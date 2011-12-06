@@ -88,15 +88,14 @@ static int helperReadFreq (SFreqData * context, int procId)
 }
 
 
-SFreqData * initCpufreq (void)
+SFreqData * initCpufreq (int coreId)
 {
 	SFreqData * handle;
 	
-	int i, j;
+	int i,num_core = -1;
 	char char_buff[1024]="";
 	int globalFrequency[NUM_STATIC_FREQ];//this is a place to temporarily store all the values until we alloc on the heap
 	int num_frequency=0;//another temp holder
-	int num_cores=0;
 	
 
 	//find all the frequencies and record them
@@ -140,19 +139,37 @@ SFreqData * initCpufreq (void)
 	fclose (fp);
 
 
+	fp= fopen("/proc/cpuinfo","r");
+	if (fp == NULL)
+	{
+		printf("Failed to open the cpuinfo file\n");
+		return NULL;
+	}
+	else
+	{
+		while(fgets (char_buff, sizeof(char_buff),fp))
+		{
+			if(strstr(char_buff, "processor") !=NULL)
+			{
+				num_core++;
+			}
+		}
+		fclose (fp);
+	}
+	assert(num_core > 0);
+
 	/*now allocate a context with all my mallocs */
 
 	handle= malloc ( sizeof(* handle));
 	assert (handle!=NULL);
 	handle->setFile=malloc (sizeof (*(handle->setFile)));
 	assert (handle->setFile!=NULL);
-	handle->currentFreqs=malloc (sizeof (*(handle->currentFreqs)));
-	assert (handle->currentFreqs!=NULL);
 	handle->availableFreqs=malloc (sizeof (*(handle->availableFreqs))*num_frequency );
 	
 
 	handle->numFreq=num_frequency;
-	handle->idCore=sched_getcpu ();
+	handle->numCores=num_core;
+	handle->idCore=coreId;
 	handle->freqMax=globalFrequency[0];
 	handle->freqMin=globalFrequency[num_frequency-1];
 	handle->thisSample=0;
@@ -217,7 +234,9 @@ void changeFreq (SFreqData * context, int i)
 {
 	context->sampler[context->thisSample].time=getTicks ();
 	context->sampler[context->thisSample].freq=i;
-	context->sampler[context->thisSample].window=context->windowTrack;
+	context->sampler[context->thisSample].officialWindow=context->officialWindowTrack;
+	context->sampler[context->thisSample].localWindow=context->localWindowTrack;
+
 	context->thisSample++;
 
 	if (context->thisSample > NUMSAMPLES)
@@ -237,14 +256,13 @@ void changeFreq (SFreqData * context, int i)
 
 void destroyCpufreq (SFreqData * context)
 {
-	int j;
 	int ret;
 	char char_buff[1024]="\0";
 	char num[10]="\0";
-	char pid[10]="\0";
 	FILE * dumpfile;
 	int i;
-	
+	double cumulativeTime = 0.0;
+	double decisionLatency = 0.0;
 
 	fclose (context->setFile);//first close our file descriptors;
 	//then set the govenor back to ondemand
@@ -269,18 +287,25 @@ void destroyCpufreq (SFreqData * context)
 
 	//dump our samples per core to a file
 	strcat (char_buff,"frequency_dump");
-	strcat (char_buff,num);
+ 	strcat (char_buff,num);
 	strcat (char_buff,".txt");
 	dumpfile=fopen (char_buff,"a");
 
 	if(dumpfile != NULL)
 	{
-		fprintf (dumpfile,"Time\t\t\tCore\tFreq\tWindow\n");
-
-		for (i=0;i<context->thisSample;i++ )
+		fprintf (dumpfile,"Time Cumulative(sec)\tDecision Latency(sec)\t\tCore\tFreq\tWindow PPOV\tWindow DPOV\n");
+		for (i=0;i<context->thisSample-1;i++ )
 		{
-			fprintf (dumpfile,"%lld\t%d\t%d\t%d\n",context->sampler[i].time,context->idCore,context->sampler[i].freq,context->sampler[i].window);
+			decisionLatency = ((double)((double)context->sampler[i+1].time - context->sampler[i].time)/2661000000);
+			cumulativeTime += decisionLatency;
+			fprintf (dumpfile,"%f\t\t%f\t\t\t%d\t%d\t%d\t\t%d\n",cumulativeTime,decisionLatency,context->idCore,context->sampler[i].freq,context->sampler[i+1].officialWindow,context->sampler[i+1].localWindow);
 		}
+		#ifdef OUTPUTDETAILED
+		for (i=0;i<context->thisSample;i++ )
+                {
+                        fprintf (dumpfile,"%lld\t\t\t\t\t\t%d\t%d\t%d\t\t(%d)\n", context->sampler[i].time,context->idCore,context->sampler[i].freq,context->sampler[i].officialWindow,context->sampler[i].localWindow);
+                }
+		#endif
 		fclose (dumpfile);
 	}
 	else
@@ -319,9 +344,7 @@ void destroyCpufreq (SFreqData * context)
 
 	//free up our memory
 	free(context->freqTrack), context->freqTrack = NULL;
-	free (context->setFile); context->setFile=NULL;
 	free (context->availableFreqs); context->availableFreqs=NULL;
-	free (context->currentFreqs); context->currentFreqs=NULL;
 	free (context); context=NULL;
 
 }

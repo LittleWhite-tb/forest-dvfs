@@ -999,7 +999,7 @@ program test
      stop
   endif
 
-  call test_kernel(ctx,3000,ierr,errmsg)
+  call test_kernel(ctx,2000,ierr,errmsg)
 
   !call test_kernel_inner(ctx,50,ierr,errmsg)
 

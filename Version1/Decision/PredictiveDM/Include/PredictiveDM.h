@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /**
  * @brief init the decision maker which uses branch prediction algorithms
  **/
-void * branchDecisionInit (void);
+void * branchDecisionInit (int coreId);
 
 /**
  * @brief free all that has to be free

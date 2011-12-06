@@ -32,73 +32,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <pthread.h>
 #include <unistd.h>
 
-#include <mpi.h>
 #include <dlfcn.h>
 
 
-
-//single global variable for the linker to hook us in... internally used only
-static rest_main_t rest_original_main;
-profilerHandle *restHandle = NULL;  //must be global so the atexit function can grab it
-char ldPreload[256]="\0";
-
-//wrapper for the original function
-/*static int rest_main(int argc, char** argv, char** env)
-{
-     fprintf(stderr,"\n\n [DEBUG] Je suis dans le rest_main\n");
-     //LD PRELOAD Could work but we are not sure
-    char * tmp = NULL;
-    tmp = getenv ("LD_PRELOAD");
-     fprintf(stderr,"\n\n [DEBUG] LD_PRELOAD = %s\n",tmp);
-    	
-    int rest_ret = 0;
-	
-	if(tmp!=NULL)
-    {
-    	strcpy (ldPreload, tmp);
-    	setenv ("LD_PRELOAD"," ", 1);
-    }
-    
-    rest_ret = RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
-    
-    atexit(RestDestroy);
-    return rest_original_main(argc, argv, env);
-}
-
-
-// we redefine libc_start_main because at this point main is an arguement so we can store it in our symbol table and hook in
-int __libc_start_main(rest_main_t main, int argc, char** ubp_av,
-        rest_lsm_t init, rest_lsm_t fini, rest_lsm_t rtld_fini,
-        void* stack_end)
-{
-    fprintf(stderr,"\n\n [DEBUG] Je suis dans le libc_start_main\n");
-    //reset main to our global variable so our wrapper can call it easily
-    rest_original_main = main;
-    //Initialisation :
-
-    rest_libc_start_main_t real_start =
-        (rest_libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
-
-    
-    //call the wrapper with the real libc_start_main
-    return real_start(rest_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
-}*/
-
-
+profilerHandle *restHandle = NULL;
 
 int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolChainInit freqChangerArg)
 {
 	toolChainInit profiler = profilerArg, decisionMaker = decisionMakerArg, freqChanger = freqChangerArg;
-	int isLdPreload = 0;
 	int isRestEnvVar = 0;
 
-	if(ldPreload != NULL && strcmp(ldPreload, "") != 0)
-		isLdPreload = 1;
-	
 	if((getenv("REST_PROFILER") !=NULL) || (getenv("REST_DM") !=NULL) || (getenv("REST_FREQ_CHANGER") !=NULL))
 		isRestEnvVar = 1;
 
-	if((restHandle == NULL) || ((restHandle != NULL) && !isRestEnvVar && !isLdPreload))
+	if((restHandle == NULL) || ((restHandle != NULL) && !isRestEnvVar))
 	{
 
 		if((restHandle != NULL))
@@ -139,26 +86,17 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 		STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
 		SFuncsToUse decisionFuncs;
 
-		Log_output (20, "Initializing REST...\n");
+		fprintf (stdout, "Initializing REST...\n");
 
-		if(isLdPreload == 1)
+		
+		if(isRestEnvVar == 1)		
 		{
-			if(isRestEnvVar == 1)		
-				Log_output (15,"Rest will be initialized overwriting parameters and LD_PRELOAD with REST environement variables.\n");
-			else
-				Log_output (15,"Rest will be initialized overwriting parameters with LD_PRELOAD's.\n");
-		}
+			Log_output (15,"Rest will be initialized overwriting parameters with REST environement variables.\n");
+		}				
 		else
 		{
-			if(isRestEnvVar == 1)		
-			{
-				Log_output (15,"Rest will be initialized overwriting parameters with REST environement variables.\n");
-			}				
-			else
-			{
-				Log_output (15,"Rest will be initialized with specified parameters inside the bench program.\n");
-			}		
-		}
+			Log_output (15,"Rest will be initialized with specified parameters inside the bench program.\n");
+		}		
 
 		Log_output (1,"\nConfiguration:\n\tprofiler: %d \n\talgorithm: %d \n\tfreqChanger: %d \n ",profiler, decisionMaker, freqChanger);
 
@@ -234,13 +172,8 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 	}
 	else
 	{
-		if(isLdPreload)
-		{
-			if(isRestEnvVar)		
-					Log_output (15,"Rest Already initialized parameters and LD_PRELOAD ignored, Rest with environement varialbes continues. \n");
-		}
-		else
-			Log_output (15,"Rest Already initialized parameters ignored, Rest with LD_PRELOAD continues. \n");
+	
+		Log_output (15,"Rest Already initialized...\n");
 	}
 
 	return 1;
@@ -267,7 +200,7 @@ void RestDestroy ( void )
 		}
 		
 		profilerDestroyFunction(context);
-		setenv ("LD_PRELOAD",ldPreload, 1);
+		setenv ("LD_PRELOAD","", 1);
 
 		restHandle=NULL;
 		Log_output(15,"Rest Destroy Done!\n");
@@ -276,79 +209,3 @@ void RestDestroy ( void )
 }
 
 
-void loadlibraries()
-{
-        dl = dlopen("/opt/rest_modifications/power/timer.so",RTLD_LAZY);
-        assert(dl != NULL);
-        evaluationInit =(evalInit) dlsym(dl,"evaluationInit");
-        assert(evaluationInit != NULL);
-        evaluationStart =(evalGet) dlsym(dl,"evaluationStart");
-        assert(evaluationStart != NULL);
-        evaluationStop = (evalGet) dlsym(dl,"evaluationStop");
-        assert(evaluationStop != NULL);
-        evaluationClose = (evalClose) dlsym(dl,"evaluationClose");
-        assert(evaluationClose != NULL);
-}
-
-int MPI_Init(int *argc, char ***argv)
-{
-        E.start = -1;
-        E.stop = -1;
-        E.elapsed = -1;
-        int rc,rank;
-        void * evaldata = NULL;
-        rc = PMPI_Init(argc, argv);
-        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-
-        if(rank == 0)
-        {       
-                loadlibraries();
-                (*evaluationInit) ();
-                E.start  = (*evaluationStart)(evaldata);
-        }
-        RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
-        return rc;
-}
-
-int mpi_init_(int *ierr)
-{
-        return MPI_Init(NULL, NULL);
-}
-
-int MPI_Finalize()
-{
-        int rc, rank;
-        void *evaldata = NULL;
-        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-        if(rank == 0)
-        {
-                E.stop = (*evaluationStop)(evaldata);
-                (*evaluationClose)(evaldata);
-                E.elapsed = E.stop - E.start;
-
-                char buff_tmp[100]="\0";
-
-                if(getenv("REST_OUTPUT") !=NULL)
-                {
-                        strcat(buff_tmp,getenv("REST_OUTPUT"));
-                }
-                strcat(buff_tmp,"/RTM_mpi_power");
-                FILE *outputPower = fopen(buff_tmp,"w");
-
-                fprintf(outputPower, "Start\t, Stop\t, Elapsed\n");
-                fprintf(outputPower, "%f,%f,%f\n",E.start, E.stop, E.elapsed);
-                fclose(outputPower);
-                dlclose(dl);
-
-
-        }
-        RestDestroy();
-        rc = PMPI_Finalize();
-        return rc;
-
-}
-
-int mpi_finalize_(int *ierr)
-{
-        return MPI_Finalize();
-}

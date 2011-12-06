@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /**
  * @brief init the naive decision maker
  **/
-void * naiveDecisionInit (void);
+void * naiveDecisionInit (int coreId);
 
 /**
  * @brief free all that has to be free

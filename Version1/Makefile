@@ -1,10 +1,11 @@
 STATICLIB=rest.a
 DYNAMICLIB=librest.so
 CC=gcc
-
+FEATURE=NONE #can take the value NONE or MPI
 
 
 MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))
+FCT_REPLACE_OBJ := $(patsubst FctReplacement/Src/%.c,obj/%.o,$(wildcard FctReplacement/Src/*.c))
 THREADED_PROFILER_OBJ := $(patsubst Profiler/ThreadProfiler/Src/%.c,obj/%.o,$(wildcard Profiler/ThreadProfiler/Src/*.c))
 PAPI_COUNTERS_OBJ := $(patsubst Profiler/Papi/Src/%.c,obj/%.o,$(wildcard Profiler/Papi/Src/*.c))
 LIKWID_COUNTERS_OBJ := $(patsubst Profiler/Likwid/Src/%.c,obj/%.o,$(wildcard Profiler/Likwid/Src/*.c))
@@ -15,14 +16,13 @@ DECISION_NAIVE_OBJ := $(patsubst Decision/NaiveDM/Src/%.c,obj/%.o,$(wildcard Dec
 DECISION_MARKOV_OBJ := $(patsubst Decision/MarkovDM/Src/%.c,obj/%.o,$(wildcard Decision/MarkovDM/Src/*.c))
 FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Src/*.c))
 
-DECISION_OBJ = $(DECISION_NAIVE_OBJ) $(DECISION_MARKOV_OBJ) $(DECISION_PREDICTIVE_OBJ)
+DECISION_OBJ = $(DECISION_NAIVE_OBJ) $(DECISION_PREDICTIVE_OBJ) $(DECISION_MARKOV_OBJ)
 PROFILER_OBJ = $(PAPI_COUNTERS_OBJ) $(THREADED_PROFILER_OBJ) 
-FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(MARKOV_OBJ)
+FULL_OBJ = $(MAIN_OBJ) $(FCT_REPLACE_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(MARKOV_OBJ)
 
 
 LIBS = -lpthread -lpapi -ldl
-REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IProfiler/Likwid/Include -IProfiler/Likwid/Src/likwid/includes -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include -I.
-
+REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IProfiler/Likwid/Include -IProfiler/Likwid/Src/likwid/includes -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include -IFctReplacement/Include -I/opt/intel/impi/4.0.2.003/intel64/include/ -I. 
 VMAD_INCLUDE = -I../../vmad/VMAD_version_under_development/camus_vm/include -I../../vmad/VMAD_version_under_development/camus_vm/ressource/ -I../../vmad/VMAD_version_under_development/camus_vm/modules/
 OPT_INCLUDE = $(REST_INCLUDE) $(VMAD_INCLUDE)
 OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
@@ -49,6 +49,9 @@ rest_vmad_bootstrap: Profiler/VmadProfiler/Src/rest_vmad.c Profiler/VmadProfiler
 	
 rest_vmad_decision: Profiler/VmadProfiler/Src/rest_decision.c Profiler/VmadProfiler/Include/rest_decision.h
 	@$(CC) -c $< -o obj/rest_vmad_decision.o $(OPT) $(CFLAGS) $(LIBS)
+
+$(FCT_REPLACE_OBJ):obj/%.o: FctReplacement/Src/%.c FctReplacement/Include/%.h
+	@$(CC) -D$(FEATURE) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(VMAD_PROFILER_OBJ):obj/%.o: Profiler/VmadProfiler/Src/%.c Profiler/VmadProfiler/Include/%.h 
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)

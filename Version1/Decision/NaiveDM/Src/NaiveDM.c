@@ -30,9 +30,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define DECISION_MAKER_SEARCH 0
 
-void* naiveDecisionInit (void)
+void* naiveDecisionInit (int idCore)
 {
-	SFreqData *freqData = initCpufreq ();
+	SFreqData *freqData = initCpufreq (idCore);
 	return freqData;
 }
 
@@ -54,38 +54,41 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 	//else
 	//	newFrequency=freqData->numFreq-1;
 	
-	int currentCore = report->proc_id;
+	//int currentCore = report->proc_id;
 
 	//Too change: 0 only for now
 	//
-	int currentFreq = readFreq (freqData, currentCore);
+	int currentFreq = readFreq (freqData);
 
 	int FreqDistance = abs(newFrequency - currentFreq);
 
 	
 	if(newFrequency != currentFreq)
 	{
-		if(FreqDistance > 1 || (FreqDistance <= 1 && newFrequency > currentFreq))
+		if(FreqDistance > 2 || (FreqDistance <= 1 && newFrequency > currentFreq))
 		{
-			Log_output (0, "changing frequency %d\n", newFrequency);
 			report->data.tp.nextWindow=1;
-			changeFreq (freqData, currentCore, newFrequency);
-			freqData->windowTrack = report->data.tp.nextWindow;
+			changeFreq (freqData, newFrequency);
+			freqData->officialWindowTrack = report->data.tp.nextWindow;
+			freqData->localWindowTrack=1;
 			return 1;
 		}
-		else
+		else 
 		{
-	//		report->data.tp.nextWindow=report->data.tp.window++;
-	                freqData->windowTrack++;
+			report->data.tp.nextWindow = ++report->data.tp.window;
+			freqData->officialWindowTrack = report->data.tp.nextWindow;
+			freqData->localWindowTrack++;
+			return 1;
 		}
 	}
 	else
 	{
-		report->data.tp.nextWindow=report->data.tp.window++;
-		freqData->windowTrack = report->data.tp.nextWindow;
+
+		report->data.tp.nextWindow = ++report->data.tp.window;
+		freqData->officialWindowTrack = report->data.tp.nextWindow;
+		freqData->localWindowTrack++;
 		return 1;
 	}
-	
 	return 0;
 }
 

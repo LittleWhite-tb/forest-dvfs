@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define DECISION_MAKER_SEARCH 0
 
-void* branchDecisionInit (void)
+void* branchDecisionInit (int coreId)
 {
 	int i, j;
 	
@@ -38,7 +38,7 @@ void* branchDecisionInit (void)
 	if (savedData != NULL)
 	{
 		//initialized the freq data values
-		savedData->sFreqData = initCpufreq ();
+		savedData->sFreqData = initCpufreq (coreId);
 		
 		//allocate the number of time we call each frequency
 		savedData->freqCounter = malloc(savedData->sFreqData->numCores * sizeof (int *));
@@ -85,7 +85,7 @@ int branchDecisionGiveReport (void *handle, SProfReport *report)
 		int newFrequency = round((int) (report->data.tp.bounded * freqData->numFreq));
 		newFrequency=(newFrequency==freqData->numFreq)?newFrequency-1:newFrequency;
 		assert (newFrequency>=0 && newFrequency<freqData->numFreq);
-		int distance_frequecies = abs(newFrequency - freqData->currentFreqs[currentCore]);
+		int distance_frequecies = abs(newFrequency - freqData->currentFreqs);
 		
 		//Increase the number of time that we call for this frequency
 		savedData->freqCounter[currentCore][newFrequency]++;
@@ -93,9 +93,9 @@ int branchDecisionGiveReport (void *handle, SProfReport *report)
 		// if the new frequency isn't equal to the old one
 		// and if (the number of time that we have call this frequency) * (distance between each others)
 		// is greater than (the number of time that we have called the curent frequency) then change
-		if(newFrequency != readFreq (freqData, currentCore) 
+		if(newFrequency != readFreq (freqData) 
 			&& (savedData->freqCounter[currentCore][newFrequency]) * distance_frequecies
-			> savedData->freqCounter[currentCore][readFreq (freqData, currentCore)])
+			> savedData->freqCounter[currentCore][readFreq (freqData)])
 		{
 			int i;
 			
@@ -106,10 +106,10 @@ int branchDecisionGiveReport (void *handle, SProfReport *report)
 			
 			//change the frequency
 			Log_output(0, "changing frequency %d\n", newFrequency);
-			changeFreq (freqData, currentCore, newFrequency);
+			changeFreq (freqData, newFrequency);
 		}
 	
-	return 0;
+	return 1;
 }
 
 void branchDecisionDestruct(void* handle)

@@ -1,0 +1,226 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+100	parser.F90	/^100 format(a2048)$/;"	l	subroutine:fromfilestring	file:
+80	parser.F90	/^80  close(iunit)$/;"	l	subroutine:fromfilestring	file:
+80	parser.F90	/^80 if (present(lerr)) lerr=.true.$/;"	l	function:string2integer	file:
+80	parser.F90	/^80 if (present(lerr)) lerr=.true.$/;"	l	function:string2real	file:
+90	parser.F90	/^90  write(0,*) 'Error opening file ',TRIM(filename)$/;"	l	subroutine:fromfilestring	file:
+ALL	Makefile	/^ALL		= fd_iso$/;"	m
+CFLAGS	Makefile	/^CFLAGS	= -g -xHost -O2 -assume byterecl -fno-inline -fno-inline-functions$/;"	m
+FC	Makefile	/^FC		= mpiifort$/;"	m
+FromFile	parser.F90	/^   interface FromFile$/;"	i	module:parser
+FromPar	parser.F90	/^   interface FromPar$/;"	i	module:parser
+KB	spatial_blocking.py	/^KB = 1024$/;"	v
+MB	spatial_blocking.py	/^MB = 1024 * 1024$/;"	v
+Makefile	Makefile	1;"	F
+TOTAL_blocking	spatial_blocking.py	/^def TOTAL_blocking(dim_x, dim_y, dim_z, haspml):$/;"	f	access:public
+ToFile	parser.F90	/^   interface ToFile$/;"	i	module:parser
+auto_compute_blocsize	m_var_kernel.f90	/^  integer :: auto_compute_blocsize$/;"	v	module:m_var_kernel
+blank	parser.F90	/^   character(1), private       :: blank=/;"	v	module:parser
+blocks.sh	blocks.sh	1;"	F
+cache_bloc_x	test_kernel.f90	/^      integer :: cache_bloc_x$/;"	k	type:t_context
+cache_bloc_y	test_kernel.f90	/^      integer :: cache_bloc_y$/;"	k	type:t_context
+cache_bloc_z	test_kernel.f90	/^      integer :: cache_bloc_z$/;"	k	type:t_context
+cdim	parser.F90	/^   integer, private, parameter :: cdim=/;"	v	module:parser
+cfl_perc	m_var_kernel.f90	/^  real    :: fmax,vscale,cfl_perc$/;"	v	module:m_var_kernel
+coefx	test_kernel.f90	/^      real,dimension(:),allocatable :: coefx,/;"	k	type:t_context
+coefy	test_kernel.f90	/^      real,dimension(:),allocatable :: coefx,coefy,/;"	k	type:t_context
+coefz	test_kernel.f90	/^      real,dimension(:),allocatable :: coefx,coefy,coefz$/;"	k	type:t_context
+comm_cart	m_var_kernel.f90	/^  integer              :: comm_cart$/;"	v	module:m_var_kernel
+coords	m_var_kernel.f90	/^  integer,dimension(3) :: coords$/;"	v	module:m_var_kernel
+crop	crop.f90	/^  subroutine crop(/;"	s
+crop.f90	crop.f90	1;"	F
+ctx	test_kernel.f90	/^  type(t_context)             :: ctx$/;"	v	program:test
+damping_dampmax	value_profiling.py	/^def damping_dampmax():$/;"	f	access:public
+damping_mindamp	value_profiling.py	/^def damping_mindamp():$/;"	f	access:public
+damping_minmax	value_profiling.py	/^def damping_minmax():$/;"	f	access:public
+debug	parser.F90	/^   logical, private            :: debug=/;"	v	module:parser
+dim_indices	test_kernel.f90	/^  subroutine dim_indices(/;"	s	module:m_test_kernel
+dim_x	spatial_blocking.py	/^dim_x = 900 $/;"	v
+dim_y	spatial_blocking.py	/^dim_y = 200$/;"	v
+dim_z	spatial_blocking.py	/^dim_z = 200$/;"	v
+dims	m_var_kernel.f90	/^  integer,dimension(3) :: dims$/;"	v	module:m_var_kernel
+dx	m_var_kernel.f90	/^  real    :: dx,/;"	v	module:m_var_kernel
+dy	m_var_kernel.f90	/^  real    :: dx,dy,/;"	v	module:m_var_kernel
+dz	m_var_kernel.f90	/^  real    :: dx,dy,dz$/;"	v	module:m_var_kernel
+errmsg	test_kernel.f90	/^  character(len=1024)         :: errmsg$/;"	v	program:test
+eta	test_kernel.f90	/^      real,dimension(:,:,:),allocatable :: eta,/;"	k	type:t_context
+fd_comm_boundary	m_fd_iso_3d_comm.f90	/^  subroutine fd_comm_boundary(/;"	s	module:m_fd_iso_3d_comm
+fd_iso_3d_lx4_damping	m_fd_iso_3d_lx4_opt.f90	/^  subroutine fd_iso_3d_lx4_damping(/;"	s	module:m_fd_iso_3d_lx4_opt
+fd_iso_3d_lx4_get_opt_bloc	m_fd_iso_3d_lx4_opt.f90	/^  subroutine fd_iso_3d_lx4_get_opt_bloc(/;"	s	module:m_fd_iso_3d_lx4_opt
+fd_iso_3d_lx4_inner	m_fd_iso_3d_lx4_opt.f90	/^  subroutine fd_iso_3d_lx4_inner(/;"	s	module:m_fd_iso_3d_lx4_opt
+fd_iso_3d_lx4_opt	m_fd_iso_3d_lx4_opt.f90	/^  subroutine fd_iso_3d_lx4_opt(/;"	s	module:m_fd_iso_3d_lx4_opt
+flush.c	flush.c	1;"	F
+fmax	m_var_kernel.f90	/^  real    :: fmax,/;"	v	module:m_var_kernel
+from_file_integer	parser.F90	/^   subroutine from_file_integer(/;"	s	module:parser
+from_file_logical	parser.F90	/^   subroutine from_file_logical(/;"	s	module:parser
+from_file_logical2	parser.F90	/^   subroutine from_file_logical2(/;"	s	module:parser
+from_file_real	parser.F90	/^   subroutine from_file_real(/;"	s	module:parser
+from_file_real2	parser.F90	/^   subroutine from_file_real2(/;"	s	module:parser
+from_file_real8	parser.F90	/^   subroutine from_file_real8(/;"	s	module:parser
+from_file_string	parser.F90	/^   subroutine from_file_string(/;"	s	module:parser
+from_par_integer	parser.F90	/^   subroutine from_par_integer(/;"	s	module:parser
+from_par_logical	parser.F90	/^   subroutine from_par_logical(/;"	s	module:parser
+from_par_logical2	parser.F90	/^   subroutine from_par_logical2(/;"	s	module:parser
+from_par_real	parser.F90	/^   subroutine from_par_real(/;"	s	module:parser
+from_par_real2	parser.F90	/^   subroutine from_par_real2(/;"	s	module:parser
+from_par_string	parser.F90	/^   subroutine from_par_string(/;"	s	module:parser
+fromfilestring	parser.F90	/^subroutine fromfilestring(/;"	s	module:parser
+fromparstring	parser.F90	/^subroutine fromparstring(/;"	s	module:parser
+getcommandline	parser.F90	/^subroutine getcommandline(/;"	s	module:parser
+getinodeparser	parser.F90	/^   integer function getinodeparser(/;"	f	module:parser
+guillemet	parser.F90	/^   character(1), private       :: blank=" ", guillemet=/;"	v	module:parser
+has_source	test_kernel.f90	/^      logical                       :: has_source$/;"	k	type:t_context
+haspml	spatial_blocking.py	/^haspml = 1$/;"	v
+hdx_2	test_kernel.f90	/^      real                          :: hdx_2,/;"	k	type:t_context
+hdy_2	test_kernel.f90	/^      real                          :: hdx_2,hdy_2,/;"	k	type:t_context
+hdz_2	test_kernel.f90	/^      real                          :: hdx_2,hdy_2,hdz_2$/;"	k	type:t_context
+ierr	test_kernel.f90	/^  integer                     :: ierr$/;"	v	program:test
+inner_minmax	value_profiling.py	/^def inner_minmax():$/;"	f	access:public
+integer2string	parser.F90	/^character(cdim) function integer2string(/;"	f	module:parser
+iparm	parser.F90	/^   integer, private            :: iparm=/;"	v	module:parser
+iter	value_profiling.py	/^iter = 1 $/;"	v
+iunit	parser.F90	/^   integer, private            :: iparm=0, iunit=/;"	v	module:parser
+ixs	test_kernel.f90	/^      integer                       :: ixs,/;"	k	type:t_context
+iys	test_kernel.f90	/^      integer                       :: ixs,iys,/;"	k	type:t_context
+izs	test_kernel.f90	/^      integer                       :: ixs,iys,izs$/;"	k	type:t_context
+l2_cache_size	m_var_kernel.f90	/^  integer :: l2_cache_size,/;"	v	module:m_var_kernel
+l2_cache_size	spatial_blocking.py	/^l2_cache_size = 256*KB$/;"	v
+l2_n_shared_core	m_var_kernel.f90	/^  integer :: l2_n_shared_core,/;"	v	module:m_var_kernel
+l2_n_shared_core	spatial_blocking.py	/^l2_n_shared_core = 1$/;"	v
+l3_cache_size	m_var_kernel.f90	/^  integer :: l2_cache_size,l3_cache_size$/;"	v	module:m_var_kernel
+l3_cache_size	spatial_blocking.py	/^l3_cache_size = 8*MB$/;"	v
+l3_n_shared_core	m_var_kernel.f90	/^  integer :: l2_n_shared_core,l3_n_shared_core$/;"	v	module:m_var_kernel
+l3_n_shared_core	spatial_blocking.py	/^l3_n_shared_core = 4$/;"	v
+logical2string	parser.F90	/^character(cdim) function logical2string(/;"	f	module:parser
+lx	m_fd_iso_3d_lx4_opt.f90	/^  integer,parameter :: lx=/;"	v	module:m_fd_iso_3d_lx4_opt
+lx	spatial_blocking.py	/^lx = 4$/;"	v
+lx	test_kernel.f90	/^      integer                       :: lx,/;"	k	type:t_context
+ly	m_fd_iso_3d_lx4_opt.f90	/^  integer,parameter :: ly=/;"	v	module:m_fd_iso_3d_lx4_opt
+ly	spatial_blocking.py	/^ly = 4$/;"	v
+ly	test_kernel.f90	/^      integer                       :: lx,ly,/;"	k	type:t_context
+lz	m_fd_iso_3d_lx4_opt.f90	/^  integer,parameter :: lz=/;"	v	module:m_fd_iso_3d_lx4_opt
+lz	spatial_blocking.py	/^lz = 4$/;"	v
+lz	test_kernel.f90	/^      integer                       :: lx,ly,lz$/;"	k	type:t_context
+m_fd_iso_3d_comm	m_fd_iso_3d_comm.f90	/^module m_fd_iso_3d_comm$/;"	m
+m_fd_iso_3d_comm.f90	m_fd_iso_3d_comm.f90	1;"	F
+m_fd_iso_3d_lx4_opt	m_fd_iso_3d_lx4_opt.f90	/^module m_fd_iso_3d_lx4_opt$/;"	m
+m_fd_iso_3d_lx4_opt.f90	m_fd_iso_3d_lx4_opt.f90	1;"	F
+m_test_kernel	test_kernel.f90	/^module m_test_kernel$/;"	m
+m_var_kernel	m_var_kernel.f90	/^module m_var_kernel$/;"	m
+m_var_kernel.f90	m_var_kernel.f90	1;"	F
+main	flush.c	/^int main () {$/;"	f
+maxparm	parser.F90	/^   integer, private, parameter :: cdim=4096, maxparm=/;"	v	module:parser
+myblocking	spatial_blocking.py	/^def myblocking(dim_x, dim_y, dim_z, haspml):$/;"	f	access:public
+n_lap	spatial_blocking.py	/^n_lap = 3$/;"	v
+ndampx	m_var_kernel.f90	/^  integer :: ndampx,/;"	v	module:m_var_kernel
+ndampx	value_profiling.py	/^ndampx = 26$/;"	v
+ndampy	m_var_kernel.f90	/^  integer :: ndampx,ndampy,/;"	v	module:m_var_kernel
+ndampy	value_profiling.py	/^ndampy = 26$/;"	v
+ndampz	m_var_kernel.f90	/^  integer :: ndampx,ndampy,ndampz$/;"	v	module:m_var_kernel
+ndampz	value_profiling.py	/^ndampz = 26$/;"	v
+neighbors	m_fd_iso_3d_comm.f90	/^  subroutine neighbors(/;"	s	module:m_fd_iso_3d_comm
+nstep	m_var_kernel.f90	/^  integer :: nstep$/;"	v	module:m_var_kernel
+ntaperx	m_var_kernel.f90	/^  integer :: ntaperx,/;"	v	module:m_var_kernel
+ntapery	m_var_kernel.f90	/^  integer :: ntaperx,ntapery,/;"	v	module:m_var_kernel
+ntaperz	m_var_kernel.f90	/^  integer :: ntaperx,ntapery,ntaperz$/;"	v	module:m_var_kernel
+parsed_param	parser.F90	/^   character(200), private     :: parsed_param(/;"	v	module:parser
+parser	parser.F90	/^module parser$/;"	m
+parser.F90	parser.F90	1;"	F
+periods	m_var_kernel.f90	/^  logical,dimension(3) :: periods=/;"	v	module:m_var_kernel
+phi	test_kernel.f90	/^      real,dimension(:,:,:),allocatable :: eta,phi$/;"	k	type:t_context
+plot.py	plot.py	1;"	F
+procs	m_var_kernel.f90	/^  integer              :: procs$/;"	v	module:m_var_kernel
+profile_extend	test_kernel.f90	/^  subroutine profile_extend(/;"	s	module:m_test_kernel
+profile_extend_all	test_kernel.f90	/^  subroutine profile_extend_all(/;"	s	module:m_test_kernel
+profile_init	test_kernel.f90	/^  subroutine profile_init(/;"	s	module:m_test_kernel
+quote	parser.F90	/^   character(1), private       :: blank=" ", guillemet="""", quote=/;"	v	module:parser
+rank	m_var_kernel.f90	/^  integer              :: rank,/;"	v	module:m_var_kernel
+rank_Bck	m_fd_iso_3d_comm.f90	/^  integer              :: rank_R,rank_L,rank_F,rank_Bck,/;"	v	module:m_fd_iso_3d_comm
+rank_Btm	m_fd_iso_3d_comm.f90	/^  integer              :: rank_R,rank_L,rank_F,rank_Bck,rank_T,rank_Btm$/;"	v	module:m_fd_iso_3d_comm
+rank_F	m_fd_iso_3d_comm.f90	/^  integer              :: rank_R,rank_L,rank_F,/;"	v	module:m_fd_iso_3d_comm
+rank_L	m_fd_iso_3d_comm.f90	/^  integer              :: rank_R,rank_L,/;"	v	module:m_fd_iso_3d_comm
+rank_R	m_fd_iso_3d_comm.f90	/^  integer              :: rank_R,/;"	v	module:m_fd_iso_3d_comm
+rank_T	m_fd_iso_3d_comm.f90	/^  integer              :: rank_R,rank_L,rank_F,rank_Bck,rank_T,/;"	v	module:m_fd_iso_3d_comm
+real2string	parser.F90	/^character(cdim) function real2string(/;"	f	module:parser
+reorder	m_var_kernel.f90	/^  logical              :: reorder=/;"	v	module:m_var_kernel
+roc2	test_kernel.f90	/^      real,dimension(:,:,:),allocatable :: roc2$/;"	k	type:t_context
+size	m_var_kernel.f90	/^  integer              :: rank,size$/;"	v	module:m_var_kernel
+sizeofreal	spatial_blocking.py	/^sizeofreal = 4 $/;"	v
+source	test_kernel.f90	/^      real,dimension(:),allocatable :: source$/;"	k	type:t_context
+source_check	test_kernel.f90	/^  subroutine source_check(/;"	s	module:m_test_kernel
+spatial_blocking.py	spatial_blocking.py	1;"	F
+string2integer	parser.F90	/^integer function string2integer(/;"	f	module:parser
+string2par	parser.F90	/^integer function string2par(/;"	f	module:parser
+string2par2	parser.F90	/^integer function string2par2(/;"	f	module:parser
+string2real	parser.F90	/^real function string2real(/;"	f	module:parser
+t_context	test_kernel.f90	/^  type :: t_context$/;"	t	module:m_test_kernel
+tab	parser.F90	/^   character(1), private       :: blank=" ", guillemet="""", quote="'", &$/;"	v	module:parser
+test	test_kernel.f90	/^program test$/;"	p
+test_kernel	test_kernel.f90	/^  subroutine test_kernel(/;"	s	module:m_test_kernel
+test_kernel.f90	test_kernel.f90	1;"	F
+test_kernel_allocate	test_kernel.f90	/^  subroutine test_kernel_allocate(/;"	s	module:m_test_kernel
+test_kernel_bloc	test_kernel.f90	/^  subroutine test_kernel_bloc(/;"	s	module:m_test_kernel
+test_kernel_deallocate	test_kernel.f90	/^  subroutine test_kernel_deallocate(/;"	s	module:m_test_kernel
+test_kernel_finalize	test_kernel.f90	/^  subroutine test_kernel_finalize(/;"	s	module:m_test_kernel
+test_kernel_indices	test_kernel.f90	/^  subroutine test_kernel_indices(/;"	s	module:m_test_kernel
+test_kernel_init	test_kernel.f90	/^  subroutine test_kernel_init(/;"	s	module:m_test_kernel
+test_kernel_output	test_kernel.f90	/^  subroutine test_kernel_output(/;"	s	module:m_test_kernel
+test_kernel_param	test_kernel.f90	/^  subroutine test_kernel_param(/;"	s	module:m_test_kernel
+test_kernel_pml_indices	test_kernel.f90	/^  subroutine test_kernel_pml_indices(/;"	s	module:m_test_kernel
+test_kernel_profile	test_kernel.f90	/^  subroutine test_kernel_profile(/;"	s	module:m_test_kernel
+test_kernel_source	test_kernel.f90	/^  subroutine test_kernel_source(/;"	s	module:m_test_kernel
+test_kernel_stencil	test_kernel.f90	/^  subroutine test_kernel_stencil(/;"	s	module:m_test_kernel
+test_success	m_fd_iso_3d_comm.f90	/^  subroutine test_success(/;"	s	module:m_fd_iso_3d_comm
+to_file_integer	parser.F90	/^   subroutine to_file_integer(/;"	s	module:parser
+to_file_logical	parser.F90	/^   subroutine to_file_logical(/;"	s	module:parser
+to_file_real	parser.F90	/^   subroutine to_file_real(/;"	s	module:parser
+to_file_string	parser.F90	/^   subroutine to_file_string(/;"	s	module:parser
+tofilestring	parser.F90	/^subroutine tofilestring(/;"	s	module:parser
+u	plot.py	/^u=fromfile(".\/mpi-snapshots.H@", dtype='f')$/;"	v
+u	plot.py	/^u=u.reshape((200,200,200),order='F')$/;"	v
+u0	test_kernel.f90	/^      real,dimension(:,:,:),allocatable :: u0$/;"	k	type:t_context
+u1	test_kernel.f90	/^      real,dimension(:,:,:),allocatable :: u1$/;"	k	type:t_context
+value_profiling.py	value_profiling.py	1;"	F
+vscale	m_var_kernel.f90	/^  real    :: fmax,vscale,/;"	v	module:m_var_kernel
+writeparsed	parser.F90	/^   subroutine writeparsed(/;"	s	module:parser
+x1	test_kernel.f90	/^      integer :: x1,/;"	k	type:t_context
+x2	test_kernel.f90	/^      integer :: x1,x2,/;"	k	type:t_context
+x3	test_kernel.f90	/^      integer :: x1,x2,x3,/;"	k	type:t_context
+x4	test_kernel.f90	/^      integer :: x1,x2,x3,x4,/;"	k	type:t_context
+x5	test_kernel.f90	/^      integer :: x1,x2,x3,x4,x5,/;"	k	type:t_context
+x6	test_kernel.f90	/^      integer :: x1,x2,x3,x4,x5,x6$/;"	k	type:t_context
+xmax	m_var_kernel.f90	/^  integer :: xmin,xmax,/;"	v	module:m_var_kernel
+xmax	test_kernel.f90	/^      integer :: xmin,xmax,/;"	k	type:t_context
+xmax	value_profiling.py	/^xmax = 900$/;"	v
+xmin	m_var_kernel.f90	/^  integer :: xmin,/;"	v	module:m_var_kernel
+xmin	test_kernel.f90	/^      integer :: xmin,/;"	k	type:t_context
+xmin	value_profiling.py	/^xmin = 1$/;"	v
+y1	test_kernel.f90	/^      integer :: y1,/;"	k	type:t_context
+y2	test_kernel.f90	/^      integer :: y1,y2,/;"	k	type:t_context
+y3	test_kernel.f90	/^      integer :: y1,y2,y3,/;"	k	type:t_context
+y4	test_kernel.f90	/^      integer :: y1,y2,y3,y4,/;"	k	type:t_context
+y5	test_kernel.f90	/^      integer :: y1,y2,y3,y4,y5,/;"	k	type:t_context
+y6	test_kernel.f90	/^      integer :: y1,y2,y3,y4,y5,y6$/;"	k	type:t_context
+ymax	m_var_kernel.f90	/^  integer :: xmin,xmax,ymin,ymax,/;"	v	module:m_var_kernel
+ymax	test_kernel.f90	/^      integer :: xmin,xmax,ymin,ymax,/;"	k	type:t_context
+ymax	value_profiling.py	/^ymax = 200$/;"	v
+ymin	m_var_kernel.f90	/^  integer :: xmin,xmax,ymin,/;"	v	module:m_var_kernel
+ymin	test_kernel.f90	/^      integer :: xmin,xmax,ymin,/;"	k	type:t_context
+ymin	value_profiling.py	/^ymin = 1$/;"	v
+z1	test_kernel.f90	/^      integer :: z1,/;"	k	type:t_context
+z2	test_kernel.f90	/^      integer :: z1,z2,/;"	k	type:t_context
+z3	test_kernel.f90	/^      integer :: z1,z2,z3,/;"	k	type:t_context
+z4	test_kernel.f90	/^      integer :: z1,z2,z3,z4,/;"	k	type:t_context
+z5	test_kernel.f90	/^      integer :: z1,z2,z3,z4,z5,/;"	k	type:t_context
+z6	test_kernel.f90	/^      integer :: z1,z2,z3,z4,z5,z6$/;"	k	type:t_context
+zmax	m_var_kernel.f90	/^  integer :: xmin,xmax,ymin,ymax,zmin,zmax$/;"	v	module:m_var_kernel
+zmax	test_kernel.f90	/^      integer :: xmin,xmax,ymin,ymax,zmin,zmax$/;"	k	type:t_context
+zmax	value_profiling.py	/^zmax = 200$/;"	v
+zmin	m_var_kernel.f90	/^  integer :: xmin,xmax,ymin,ymax,zmin,/;"	v	module:m_var_kernel
+zmin	test_kernel.f90	/^      integer :: xmin,xmax,ymin,ymax,zmin,/;"	k	type:t_context
+zmin	value_profiling.py	/^zmin = 1$/;"	v

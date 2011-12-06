@@ -33,7 +33,8 @@ struct samples
 {
 	long long time;/**@brief the time in ticks from RDTSC*/
 	int freq;/**@brief frequency given as an index in the index table*/
-	int window;
+	int officialWindow;
+	int localWindow;
 };
 
 
@@ -47,13 +48,15 @@ typedef struct sfreqData
 	int freqMin;         /**< @brief the lowest available frequence*/
 	int numFreq;    /**< @brief the number of available frequences*/
 	int idCore;	    /**< @brief the id of the core associated to its profile informations*/
+	int numCores;
 	FILE *setFile;	/**< @brief pointer to an array of File descriptors of size numCores used to change frequency */
 	int currentFreqs;/**< @brief ints that holds the currentFrequency for */
 	int *availableFreqs; /**< @brief the available frequences on the system of size numFreq*/
 	int thisSample;	/**< @brief tracks where we are in our sample array*/
 	struct samples sampler[NUMSAMPLES]; /**< @brief a sample array for profiling the frequency changer's actions*/
 	
-	int windowTrack;
+	int officialWindowTrack;
+	int localWindowTrack;
 	long int *freqTrack; /**< @brief track the frequencies values by core*/
 		
 }SFreqData;
@@ -63,7 +66,7 @@ typedef struct sfreqData
 /**
  * @brief allocates contexts, queries the system for number of frequncies and number of cores, opens up descriptors for 
  * @return handle to all information the frequency changer will need to change frequencies*/
-SFreqData * initCpufreq ( void );
+SFreqData * initCpufreq ( int coreId );
 
 
 /**
@@ -71,15 +74,15 @@ SFreqData * initCpufreq ( void );
  * @param context with data needed to make change
  * @param core the core id we wish to use
  * @param i is the frequence index we wish to set*/
-void changeFreq (SFreqData * context, int core, int i);
+void changeFreq (SFreqData * context, int i);
+
 
 /**
  * @brief change the frequence of a specified core
  * @return index in the frequency table which holds the frequency
- * @param context with data needed to read freq
- * @param core the core id we wish to use*/
+ * @param context with data needed to read freq*/
+int readFreq (SFreqData * context);
 
-int readFreq (SFreqData * context, int core);
 
 
 /**

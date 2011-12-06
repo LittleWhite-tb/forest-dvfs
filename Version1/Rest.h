@@ -38,31 +38,6 @@ typedef int (*rest_libc_start_main_t)(
 
 
 
-typedef double (*evalGet)(void *data);
-typedef  void* (*evalInit)(void);
-typedef int (*evalClose)(void *data);
-void *dl;
-
-evalGet evaluationStart;
-evalGet evaluationStop;
-evalInit evaluationInit;
-evalClose evaluationClose;
-
-typedef struct Energy
-{
-        double start;
-        double stop;
-        double elapsed;
-}Energy;
-
-Energy E;
-
-
-
-
-
-
-
 
 
 

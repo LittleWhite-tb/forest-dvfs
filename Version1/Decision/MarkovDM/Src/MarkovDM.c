@@ -28,11 +28,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define DECISION_MAKER_SEARCH 0
 
 
-void* markovDecisionInit (void)
+void* markovDecisionInit (int coreId)
 {
 	int i;
 	SaveData *savedData = malloc (sizeof (*savedData));
-	savedData->sFreqData = initCpufreq ();
+	savedData->sFreqData = initCpufreq (coreId);
 	savedData->predictor = malloc (savedData->sFreqData->numCores * sizeof(* (savedData->predictor)));
 
 	for(i=0; i< savedData->sFreqData->numCores; i++)
@@ -67,7 +67,7 @@ int markovDecisionGiveReport (void *handle, SProfReport *report)
 	{
 		
 		savedData->duration+=pow(2,report->data.tp.window)*FIRSTSLEEP;
-		if(newFrequency == readFreq(freqData, currentCore))//it's the same frequency suggestion
+		if(newFrequency == readFreq(freqData))//it's the same frequency suggestion
 		{
 			report->data.tp.nextWindow=report->data.tp.window+1;
 			return 1;
@@ -78,7 +78,7 @@ int markovDecisionGiveReport (void *handle, SProfReport *report)
 			SGlobalAdd * markovPredictPtr;
 
 			
-			changeFreq (freqData, currentCore, newFrequency);
+			changeFreq (freqData, newFrequency);
 			
 			nodeToAdd.boundedness=report->data.tp.bounded;
 			nodeToAdd.duration=savedData->duration;
