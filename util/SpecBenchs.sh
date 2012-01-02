@@ -1,8 +1,8 @@
 #!/bin/sh
 
-BENCHS="milc gobmk"
+#BENCHS="milc gobmk"
 
-#BENCHS=" h264ref  lbm  perlbench  bzip2  gcc  mcf  hmmer  sjeng  omnetpp  astar  xalancbmk  "
+BENCHS=" h264ref  lbm  perlbench  bzip2  gcc  mcf  hmmer  sjeng  omnetpp  astar  xalancbmk  "
 #BENCHS="gcc mcf hmmer sjeng omnetpp astar xalancbmk"
 
 for i in $BENCHS
