@@ -76,7 +76,7 @@ void Log_init()
 		
 		strcat(path, "Log");
 
-		logOutput = fopen(path, "w+");
+		logOutput = fopen(path, "a");
 		if(logOutput == NULL)
 		{
 			logOutput = stderr;

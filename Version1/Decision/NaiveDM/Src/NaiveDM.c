@@ -65,7 +65,7 @@ int naiveDecisionGiveReport (void *handle, SProfReport *report)
 	
 	if(newFrequency != currentFreq)
 	{
-		if(FreqDistance > 2 || (FreqDistance <= 1 && newFrequency > currentFreq))
+		if(FreqDistance > 1 || (FreqDistance <= 1 && newFrequency > currentFreq))
 		{
 			report->data.tp.nextWindow=1;
 			changeFreq (freqData, newFrequency);

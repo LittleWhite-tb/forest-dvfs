@@ -218,14 +218,14 @@ void * profilerThread (void * ContextPtr)
 		//get PAPI info from counters		
 		if(PAPI_OK != PAPI_accum (EventSet,values))
 		{
-			Log_output (0, " PAPI accum failed: %s\n",PAPI_strerror(ret_code));
+			Log_output (-1, " PAPI accum failed: %s\n",PAPI_strerror(ret_code));
 			
 			#ifdef STATS			
 			numBadSamples++;
 
 			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
 			{
-				Log_output (10, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
+				Log_output (-1, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
 				exit(4);
 			}
 			failureBackoff++;
@@ -306,13 +306,13 @@ void * profilerThread (void * ContextPtr)
 		}		
 		else
 		{
-			Log_output (6, "Silently failing PAPI accum!!\n");
+			Log_output (-1, "Silently failing PAPI accum!!\n");
 			#ifdef STATS			
 			numBadSamples++;
 
 			if(numBadSamples>MINSAMPLESTOFAIL && numBadSamples > (numBadSamples+numGoodSamples)*FAILURERATE)
 			{
-				Log_output (10, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
+				Log_output (-1, " PAPI failures exceeded failure rate and sample threshold, program terminating\n");
 				exit(4);
 			}
 			failureBackoff++;

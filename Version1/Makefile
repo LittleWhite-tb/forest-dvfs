@@ -1,7 +1,7 @@
 STATICLIB=rest.a
 DYNAMICLIB=librest.so
 CC=gcc
-FEATURE=NONE #can take the value NONE or MPI
+FEATURE=NONE #can take the value NONE or MPI or MAIN
 
 
 MAIN_OBJ := $(patsubst %.c,obj/%.o,$(wildcard *.c))

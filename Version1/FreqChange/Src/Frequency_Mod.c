@@ -259,10 +259,13 @@ void destroyCpufreq (SFreqData * context)
 	int ret;
 	char char_buff[1024]="\0";
 	char num[10]="\0";
-	FILE * dumpfile;
+	FILE * dumpfile = NULL;
 	int i;
 	double cumulativeTime = 0.0;
 	double decisionLatency = 0.0;
+
+	Log_output(-1,"Closing REST, outputing results...\n");
+
 
 	fclose (context->setFile);//first close our file descriptors;
 	//then set the govenor back to ondemand
@@ -291,6 +294,8 @@ void destroyCpufreq (SFreqData * context)
 	strcat (char_buff,".txt");
 	dumpfile=fopen (char_buff,"a");
 
+	Log_output(-1,"This process output in : %s\n",char_buff);
+
 	if(dumpfile != NULL)
 	{
 		fprintf (dumpfile,"Time Cumulative(sec)\tDecision Latency(sec)\t\tCore\tFreq\tWindow PPOV\tWindow DPOV\n");
@@ -314,6 +319,8 @@ void destroyCpufreq (SFreqData * context)
 	}
 	
 	strcpy(char_buff,"");
+	dumpfile = NULL;
+
 
 	if(getenv("REST_OUTPUT") != NULL)
 	{
@@ -324,6 +331,9 @@ void destroyCpufreq (SFreqData * context)
 	strcat (char_buff,"core_frequency_count");
 	strcat (char_buff,num);
 	dumpfile=fopen (char_buff,"a");
+
+	Log_output(-1,"This process output in : %s\n",char_buff);
+
 
 	if(dumpfile != NULL)
 	{

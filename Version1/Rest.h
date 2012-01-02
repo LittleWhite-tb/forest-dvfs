@@ -80,6 +80,10 @@ typedef enum _toolChainInit
 int RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit freqChanger);
 
 /**
+ * @brief Fortran Wrapper for REST*/
+int RestInitF ();
+
+/**
  * @brief destroys the context of the rest runtime, returns threads back used for profiling, and dumps all statistics to files
  **/
 void RestDestroy ( void );

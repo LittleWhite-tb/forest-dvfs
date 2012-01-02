@@ -37,6 +37,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 profilerHandle *restHandle = NULL;
 
+int RestInitF ()
+{
+	return RestInit (REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
+}	
+
 int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolChainInit freqChangerArg)
 {
 	toolChainInit profiler = profilerArg, decisionMaker = decisionMakerArg, freqChanger = freqChangerArg;
@@ -50,11 +55,13 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 
 		if((restHandle != NULL))
 		{
-			Log_output (15,"Rest Already initialized overwriting previous parameters \n");
+			Log_output (-1,"Rest Already initialized overwriting previous parameters \n");
 			RestDestroy();
 		}
 		else
+		{
 			Log_init();
+		}
 
 		//Choosing which profiler need to use
 		if(getenv("REST_PROFILER") !=NULL && (strcmp(getenv("REST_PROFILER"), "vmad_profiler") == 0))
@@ -69,11 +76,11 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 			{
 				decisionMaker = REST_BRANCHPREDICT_DM;
 			}
-			else
-				if(strcmp(getenv("REST_DM"), "markov_dm") == 0)
-				{
-					decisionMaker = REST_MARKOVPREDICT_DM;
-				}
+			
+			if(strcmp(getenv("REST_DM"), "markov_dm") == 0)
+			{
+				decisionMaker = REST_MARKOVPREDICT_DM;
+			}
 			isRestEnvVar = 1;		
 		}
 
@@ -86,19 +93,19 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 		STPContext *(*profilerInitFunction) (SFuncsToUse funcPtrs) = NULL;	
 		SFuncsToUse decisionFuncs;
 
-		fprintf (stdout, "Initializing REST...\n");
+		Log_output (-1, "Initializing REST...\n");
 
 		
 		if(isRestEnvVar == 1)		
 		{
-			Log_output (15,"Rest will be initialized overwriting parameters with REST environement variables.\n");
+			Log_output (-1,"Rest will be initialized overwriting parameters with REST environement variables.\n");
 		}				
 		else
 		{
-			Log_output (15,"Rest will be initialized with specified parameters inside the bench program.\n");
+			Log_output (-1,"Rest will be initialized with specified parameters inside the bench program.\n");
 		}		
 
-		Log_output (1,"\nConfiguration:\n\tprofiler: %d \n\talgorithm: %d \n\tfreqChanger: %d \n ",profiler, decisionMaker, freqChanger);
+		Log_output (-1,"\nConfiguration:\n\tprofiler: %d \n\tdecision: %d \n\tfreqChanger: %d \n\tisRestEnvVar %d ",profiler, decisionMaker, freqChanger,isRestEnvVar);
 
 		switch (profiler)
 		{
@@ -109,7 +116,7 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 				//Nothing to do here
 				break;
 			default :
-				Log_output (20,"Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
+				Log_output (-1,"Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
 				assert(0);
 				break;
 		}
@@ -132,7 +139,7 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 				decisionFuncs.reportFunc = markovDecisionGiveReport;	
 				break;
 			default:
-				Log_output (20,"Undefined decision maker, the defined ones are : NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM\n");
+				Log_output (-1,"Undefined decision maker, the defined ones are : NAIVE_DM, BRANCHPREDICT_DM, MARKOVPREDICT_DM\n");
 				assert(0);
 				break;
 		}
@@ -142,7 +149,7 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 			case REST_FREQ_CHANGER:
 				break;
 			default:
-				Log_output (20, "Undefined decision maker, the defined ones are : FREQ_CHANGER\n");
+				Log_output (-1, "Undefined decision maker, the defined ones are : FREQ_CHANGER\n");
 				assert(0);
 				break;
 		}
@@ -166,14 +173,14 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 		restHandle->decisionMaker=decisionMaker;
 		restHandle->freqChanger=freqChanger;
 
-		Log_output (20, "Initializing REST Done!\n");
+		Log_output(-1, "Initializing REST Done!\n");
 
 		return 0;
 	}
 	else
 	{
 	
-		Log_output (15,"Rest Already initialized...\n");
+		Log_output (-1,"Rest Already initialized...\n");
 	}
 
 	return 1;
@@ -194,7 +201,7 @@ void RestDestroy ( void )
 			case REST_VMAD_PROFILER :
 				break;
 			default :
-				Log_output (20, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
+				Log_output (-1, "Undefined profiler, the defined ones are : THREADED_PROFILER, VMAD_PROF_PROFILER\n");
 				assert(0);
 				break;
 		}
@@ -203,7 +210,7 @@ void RestDestroy ( void )
 		setenv ("LD_PRELOAD","", 1);
 
 		restHandle=NULL;
-		Log_output(15,"Rest Destroy Done!\n");
+		Log_output (-1, "Rest was correctly destroyed\n");
 		Log_destroy ();
 	}
 }
