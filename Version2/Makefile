@@ -2,7 +2,7 @@ EXE=rest
 
 MAIN_OBJ := $(patsubst %.cpp,obj/%.o,$(wildcard *.cpp))
 CORE_OBJ := $(patsubst Core/Src/%.cpp,obj/%.o,$(wildcard Core/Src/*.cpp))
-LIBS =``
+LIBS = -lpthread
 
 OPT_INCLUDE = -ICore/Include
 OPT = -O3 -Wall -Wextra -g $(OPT_INCLUDE) 
