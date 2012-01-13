@@ -18,7 +18,7 @@
 
 /**
   @file MsgReader.h
-  @brief The MsgReader class header is in this file 
+  @brief The MsgReader class header is in this file
  */
 
 #ifndef H_MSGREADER
@@ -29,13 +29,13 @@
 
 class MsgReader
 {
-    public:
-        /**
-         * @brief Utility function to read a message.
-         * @param fd The file descriptor where to read from.
-         * @return A pointer to the read message or NULL. Free with delete.
-         */
-        static Message *read_msg(int fd);
+   public:
+      /**
+       * @brief Utility function to read a message.
+       * @param fd The file descriptor where to read from.
+       * @return A pointer to the read message or NULL. Free with delete.
+       */
+      static Message * read_msg (int fd);
 };
 
 #endif

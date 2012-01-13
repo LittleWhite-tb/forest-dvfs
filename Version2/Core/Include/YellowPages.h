@@ -18,7 +18,7 @@
 
 /**
   @file YellowPages.h
-  @brief The YellowPages class header is in this file 
+  @brief The YellowPages class header is in this file
  */
 
 #ifndef H_YELLOWPAGES
@@ -33,21 +33,21 @@
 
 class YellowPages
 {
-    public:
-        /**
-         * @brief Returns the id of the node with the given address.
-         * @param addr The network address of the node.
-         * @return The ID of the node with the given address.
-         */
-        static unsigned int get_id(struct sockaddr *addr);
+   public:
+      /**
+       * @brief Returns the id of the node with the given address.
+       * @param addr The network address of the node.
+       * @return The ID of the node with the given address.
+       */
+      static unsigned int get_id (struct sockaddr * addr);
 
-        /**
-         * @brief Returns the address of the node with the given id.
-         * @param id The node id.
-         * @return The the address of the node with the given ID. Usable
-         * only until next call to get_addr. Can be NULL.
-         */
-        static struct sockaddr *get_addr(unsigned int id);
+      /**
+       * @brief Returns the address of the node with the given id.
+       * @param id The node id.
+       * @return The the address of the node with the given ID. Usable
+       * only until next call to get_addr. Can be NULL.
+       */
+      static struct sockaddr * get_addr (unsigned int id);
 };
 
 #endif

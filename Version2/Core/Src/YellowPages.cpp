@@ -18,7 +18,7 @@
 
 /**
   @file YellowPages.cpp
-  @brief The YellowPages class is in this file 
+  @brief The YellowPages class is in this file
  */
 
 #include "YellowPages.h"
@@ -28,33 +28,35 @@
 #include <stdio.h>
 #include <sys/un.h>
 
-unsigned int YellowPages::get_id(struct sockaddr *saddr)
+unsigned int YellowPages::get_id (struct sockaddr * saddr)
 {
-    assert(saddr->sa_family == AF_LOCAL || saddr->sa_family == AF_UNIX);
+   assert (saddr->sa_family == AF_LOCAL || saddr->sa_family == AF_UNIX);
 
-    struct sockaddr_un *addr = (struct sockaddr_un *) saddr;
+   struct sockaddr_un * addr = (struct sockaddr_un *) saddr;
 
-    unsigned int id;
-    if (sscanf(addr->sun_path, "/tmp/rest%u", &id) == 1) {
-        return id;
-    }
+   unsigned int id;
+   if (sscanf (addr->sun_path, "/tmp/rest%u", &id) == 1)
+   {
+      return id;
+   }
 
-    return UINT_MAX;
+   return UINT_MAX;
 }
 
-struct sockaddr *YellowPages::get_addr(unsigned int id)
+struct sockaddr * YellowPages::get_addr (unsigned int id)
 {
-    static struct sockaddr_un addr;
+   static struct sockaddr_un addr;
 
-    if (id == UINT_MAX) {
-        return NULL;
-    }
+   if (id == UINT_MAX)
+   {
+      return NULL;
+   }
 
-    sprintf(addr.sun_path, "/tmp/rest%u", id);
+   sprintf (addr.sun_path, "/tmp/rest%u", id);
 
-    addr.sun_family = AF_LOCAL;
+   addr.sun_family = AF_LOCAL;
 
-    return (sockaddr *) &addr;
+   return (sockaddr *) &addr;
 }
 
 

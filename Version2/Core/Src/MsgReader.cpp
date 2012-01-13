@@ -18,30 +18,32 @@
 
 /**
   @file MsgReader.cpp
-  @brief The MsgReader class is in this file 
+  @brief The MsgReader class is in this file
  */
 
 #include "MsgReader.h"
 
 #include "unistd.h"
 
-Message *MsgReader::read_msg(int fd)
+Message * MsgReader::read_msg (int fd)
 {
-    Message::Type tp;
+   Message::Type tp;
 
-    if (read(fd, &tp, sizeof(tp)) < sizeof(tp)) {
-        return NULL;
-    }
+   if (read (fd, &tp, sizeof (tp)) < sizeof (tp))
+   {
+      return NULL;
+   }
 
-    switch (tp) {
-        case Message::MSG_TP_SLEEP:
-        case Message::MSG_TP_WAKE:
-        case Message::MSG_TP_DIE:
-            return new Message(tp);
-            break;
-        default:
-            // UNSUPPORTED
-            return NULL;
-    }
+   switch (tp)
+   {
+      case Message::MSG_TP_SLEEP:
+      case Message::MSG_TP_WAKE:
+      case Message::MSG_TP_DIE:
+         return new Message (tp);
+         break;
+      default:
+         // UNSUPPORTED
+         return NULL;
+   }
 }
 

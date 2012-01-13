@@ -18,7 +18,7 @@
 
 /**
   @file Message.h
-  @brief The Message class header is in this file 
+  @brief The Message class header is in this file
  */
 
 #ifndef H_MESSAGE
@@ -28,40 +28,41 @@
 
 class Message : public Rest
 {
-    public:
-        /** @brief Message type */
-        typedef enum {
-            MSG_TP_SLEEP,
-            MSG_TP_WAKE,
-            MSG_TP_SETWIN,
-            MSG_TP_DIE,
-            MSG_TP_REPORT
-        } Type;
+   public:
+      /** @brief Message type */
+      typedef enum
+      {
+         MSG_TP_SLEEP,
+         MSG_TP_WAKE,
+         MSG_TP_SETWIN,
+         MSG_TP_DIE,
+         MSG_TP_REPORT
+      } Type;
 
-        /** 
-         * @brief Creates a simple message only carrying type info.
-         * @param tp The message type.
-         */
-        Message(Type tp);
+      /**
+       * @brief Creates a simple message only carrying type info.
+       * @param tp The message type.
+       */
+      Message (Type tp);
 
-        /** @brief Message destructor. */
-        virtual ~Message();
+      /** @brief Message destructor. */
+      virtual ~Message();
 
-        /**
-         * @brief Dumps the message into the file descriptor.
-         * @param fd The file descriptor where to write into.
-         * @return False in case of failure, true otherwise.
-         */
-        virtual bool write_into(int fd) const;
+      /**
+       * @brief Dumps the message into the file descriptor.
+       * @param fd The file descriptor where to write into.
+       * @return False in case of failure, true otherwise.
+       */
+      virtual bool write_into (int fd) const;
 
-        /**
-		 * @brief Gives information concerning the current state.
-		 */
-        void getInformation (void);
+      /**
+      		 * @brief Gives information concerning the current state.
+      		 */
+      void getInformation (void);
 
 
-    private:
-        Type type;
+   private:
+      Type type;
 };
 
 #endif

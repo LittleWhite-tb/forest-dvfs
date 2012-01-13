@@ -18,16 +18,16 @@
 
 /**
   @file Message.cpp
-  @brief The Message class is in this file 
+  @brief The Message class is in this file
  */
 
 #include "Message.h"
 
 #include <unistd.h>
 
-Message::Message(Type tp)
+Message::Message (Type tp)
 {
-    this->type = tp;
+   this->type = tp;
 }
 
 Message::~Message()
@@ -35,15 +35,17 @@ Message::~Message()
 
 }
 
-bool Message::write_into(int fd) const
+bool Message::write_into (int fd) const
 {
-    if (write(fd, &this->type, sizeof(this->type)) < sizeof(this->type)) {
-        return false;
-    }
+   if (write (fd, &this->type, sizeof (this->type)) < sizeof (this->type))
+   {
+      return false;
+   }
 
-    return true;
+   return true;
 }
 
-void Message::getInformation(void) {
+void Message::getInformation (void)
+{
 
 }
