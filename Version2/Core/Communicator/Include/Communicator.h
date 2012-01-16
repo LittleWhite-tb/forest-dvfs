@@ -106,6 +106,12 @@ class Communicator
       /** @brief Outgoing connections. */
       std::map<unsigned int, int> sockets_out;
 
+      /** 
+       * @brief fds to notify new connections. new_conn[0] is the read end,
+       * new_conn[1] is the write end of the pipe.
+       */
+      int new_conn[2];
+
       /**
        * @brief Creates or returns the file descriptor to communicate with
        * the given node.

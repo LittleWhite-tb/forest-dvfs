@@ -26,7 +26,7 @@
 
 #include "Rest.h"
 
-class Message : public Rest
+class Message
 {
    public:
       /** @brief Message type */
@@ -45,6 +45,12 @@ class Message : public Rest
        */
       Message (Type tp);
 
+      /**
+       * @brief Returns the type id of the message.
+       * @return The type of the message.
+       */
+      Type get_type();
+
       /** @brief Message destructor. */
       virtual ~Message();
 
@@ -54,11 +60,6 @@ class Message : public Rest
        * @return False in case of failure, true otherwise.
        */
       virtual bool write_into (int fd) const;
-
-      /**
-      		 * @brief Gives information concerning the current state.
-      		 */
-      void getInformation (void);
 
 
    private:

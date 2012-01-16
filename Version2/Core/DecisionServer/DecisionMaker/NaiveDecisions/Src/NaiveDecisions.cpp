@@ -58,7 +58,7 @@ int NaiveDecisions::giveReport (int core, long long HWCounters[3])
 
 	int currentFreq = coresInfo->coreDatasArray->at (core).currentFreq;
 
-	int FreqDistance = std::abs (newFrequency - currentFreq);
+	int FreqDistance = std::abs ((float) (newFrequency - currentFreq));
 
 	if (FreqDistance > 1 || (FreqDistance <= 1 && newFrequency > currentFreq))
 	{

@@ -62,10 +62,12 @@ Communicator::Communicator (unsigned int local_id)
       exit (2);
    }
 
+   pipe(this->new_conn);
+
    // start accepting connections
    if (pthread_create (&this->server_th, NULL, &Communicator::server_loop, this) != 0)
    {
-      printf ("Can't create accepting thread\n");
+       std::cerr << "Can't create accepting thread" << std::endl;
       exit (2);
    }
 }
@@ -76,6 +78,9 @@ Communicator::~Communicator()
    pthread_join (this->server_th, NULL);
 
    close (this->fd_server);
+
+   close(this->new_conn[0]);
+   close(this->new_conn[1]);
 
    std::map<unsigned int, int>::iterator it;
    for (it = this->sockets_out.begin();
@@ -117,6 +122,9 @@ void * Communicator::server_loop (void * arg)
       src_id = YellowPages::get_id (&addr);
       obj->sockets_in[src_id] = fd;
       pthread_mutex_unlock (&obj->mutex_sockin);
+
+      // restart reading open connections
+      write(this->new_conn[1], &fd, sizeof(int));
    }
 
    return NULL;
@@ -148,7 +156,7 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
    assert (addr != NULL);
    if (connect (fd, addr, YP_ADDRLEN (addr)) < 0)
    {
-      printf ("Failed to connect to node %u\n", dest_id);
+       std::cerr <<  "Failed to connect to node " << dest_id << std::endl;
       close (fd);
       return -1;
    }
@@ -171,7 +179,7 @@ void Communicator::send_to (unsigned int dest_id, const Message & msg)
    }
    else
    {
-      printf ("Failure to send message to %u\n", dest_id);
+       std::cerr << "Failure to send message to " << dest_id  << std::endl;
    }
 }
 
@@ -188,6 +196,9 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
       tval.tv_sec = *timeout / 1000000;
       tval.tv_usec = *timeout % 1000000;
    }
+
+   // restart after any new connection and until receiving a message or timeout
+   while (true) {
 
    // get file descriptors to watch
    FD_ZERO (&fds);
@@ -220,11 +231,22 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
       pthread_mutex_unlock (&this->mutex_sockin);
    }
 
+   // also watch for new connection
+   FD_SET(this->new_conn[0], &fds);
+   maxfd = (this->new_conn[0] > maxfd ? this->new_conn[0] : maxfd);
+
    int sres = select (maxfd + 1, &fds, NULL, NULL, &tval);
    if (sres > 0)
    {
       // update the timeval value
-      *timeout = tval.tv_sec + tval.tv_usec * 1000000;
+      if (*timeout != 0) {
+        *timeout = tval.tv_sec + tval.tv_usec * 1000000;
+        }
+
+      // new connection ? restart !
+      if (FD_ISSET(this->new_conn[0], &fds)) {
+          continue;
+      }
 
       if (sender_id != UINT_MAX)
       {
@@ -284,13 +306,12 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
          return msg;
       }
+   } else {
+       return NULL;
+   }
+
    }
 
    return NULL;
-}
-
-void Communicator::getInformation (void)
-{
-
 }
 

@@ -53,5 +53,5 @@ int main(int argc, char **argv)
 	decisionServer->freqchanger->ChangeFreq(0, curFreq);
 	std::cout << "After  changing freq " << decisionServer->freqchanger->ReadCurrentFreq(0) << std::endl;
 
-
+    
 }

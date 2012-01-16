@@ -35,6 +35,11 @@ Message::~Message()
 
 }
 
+Type Message::get_type()
+{
+    return this->type;
+}
+
 bool Message::write_into (int fd) const
 {
    if (write (fd, &this->type, sizeof (this->type)) < sizeof (this->type))
@@ -45,7 +50,3 @@ bool Message::write_into (int fd) const
    return true;
 }
 
-void Message::getInformation (void)
-{
-
-}
