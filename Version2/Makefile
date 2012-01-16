@@ -21,6 +21,7 @@ DECISIONSERVER_FREQCHANGER_OBJ := $(patsubst Core/DecisionServer/FreqChanger/Src
 
 COMMUNICATOR_OBJ := $(patsubst Core/Communicator/Src/%.cpp,obj/%.o,$(wildcard Core/Communicator/Src/*.cpp))
 COMMUNICATOR_MSGREADER_OBJ := $(patsubst Core/Communicator/MsgReader/Src/%.cpp,obj/%.o,$(wildcard Core/Communicator/MsgReader/Src/*.cpp))
+COMMUNICATOR_MESSAGE_OBJ := $(patsubst Core/Communicator/Message/Src/%.cpp,obj/%.o,$(wildcard Core/Communicator/Message/Src/*.cpp))
 COMMUNICATOR_YELLOWPAGES_OBJ := $(patsubst Core/Communicator/YellowPages/Src/%.cpp,obj/%.o,$(wildcard Core/Communicator/YellowPages/Src/*.cpp))
 
 LIBS =
@@ -29,7 +30,7 @@ OPT_INCLUDE_PROFILER = -ICore/Profiler/Include -ICore/Profiler/ThreadedProfiler/
 
 OPT_INCLUDE_DECISION = -ICore/DecisionServer/Include -ICore/DecisionServer/CoresInfos/Include -ICore/DecisionServer/FreqChanger/Include -ICore/DecisionServer/DecisionMaker/Include -ICore/DecisionServer/DecisionMaker/Predictive/Include -ICore/DecisionServer/DecisionMaker/NaiveDecisions/Include -ICore/DecisionServer/DecisionMaker/Markov/Include
 
-OPT_INCLUDE_COMMUNICATOR = -ICore/Communicator/Include -ICore/Communicator/MsgReader/Include -ICore/Communicator/YellowPages/Include
+OPT_INCLUDE_COMMUNICATOR = -ICore/Communicator/Include -ICore/Communicator/MsgReader/Include -ICore/Communicator/YellowPages/Include -ICore/Communicator/Message/Include
 
 OPT_INCLUDE = $(OPT_INCLUDE_DECISION) $(OPT_INCLUDE_PROFILER) $(OPT_INCLUDE_COMMUNICATOR)
 
@@ -39,7 +40,7 @@ OPT_PROFILER = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE_PROFILER) -DX86
 OPT_COMMUNICATOR = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE_COMMUNICATOR) -DX86
 
 ALLDECISION_OBJ=$(DECISIONSERVER_OBJ) $(DECISIONSERVER_DECISION_OBJ) $(DECISIONSERVER_DECISION_CORESINFOS_OBJ)  $(DECISIONSERVER_DECISION_NAIVE_OBJ) $(DECISIONSERVER_DECISION_MARKOV_OBJ) $(DECISIONSERVER_DECISION_PREDICTIVE_OBJ) $(DECISIONSERVER_FREQCHANGER_OBJ)
-ALLCOMMUNICATOR_OBJ=$(COMMUNICATOR_OBJ) $(COMMUNICATOR_MSGREADER_OBJ) $(COMMUNICATOR_YELLOWPAGES_OBJ)
+ALLCOMMUNICATOR_OBJ=$(COMMUNICATOR_OBJ) $(COMMUNICATOR_MSGREADER_OBJ) $(COMMUNICATOR_YELLOWPAGES_OBJ) $(COMMUICATOR_MESSAGE)
 ALLPROFILER_OBJ=$(PROFILER_OBJ) $(PROFILER_PROFSERVER_OBJ) $(PROFILER_THREADEDPROFILER_OBJ) 
 FULL_OBJ=$(MAIN_OBJ) $(ALLPROFILER_OBJ) $(ALLDECISION_OBJ) $(ALLCOMMUNICATOR)
 
@@ -91,6 +92,9 @@ $(COMMUNICATOR_OBJ):obj/%.o: Core/Communicator/Src/%.cpp Core/Communicator/Inclu
 	$(CC) -c $< -o $@ $(OPT_DECISION) $(CFLAGS) $(LIBS)
 
 $(COMMUNICATOR_MSGREADER_OBJ):obj/%.o: Core/Communicator/MsgReader/Src/%.cpp Core/Communicator/MsgReader/Include/%.h 
+	$(CC) -c $< -o $@ $(OPT_DECISION) $(CFLAGS) $(LIBS)
+	
+$(COMMUNICATOR_MESSAGE_OBJ):obj/%.o: Core/Communicator/Message/Src/%.cpp Core/Communicator/Message/Include/%.h 
 	$(CC) -c $< -o $@ $(OPT_DECISION) $(CFLAGS) $(LIBS)
 	
 $(COMMUNICATOR_YELLOWPAGES_OBJ):obj/%.o: Core/Communicator/YellowPages/Src/%.cpp Core/Communicator/YellowPages/Include/%.h 
