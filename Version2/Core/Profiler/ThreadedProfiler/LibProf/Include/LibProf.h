@@ -23,7 +23,21 @@
 #ifndef H_LIBPROF
 #define H_LIBPROF
 
-#include "ThreadedProfiler.h"
+// Define rdtscll
+#ifdef __x86_64__
+	#define rdtscll(val) do { \
+			unsigned int __a,__d; \
+			asm volatile("rdtsc" : "=a" (__a), "=d" (__d)); \
+			(val) = ((unsigned long)__a) | (((unsigned long)__d)<<32); \
+	} while(0)
+#elif defined(__i386__)
+	#define rdtscll(val) do { \
+		asm volatile ("rdtsc" : "=A"(val)); \
+		} while(0)
+#else
+    #error "Cannot implement rtdscll"
+#endif
+
 
 /**
  * @class LibProf
@@ -44,32 +58,38 @@ class LibProf
       virtual ~LibProf (void);
 
       /**
-       * @brief Create the counter listener to profile
-       * @return return true if success
+       * @brief Starts watching the counters.
        */
-      virtual bool creatCounters (void);
+      virtual void start_counters() = 0;
 
       /**
-       * @brief accumulate values readden
+       * @brief Stop watching the counters.
        */
-      virtual void accumulator (void);
+      virtual void stop_counters() = 0;
 
       /**
-       * @brief closing the listen of counters
-       * @return return true if success
+       * @brief Tells the profiler to watch counter for the given thread.
+       * @param tid The TID of the concerned thread.
        */
-      virtual bool closeCounters (void);
+      virtual void attach_to(unsigned long int tid) = 0;
 
       /**
-       * @brief getTicks gives the clock's tick
-       * @return unsigned long long tick of the clock
+       * @brief Reads the counter values and reset them.
+       * @param values Where to write the couter values.
        */
-      virtual unsigned long long getTicks (void);
+      virtual void read(long long *values) = 0;
 
       /**
-       * @brief startLibrary initialize the profiler's library
+       * @brief Returns the clock's tick
+       * @return The processor tick counter content
        */
-      virtual void startLibrary (...);
+      static unsigned long long getTicks ();
+
+      /**
+       * @brief Returns the TID of the calling thread.
+       * @return The current thread ID.
+       */
+      static unsigned long int getTID ();
 };
 
 #endif

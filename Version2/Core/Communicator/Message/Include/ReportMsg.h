@@ -26,25 +26,25 @@
 
 #include "Message.h"
 
-class ReportMsg: public Message 
+class ReportMsg: public Message
 {
-    public:
-        /**
-         * @brief New report message.
-         * @param report The 3 values read from H/W.
-         * @param sender The source of the message
-         * @param dest The message destination
-         */
-        ReportMsg(unsigned int sender, unsigned int dest, long long report[3]);
+   public:
+      /**
+       * @brief New report message.
+       * @param report The 3 values read from H/W.
+       * @param sender The source of the message
+       * @param dest The message destination
+       */
+      ReportMsg (unsigned int sender, unsigned int dest, long long report[3]);
 
-        /** @brief Sole destructor. */
-        ~ReportMsg();
+      /** @brief Sole destructor. */
+      ~ReportMsg();
 
-        /**
-         * @brief Returns the report content.
-         * @return The report as an array of three values.
-         */
-        const long long *get_report() const;
+      /**
+       * @brief Returns the report content.
+       * @return The report as an array of three values.
+       */
+      const long long * get_report() const;
 
       /**
        * @brief Dumps the message into the file descriptor.
@@ -54,8 +54,8 @@ class ReportMsg: public Message
       bool write_into (int fd) const;
 
 
-    private:
-        long long data[3];
+   private:
+      long long data[3];
 };
 
 #endif

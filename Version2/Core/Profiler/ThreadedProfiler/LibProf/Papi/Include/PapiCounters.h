@@ -33,7 +33,7 @@
  * @class PapiCounters
  * @brief The PapiCounters for hardware counters
  */
-class PapiCounters:public LibProf
+class PapiCounters: public LibProf
 {
 
    public:
@@ -48,61 +48,34 @@ class PapiCounters:public LibProf
       virtual ~PapiCounters (void);
 
       /**
-       * @brief getTid gives the id of a thread
-       * @return pid_t the thread id
+       * @brief Tells the profiler to watch counter for the given thread.
+       * @param tid The TID of the concerned thread.
        */
-      virtual pid_t getTid (void);
+      void attach_to(unsigned long int tid);
 
       /**
-       * @brief initPapiHelper Check to see if the PAPI natives are available
-       * @param EventSet allows to creat the events corresponding to papi counters
+       * @brief Starts watching the counters.
        */
-      void initPapiHelper (int * EventSet);
+      void start_counters();
 
       /**
-       * @brief start listening to papi counters
-       * @param EventSet the event related
+       * @brief Stop watching the counters.
        */
-      virtual void startCounters (int EventSet);
+      void stop_counters();
 
       /**
-       * @brief accumulator This function adds the value you pass to the readings in the hardware counter.
-       * @param EventSet the event related
-       * @param values values to add in the accumulator
+       * @brief Reads the counter values and reset them.
+       * @param values Where to write the couter values.
        */
-      virtual void accumulator (int EventSet, long_long * values);
+      void read(long long *values);
+
+    private:
 
       /**
-       * @brief closing the listen of counters
-       * @return return true if success
+       * @brief EventSet for papi.
        */
-      virtual bool closeCounters (void);
+      int ev_set;
 
-      /**
-       * @brief getTicks gives the clock's tick
-       * @return unsigned long long tick of the clock
-       */
-      virtual unsigned long long getTicks (void);
-
-      /**
-       * @brief startLibrary initialize the profiler's library
-       */
-      virtual void startLibrary (...);
-
-      /**
-       * @brief stopLibrary terminate the profiler's library
-       */
-      virtual void stopLibrary (void);
-
-      /**
-       * @brief intiThreadPapi verify that the init function registered well
-       */
-      void initThreadPapi (void);
-
-      /**
-       * Return the thread's papi ID
-       */
-      PAPI_thread_id_t threadIdPapi ();
 };
 
 #endif

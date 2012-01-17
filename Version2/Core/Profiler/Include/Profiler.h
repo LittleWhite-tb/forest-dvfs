@@ -23,6 +23,9 @@
 #ifndef H_PROFILER
 #define H_PROFILER
 
+/** @brief Initial sleep-scale for sleeping window (in usec) */
+#define INIT_SLEEP_SCALE 600
+
 /**
  * @class Profiler
  * @brief The Profiler of ThreadedProfiler and ProfilerServer 
@@ -39,13 +42,7 @@ class Profiler
 		/**
 		 * @brief Destructor
 		 */
-		virtual ~Profiler (void);
-		
-		/**
-		 * @brief compute the ratio of boudness and cpuness
-		 * @return the boundeness computed
-		 */
-		virtual float ComputeBoudness (void);
+		virtual ~Profiler (void);		
 };
 
 #endif

@@ -24,21 +24,25 @@
 #include "ReportMsg.h"
 #include <unistd.h>
 
-ReportMsg::ReportMsg(unsigned int sender, unsigned int dest, long long report[3]) : Message(Message::MSG_TP_REPORT, sender, dest) {
-    this->data[0] = report[0];
-    this->data[1] = report[1];
-    this->data[2] = report[2];
+ReportMsg::ReportMsg (unsigned int sender, unsigned int dest, long long report[3]) : Message (Message::MSG_TP_REPORT, sender, dest)
+{
+   this->data[0] = report[0];
+   this->data[1] = report[1];
+   this->data[2] = report[2];
 }
 
-ReportMsg::~ReportMsg() {
+ReportMsg::~ReportMsg()
+{
 
 }
 
-const long long *ReportMsg::get_report() const {
-    return this->data;
+const long long * ReportMsg::get_report() const
+{
+   return this->data;
 }
 
-bool ReportMsg::write_into (int fd) const {
-    return write(fd, this->data, sizeof(this->data)) == sizeof(this->data);
+bool ReportMsg::write_into (int fd) const
+{
+   return write (fd, this->data, sizeof (this->data)) == sizeof (this->data);
 }
 

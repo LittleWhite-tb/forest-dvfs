@@ -17,19 +17,39 @@
  */
 
 /**
-  @file Profiler.cpp
-  @brief The Profiler header is in this file 
+  @file LibProf.cpp
+  @brief The LibProf class is in this file
  */
 
-#include "Profiler.h"
+#include "LibProf.h"
 
-Profiler::Profiler (void)
+#include <unistd.h>
+#include <sys/syscall.h>
+
+LibProf::LibProf ()
 {
 
 }
-		
-Profiler::~Profiler (void)
+
+LibProf::~LibProf () 
 {
 
 }
 
+unsigned long long LibProf::getTicks ()
+{
+    unsigned long long res;
+    rdtscll(res);
+    return res;
+}
+
+unsigned long int LibProf::getTID()
+{
+    #ifdef SYS_gettid
+		return syscall(SYS_gettid);
+	#elif defined(__NR_gettid)
+		return syscall(__NR_gettid);
+	#else
+		#error "Unable to implement gettid."
+	#endif
+}

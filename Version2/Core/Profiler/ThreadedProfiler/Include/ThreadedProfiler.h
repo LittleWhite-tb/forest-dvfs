@@ -24,23 +24,50 @@
 #define H_THREADEDPROFILER
 
 #include "Profiler.h"
+#include "LibProf.h"
+
+#include <pthread.h>
 
 /**
  * @class ThreadedProfiler
  * @brief The ThreadedProfiler of a Papi or Likwid Profiler
  */
-class ThreadedProfiler:public Profiler
+class ThreadedProfiler: public Profiler
 {
-   public:
+    public:
+        /**
+         * @brief Constructor
+         */
+        ThreadedProfiler (void);
+
+        /**
+         * @brief Destructor
+         */
+        virtual ~ThreadedProfiler (void);
+
+        /**
+         * @brief compute the ratio of boudness and cpuness
+         * @return the boundeness computed
+         */
+        float ComputeBoudness (void);
+
+    private:
       /**
-       * @brief Constructor
+       * @brief Backend profiler used.
        */
-      ThreadedProfiler (void);
+      LibProf *prof;
 
       /**
-       * @brief Destructor
+       * @brief thread id.
        */
-      virtual ~ThreadedProfiler (void);
+      pthread_t thid;
+
+      /**
+       * @brief pthread function.
+       * @param arg The profiler that created the thread.
+       * @return NULL
+       */
+      static void *profile_loop(void *arg);
 };
 
 #endif

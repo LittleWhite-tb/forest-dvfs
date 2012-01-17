@@ -22,14 +22,42 @@
  */
 
 #include "ThreadedProfiler.h"
+#include "PapiCounters.h"
+
+#include <unistd.h>
+#include <cmath>
+#include <iostream>
 
 ThreadedProfiler::ThreadedProfiler (void)
 {
+    this->prof = new PapiCounters();
+    this->prof->attach_to(LibProf::getTID());
+    this->prof->start_counters();
 
+    this->thid = pthread_create(&this->thid, NULL, ThreadedProfiler::profile_loop, this);
 }
 
 ThreadedProfiler::~ThreadedProfiler (void)
 {
-
+    delete(this->prof);
 }
 
+void *ThreadedProfiler::profile_loop(void *arg)
+{
+    ThreadedProfiler *obj = (ThreadedProfiler *) arg;
+    unsigned int win_sz = 1;
+    long long int values[3];
+    unsigned int sleepScale = INIT_SLEEP_SCALE;
+
+    // reset counters
+    obj->prof->read(values);
+
+    // continue profiling for a while...
+    while (true) {
+        usleep(std::pow(2, win_sz) * sleepScale);
+        obj->prof->read(values);
+        std::cout << values[0] << " " << values[1] << " " << values[2] << std::endl;
+    };
+
+    return NULL;
+}
