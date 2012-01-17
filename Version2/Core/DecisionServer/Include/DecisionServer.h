@@ -26,6 +26,7 @@
 
 #include "NaiveDecisions.h"
 #include "FreqChanger.h"
+#include "Communicator.h"
 
 /**
  * @class DecisionServer
@@ -36,20 +37,23 @@
 
 class DecisionServer
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		DecisionServer (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		~DecisionServer (void);
+   public:
+      /**
+       * @brief Constructor
+       */
+      DecisionServer (void);
 
-		//variables
-		CoresInfos *coresInfos;
-		FreqChanger *freqchanger;
-		NaiveDecisions *naiveDecisions;
+      /**
+       * @brief Destructor
+       */
+      ~DecisionServer (void);
+
+      //variables
+      CoresInfos * coresInfos;
+      FreqChanger * freqchanger;
+      NaiveDecisions * naiveDecisions;
+
+   private:
+      Communicator * comm;
 };
 #endif

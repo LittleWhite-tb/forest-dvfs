@@ -28,19 +28,85 @@
 #include <stdio.h>
 #include <sys/un.h>
 
+#include <iostream>
+#include <fstream>
+
+
+unsigned int YellowPages::id;
+unsigned int YellowPages::server_id;
+std::map<unsigned int, std::string> YellowPages::yp;
+std::map<std::string, unsigned int> YellowPages::ryp;
+std::map<unsigned int, int> YellowPages::yp_core;
+
+
+void YellowPages::init_from (unsigned int local_id, std::string & fpath)
+{
+   YellowPages::id = local_id;
+
+   std::ifstream ifs (fpath.c_str(), std::ifstream::in);
+
+   // read all the data provided
+   while (true)
+   {
+      unsigned int id;
+      char addr[256];
+      unsigned int sid;
+      int core_id;
+
+      ifs >> id;
+      if (ifs.bad() || ifs.eof())
+      {
+         break;
+      }
+
+      ifs.width (256);
+      ifs >> addr;
+      if (ifs.bad() || ifs.eof())
+      {
+         break;
+      }
+
+      ifs >> sid;
+      if (ifs.bad() || ifs.eof())
+      {
+         break;
+      }
+
+      ifs >> core_id;
+
+      if (id == local_id)
+      {
+         YellowPages::server_id = sid;
+      }
+
+      YellowPages::yp[id] = addr;
+      YellowPages::ryp[addr] = id;
+      YellowPages::yp_core[id] = core_id;
+
+      if (ifs.bad() || ifs.eof())
+      {
+         break;
+      }
+   }
+}
+
 unsigned int YellowPages::get_id (struct sockaddr * saddr)
 {
    assert (saddr->sa_family == AF_LOCAL || saddr->sa_family == AF_UNIX);
 
    struct sockaddr_un * addr = (struct sockaddr_un *) saddr;
 
-   unsigned int id;
-   if (sscanf (addr->sun_path, "/tmp/rest%u", &id) == 1)
-   {
-      return id;
-   }
+   std::map<std::string, unsigned int>::iterator it;
+   it = YellowPages::ryp.find (addr->sun_path);
 
-   return UINT_MAX;
+   if (it != YellowPages::ryp.end())
+   {
+      return it->second;
+   }
+   else
+   {
+      return UINT_MAX;
+   }
 }
 
 struct sockaddr * YellowPages::get_addr (unsigned int id)
@@ -52,11 +118,40 @@ struct sockaddr * YellowPages::get_addr (unsigned int id)
       return NULL;
    }
 
-   sprintf (addr.sun_path, "/tmp/rest%u", id);
+   std::map<unsigned int, std::string>::iterator it;
+   it = YellowPages::yp.find (id);
 
-   addr.sun_family = AF_LOCAL;
+   if (it != YellowPages::yp.end())
+   {
+      addr.sun_family = AF_LOCAL;
+      it->second.copy (addr.sun_path, it->second.size(), 0);
+      addr.sun_path[it->second.size() ] = '\0';
 
-   return (sockaddr *) &addr;
+      return (sockaddr *) &addr;
+   }
+   else
+   {
+      return NULL;
+   }
 }
 
+int YellowPages::get_core_id (unsigned int id)
+{
+   if (id == UINT_MAX)
+   {
+      return INT_MAX;
+   }
+
+   std::map<unsigned int, int>::iterator it;
+   it = YellowPages::yp_core.find (id);
+
+   if (it != YellowPages::yp_core.end())
+   {
+      return it->second;
+   }
+   else
+   {
+      return INT_MAX;
+   }
+}
 

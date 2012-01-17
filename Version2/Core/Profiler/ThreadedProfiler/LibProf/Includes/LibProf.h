@@ -18,7 +18,7 @@
 
 /**
   @file LibProf.h
-  @brief The LibProf class header is in this file 
+  @brief The LibProf class header is in this file
  */
 #ifndef H_LIBPROF
 #define H_LIBPROF
@@ -31,45 +31,45 @@
  */
 class LibProf
 {
-	
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		LibProf (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~LibProf (void);
-		
-		/**
-		 * @brief Create the counter listener to profile
- 		 * @return return true if success
-		 */
-		virtual bool creatCounters (void);
-		
-		/**
-		 * @brief accumulate values readden
-		 */
-		virtual void accumulator (void);
-		 
-		/**
-		 * @brief closing the listen of counters
-		 * @return return true if success
-		 */
-		virtual bool closeCounters (void);
-		
-		/**
-		 * @brief getTicks gives the clock's tick
-		 * @return unsigned long long tick of the clock
-		 */
-		virtual unsigned long long getTicks ( void );
-		
-		/**
-		 * @brief startLibrary initialize the profiler's library
-		 */
-		virtual void startLibrary (...);
+
+   public:
+      /**
+       * @brief Constructor
+       */
+      LibProf (void);
+
+      /**
+       * @brief Destructor
+       */
+      virtual ~LibProf (void);
+
+      /**
+       * @brief Create the counter listener to profile
+       * @return return true if success
+       */
+      virtual bool creatCounters (void);
+
+      /**
+       * @brief accumulate values readden
+       */
+      virtual void accumulator (void);
+
+      /**
+       * @brief closing the listen of counters
+       * @return return true if success
+       */
+      virtual bool closeCounters (void);
+
+      /**
+       * @brief getTicks gives the clock's tick
+       * @return unsigned long long tick of the clock
+       */
+      virtual unsigned long long getTicks (void);
+
+      /**
+       * @brief startLibrary initialize the profiler's library
+       */
+      virtual void startLibrary (...);
 };
 
 #endif

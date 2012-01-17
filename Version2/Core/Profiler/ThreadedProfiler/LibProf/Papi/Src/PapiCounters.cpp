@@ -18,51 +18,51 @@
 
 /**
   @file PapiCounters.cpp
-  @brief The PapiCounters class is in this file 
+  @brief The PapiCounters class is in this file
  */
- 
+
 #include "PapiCounters.h"
 
 PapiCounters::PapiCounters (void)
 {
 
 }
-		
+
 PapiCounters::~PapiCounters (void)
 {
 
 }
 
-pid_t PapiCounters::getTid ( void )
+pid_t PapiCounters::getTid (void)
 {
-	return 0;
+   return 0;
 }
 
-void PapiCounters::initPapiHelper ( int * EventSet)
+void PapiCounters::initPapiHelper (int * EventSet)
 {
-	(void) EventSet;
+   (void) EventSet;
 }
 
 void PapiCounters::startCounters (int EventSet)
 {
-	(void) EventSet;
+   (void) EventSet;
 }
 
-void PapiCounters::accumulator (int EventSet, long_long *values)
+void PapiCounters::accumulator (int EventSet, long_long * values)
 {
-	(void) EventSet;
-	(void) values;
+   (void) EventSet;
+   (void) values;
 }
 
 
 bool PapiCounters::closeCounters (void)
 {
-	return false;
+   return false;
 }
 
-unsigned long long PapiCounters::getTicks ( void )
+unsigned long long PapiCounters::getTicks (void)
 {
-	return 0;
+   return 0;
 }
 
 void PapiCounters::startLibrary (...)
@@ -77,11 +77,11 @@ void PapiCounters::stopLibrary (void)
 
 void PapiCounters::initThreadPapi (void)
 {
-	
+
 }
 
 PAPI_thread_id_t PapiCounters::threadIdPapi ()
 {
-	return 0;
+   return 0;
 }
 

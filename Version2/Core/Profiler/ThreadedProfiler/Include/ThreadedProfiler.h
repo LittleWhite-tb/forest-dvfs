@@ -18,13 +18,12 @@
 
 /**
   @file ThreadedProfiler.h
-  @brief The ThreadedProfiler class header is in this file 
+  @brief The ThreadedProfiler class header is in this file
  */
 #ifndef H_THREADEDPROFILER
 #define H_THREADEDPROFILER
 
 #include "Profiler.h"
-#include "LibProf.h"
 
 /**
  * @class ThreadedProfiler
@@ -32,18 +31,16 @@
  */
 class ThreadedProfiler:public Profiler
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		ThreadedProfiler (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~ThreadedProfiler (void);
-		
-		LibProf programProfiler;
+   public:
+      /**
+       * @brief Constructor
+       */
+      ThreadedProfiler (void);
+
+      /**
+       * @brief Destructor
+       */
+      virtual ~ThreadedProfiler (void);
 };
 
 #endif

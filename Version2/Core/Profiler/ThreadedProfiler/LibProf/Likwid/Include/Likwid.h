@@ -18,7 +18,7 @@
 
 /**
   @file Likwid.h
-  @brief The Likwid class header is in this file 
+  @brief The Likwid class header is in this file
  */
 #ifndef H_LIKWID
 #define H_LIKWID
@@ -31,50 +31,50 @@
  */
 class Likwid:public LibProf
 {
-	
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		Likwid (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~Likwid (void);
-		
-		/**
-		 * @brief Create the counter listener to profile
- 		 * @return return true if success
-		 */
-		virtual bool startCounters (void);
-		
-		/**
-		 * @brief accumulate values readden
-		 */
-		virtual void accumulator (void);
-		 
-		/**
-		 * @brief closing the listen of counters
-		 * @return return true if success
-		 */
-		virtual bool closeCounters (void);
-		
-		/**
-		 * @brief getTicks gives the clock's tick
-		 * @return unsigned long long tick of the clock
-		 */
-		virtual unsigned long long getTicks ( void );
-		
-		/**
-		 * @brief startLibrary initialize the profiler's library
-		 */
-		virtual void startLibrary (void);
-		
-		/**
-		 * @brief stopLibrary terminate the profiler's library
-		 */
-		virtual void stopLibrary (void);
+
+   public:
+      /**
+       * @brief Constructor
+       */
+      Likwid (void);
+
+      /**
+       * @brief Destructor
+       */
+      virtual ~Likwid (void);
+
+      /**
+       * @brief Create the counter listener to profile
+       * @return return true if success
+       */
+      virtual bool startCounters (void);
+
+      /**
+       * @brief accumulate values readden
+       */
+      virtual void accumulator (void);
+
+      /**
+       * @brief closing the listen of counters
+       * @return return true if success
+       */
+      virtual bool closeCounters (void);
+
+      /**
+       * @brief getTicks gives the clock's tick
+       * @return unsigned long long tick of the clock
+       */
+      virtual unsigned long long getTicks (void);
+
+      /**
+       * @brief startLibrary initialize the profiler's library
+       */
+      virtual void startLibrary (void);
+
+      /**
+       * @brief stopLibrary terminate the profiler's library
+       */
+      virtual void stopLibrary (void);
 };
 
 #endif

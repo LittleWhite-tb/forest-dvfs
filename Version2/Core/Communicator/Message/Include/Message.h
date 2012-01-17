@@ -43,7 +43,7 @@ class Message
        * @brief Creates a simple message only carrying type info.
        * @param tp The message type.
        */
-      Message (Type tp);
+      Message (Type tp, unsigned int sender, unsigned int dest);
 
       /**
        * @brief Returns the type id of the message.
@@ -61,9 +61,23 @@ class Message
        */
       virtual bool write_into (int fd) const;
 
+      /**
+       * @brief Returns the sender of this message.
+       * @return The message sender.
+       */
+      unsigned int get_sender() const;
+
+      /**
+       * @brief Returns the destination for this message.
+       * @return The id of the (desired) destination of the message.
+       */
+      unsigned int get_dest() const;
+
 
    private:
       Type type;
+      unsigned int sender;
+      unsigned int dest;
 };
 
 #endif

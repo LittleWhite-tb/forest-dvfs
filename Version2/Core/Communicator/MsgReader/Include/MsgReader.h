@@ -33,9 +33,11 @@ class MsgReader
       /**
        * @brief Utility function to read a message.
        * @param fd The file descriptor where to read from.
+       * @param src The sender of the message.
+       * @param dst The destination for the message.
        * @return A pointer to the read message or NULL. Free with delete.
        */
-      static Message * read_msg (int fd);
+      static Message * read_msg (int fd, unsigned int src, unsigned int dst);
 };
 
 #endif

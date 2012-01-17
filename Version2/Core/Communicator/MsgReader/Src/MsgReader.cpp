@@ -22,14 +22,17 @@
  */
 
 #include "MsgReader.h"
+#include "ReportMsg.h"
 
 #include "unistd.h"
 
-Message * MsgReader::read_msg (int fd)
+#include <iostream>
+
+Message * MsgReader::read_msg (int fd, unsigned int src, unsigned int dst)
 {
    Message::Type tp;
 
-   if (read (fd, &tp, sizeof (tp)) < sizeof (tp))
+   if (read (fd, &tp, sizeof (tp)) < (ssize_t) sizeof (tp))
    {
       return NULL;
    }
@@ -39,8 +42,18 @@ Message * MsgReader::read_msg (int fd)
       case Message::MSG_TP_SLEEP:
       case Message::MSG_TP_WAKE:
       case Message::MSG_TP_DIE:
-         return new Message (tp);
+         return new Message (tp, src, dst);
          break;
+      case Message::MSG_TP_REPORT:
+         long long data[3];
+
+         if (read (fd, data, sizeof (data)) < (ssize_t) sizeof (data))
+         {
+            std::cerr << "Incomplete report received" << std::endl;
+            return NULL;
+         }
+
+         return new ReportMsg (src, dst, data);
       default:
          // UNSUPPORTED
          return NULL;

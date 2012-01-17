@@ -25,9 +25,11 @@
 
 #include <unistd.h>
 
-Message::Message (Type tp)
+Message::Message (Message::Type tp, unsigned int sender, unsigned int dest)
 {
    this->type = tp;
+   this->sender = sender;
+   this->dest = dest;
 }
 
 Message::~Message()
@@ -35,14 +37,14 @@ Message::~Message()
 
 }
 
-Type Message::get_type()
+Message::Type Message::get_type()
 {
-    return this->type;
+   return this->type;
 }
 
 bool Message::write_into (int fd) const
 {
-   if (write (fd, &this->type, sizeof (this->type)) < sizeof (this->type))
+   if (write (fd, &this->type, sizeof (this->type)) < (ssize_t) sizeof (this->type))
    {
       return false;
    }
@@ -50,3 +52,13 @@ bool Message::write_into (int fd) const
    return true;
 }
 
+
+unsigned int Message::get_sender() const
+{
+   return this->sender;
+}
+
+unsigned int Message::get_dest() const
+{
+   return this->dest;
+}

@@ -23,35 +23,62 @@
 
 #include <assert.h>
 #include <iostream>
-
+#include <fstream>
 #include <sstream>
 
 #include "DecisionServer.h"
+#include "Message.h"
+#include "ReportMsg.h"
 
 DecisionServer::DecisionServer (void)
 {
-	coresInfos = new CoresInfos ();
-	freqchanger = new FreqChanger (coresInfos);
-	naiveDecisions = new NaiveDecisions (coresInfos);
+   coresInfos = new CoresInfos ();
+   freqchanger = new FreqChanger (coresInfos);
+   naiveDecisions = new NaiveDecisions (coresInfos);
+
+   this->comm = new Communicator();
+
+   while (true)
+   {
+      Message * msg;
+      Message::Type msgtp;
+
+      msg = this->comm->recv();
+      assert (msg != NULL);
+
+      msgtp = msg->get_type();
+      if (msgtp == Message::MSG_TP_REPORT)
+      {
+         int core = YellowPages::get_core_id (msg->get_sender());
+         int freq = naiveDecisions->giveReport (core, ( (ReportMsg *) msg)->get_report());
+         freqchanger->ChangeFreq (core, freq);
+      }
+      else
+      {
+         std::cerr << "Received a message with unexpected type: " << msg->get_type() << std::endl;
+      }
+   }
 }
 
 DecisionServer::~DecisionServer (void)
 {
-
+   delete (this->comm);
 }
 
-int main(int argc, char **argv)
+int main (int argc, char ** argv)
 {
 
-	std::istringstream iss; //Convert string to int
-	iss.str(argv[1]);
-	int curFreq = 0;
-	iss >> curFreq;
+   std::istringstream iss; //Convert string to int
+   iss.str (argv[1]);
+   int curFreq = 0;
+   iss >> curFreq;
 
-	DecisionServer *decisionServer = new DecisionServer();
-	std::cout << "Before changing freq " << decisionServer->freqchanger->ReadCurrentFreq(0) << std::endl;
-	decisionServer->freqchanger->ChangeFreq(0, curFreq);
-	std::cout << "After  changing freq " << decisionServer->freqchanger->ReadCurrentFreq(0) << std::endl;
+   DecisionServer * decisionServer = new DecisionServer();
+   std::cout << "Before changing freq " << decisionServer->freqchanger->ReadCurrentFreq (0) << std::endl;
+   decisionServer->freqchanger->ChangeFreq (0, curFreq);
+   std::cout << "After  changing freq " << decisionServer->freqchanger->ReadCurrentFreq (0) << std::endl;
 
-    
+   (void) (argc);
+   (void) (argv);
 }
+

@@ -18,24 +18,28 @@
 
 /**
   @file Markov.cpp
-  @brief The Markov class is in this file 
+  @brief The Markov class is in this file
  */
- 
+
+#if FALSE
+
 #include "Markov.h"
 
 Markov::Markov (void)
 {
 
 }
-		
+
 Markov::~Markov (void)
 {
 
 }
 
-int Markov::decisionGiveReport (void *data, Profiler *profiler)
+int Markov::decisionGiveReport (void * data, Profiler * profiler)
 {
-	(void) profiler;
-	(void) data;
-	return 0;
+   (void) profiler;
+   (void) data;
+   return 0;
 }
+
+#endif

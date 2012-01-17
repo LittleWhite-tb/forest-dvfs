@@ -39,7 +39,7 @@ class Communicator
 {
    public:
       /** @brief Creates and initialize the underlying network layer. */
-      Communicator (unsigned int local_id);
+      Communicator ();
 
       /** @brief Destructor. */
       ~Communicator();
@@ -50,7 +50,7 @@ class Communicator
        * @param dest_id The ID of the destination node.
        * @param msg The message to send.
        */
-      void send_to (unsigned int dest_id, const Message & msg);
+      void send (const Message & msg);
 
       /**
        * @brief Blocking receive operation.
@@ -91,8 +91,6 @@ class Communicator
 
    private:
 
-      /** @brief server local id. */
-      unsigned int local_id;
       /** @brief fd where to accept incomming connections. */
       int fd_server;
 
@@ -106,7 +104,7 @@ class Communicator
       /** @brief Outgoing connections. */
       std::map<unsigned int, int> sockets_out;
 
-      /** 
+      /**
        * @brief fds to notify new connections. new_conn[0] is the read end,
        * new_conn[1] is the write end of the pipe.
        */

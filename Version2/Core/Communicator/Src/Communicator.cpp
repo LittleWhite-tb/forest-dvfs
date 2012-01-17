@@ -33,9 +33,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Communicator::Communicator (unsigned int local_id)
+#include <iostream>
+
+Communicator::Communicator ()
 {
-   this->local_id = local_id;
    this->sockets_out = std::map<unsigned int, int>();
    this->sockets_in = std::map<unsigned int, int>();
    pthread_mutex_init (&this->mutex_sockin, NULL);
@@ -48,7 +49,7 @@ Communicator::Communicator (unsigned int local_id)
       exit (2);
    }
 
-   struct sockaddr * addr = YellowPages::get_addr (local_id);
+   struct sockaddr * addr = YellowPages::get_addr (YellowPages::get_id());
    assert (addr != NULL);
    if (bind (this->fd_server, (struct sockaddr *) &addr, YP_ADDRLEN (addr)) == -1)
    {
@@ -62,12 +63,12 @@ Communicator::Communicator (unsigned int local_id)
       exit (2);
    }
 
-   pipe(this->new_conn);
+   pipe (this->new_conn);
 
    // start accepting connections
    if (pthread_create (&this->server_th, NULL, &Communicator::server_loop, this) != 0)
    {
-       std::cerr << "Can't create accepting thread" << std::endl;
+      std::cerr << "Can't create accepting thread" << std::endl;
       exit (2);
    }
 }
@@ -79,8 +80,8 @@ Communicator::~Communicator()
 
    close (this->fd_server);
 
-   close(this->new_conn[0]);
-   close(this->new_conn[1]);
+   close (this->new_conn[0]);
+   close (this->new_conn[1]);
 
    std::map<unsigned int, int>::iterator it;
    for (it = this->sockets_out.begin();
@@ -124,7 +125,7 @@ void * Communicator::server_loop (void * arg)
       pthread_mutex_unlock (&obj->mutex_sockin);
 
       // restart reading open connections
-      write(this->new_conn[1], &fd, sizeof(int));
+      write (obj->new_conn[1], &fd, sizeof (int));
    }
 
    return NULL;
@@ -156,7 +157,7 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
    assert (addr != NULL);
    if (connect (fd, addr, YP_ADDRLEN (addr)) < 0)
    {
-       std::cerr <<  "Failed to connect to node " << dest_id << std::endl;
+      std::cerr <<  "Failed to connect to node " << dest_id << std::endl;
       close (fd);
       return -1;
    }
@@ -165,21 +166,21 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
    return fd;
 }
 
-void Communicator::send_to (unsigned int dest_id, const Message & msg)
+void Communicator::send (const Message & msg)
 {
-   int fd = this->get_socket (dest_id, true);
+   int fd = this->get_socket (msg.get_dest(), true);
 
    if (fd != -1)
    {
       if (!msg.write_into (fd))
       {
          close (fd);
-         this->sockets_out.erase (dest_id);
+         this->sockets_out.erase (msg.get_dest());
       }
    }
    else
    {
-       std::cerr << "Failure to send message to " << dest_id  << std::endl;
+      std::cerr << "Failure to send message to " << msg.get_dest()  << std::endl;
    }
 }
 
@@ -198,117 +199,122 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
    }
 
    // restart after any new connection and until receiving a message or timeout
-   while (true) {
-
-   // get file descriptors to watch
-   FD_ZERO (&fds);
-   if (sender_id != UINT_MAX)
+   while (true)
    {
-      pthread_mutex_lock (&this->mutex_sockin);
 
-      std::map<unsigned int, int>::iterator it;
-      it = this->sockets_in.find (sender_id);
-      assert (it != this->sockets_in.end());
-
-      FD_SET (it->second, &fds);
-      maxfd = it->second;
-
-      pthread_mutex_unlock (&this->mutex_sockin);
-   }
-   else
-   {
-      pthread_mutex_lock (&this->mutex_sockin);
-
-      std::map<unsigned int, int>::iterator it;
-      for (it = this->sockets_in.begin();
-            it != this->sockets_in.end();
-            it++)
-      {
-         FD_SET (it->second, &fds);
-         maxfd = (it->second > maxfd ? it->second : maxfd);
-      }
-
-      pthread_mutex_unlock (&this->mutex_sockin);
-   }
-
-   // also watch for new connection
-   FD_SET(this->new_conn[0], &fds);
-   maxfd = (this->new_conn[0] > maxfd ? this->new_conn[0] : maxfd);
-
-   int sres = select (maxfd + 1, &fds, NULL, NULL, &tval);
-   if (sres > 0)
-   {
-      // update the timeval value
-      if (*timeout != 0) {
-        *timeout = tval.tv_sec + tval.tv_usec * 1000000;
-        }
-
-      // new connection ? restart !
-      if (FD_ISSET(this->new_conn[0], &fds)) {
-          continue;
-      }
-
+      // get file descriptors to watch
+      FD_ZERO (&fds);
       if (sender_id != UINT_MAX)
       {
-         // single sender
          pthread_mutex_lock (&this->mutex_sockin);
 
          std::map<unsigned int, int>::iterator it;
          it = this->sockets_in.find (sender_id);
          assert (it != this->sockets_in.end());
-         Message * msg = MsgReader::read_msg (it->second);
 
-         if (msg == NULL)
-         {
-            close (it->second);
-            this->sockets_in.erase (it);
-         }
+         FD_SET (it->second, &fds);
+         maxfd = it->second;
 
          pthread_mutex_unlock (&this->mutex_sockin);
-
-         return msg;
       }
       else
       {
-         // multiple connections
-         Message * msg = NULL;
-
          pthread_mutex_lock (&this->mutex_sockin);
 
-         std::set<int> to_rm = std::set<int>();
-
          std::map<unsigned int, int>::iterator it;
-         for (it = this->sockets_in.begin(); it != this->sockets_in.end(); it++)
+         for (it = this->sockets_in.begin();
+               it != this->sockets_in.end();
+               it++)
          {
-            if (!FD_ISSET (it->second, &fds))
-            {
-               continue;
-            }
+            FD_SET (it->second, &fds);
+            maxfd = (it->second > maxfd ? it->second : maxfd);
+         }
 
-            msg = MsgReader::read_msg (it->second);
+         pthread_mutex_unlock (&this->mutex_sockin);
+      }
+
+      // also watch for new connection
+      FD_SET (this->new_conn[0], &fds);
+      maxfd = (this->new_conn[0] > maxfd ? this->new_conn[0] : maxfd);
+
+      int sres = select (maxfd + 1, &fds, NULL, NULL, &tval);
+      if (sres > 0)
+      {
+         // update the timeval value
+         if (*timeout != 0)
+         {
+            *timeout = tval.tv_sec + tval.tv_usec * 1000000;
+         }
+
+         // new connection ? restart !
+         if (FD_ISSET (this->new_conn[0], &fds))
+         {
+            continue;
+         }
+
+         if (sender_id != UINT_MAX)
+         {
+            // single sender
+            pthread_mutex_lock (&this->mutex_sockin);
+
+            std::map<unsigned int, int>::iterator it;
+            it = this->sockets_in.find (sender_id);
+            assert (it != this->sockets_in.end());
+            Message * msg = MsgReader::read_msg (it->second, sender_id, YellowPages::get_id());
 
             if (msg == NULL)
             {
                close (it->second);
-               to_rm.insert (it->first);
+               this->sockets_in.erase (it);
             }
-         }
 
-         // cleanup closed sockets
-         std::set<int>::iterator it_rm;
-         for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
+            pthread_mutex_unlock (&this->mutex_sockin);
+
+            return msg;
+         }
+         else
          {
-            close (this->sockets_in[*it_rm]);
-            this->sockets_in.erase (*it_rm);
+            // multiple connections
+            Message * msg = NULL;
+
+            pthread_mutex_lock (&this->mutex_sockin);
+
+            std::set<int> to_rm = std::set<int>();
+
+            std::map<unsigned int, int>::iterator it;
+            for (it = this->sockets_in.begin(); it != this->sockets_in.end(); it++)
+            {
+               if (!FD_ISSET (it->second, &fds))
+               {
+                  continue;
+               }
+
+               msg = MsgReader::read_msg (it->second, it->first, YellowPages::get_id());
+
+               if (msg == NULL)
+               {
+                  close (it->second);
+                  to_rm.insert (it->first);
+               }
+            }
+
+            // cleanup closed sockets
+            std::set<int>::iterator it_rm;
+            for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
+            {
+               close (this->sockets_in[*it_rm]);
+               this->sockets_in.erase (*it_rm);
+            }
+
+            pthread_mutex_unlock (&this->mutex_sockin);
+
+            return msg;
          }
-
-         pthread_mutex_unlock (&this->mutex_sockin);
-
-         return msg;
       }
-   } else {
-       return NULL;
-   }
+      else
+      {
+         return NULL;
+      }
 
    }
 

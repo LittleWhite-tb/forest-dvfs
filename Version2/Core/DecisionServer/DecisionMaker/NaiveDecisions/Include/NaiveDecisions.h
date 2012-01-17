@@ -34,24 +34,24 @@
  */
 class NaiveDecisions : public DecisionMaker
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		NaiveDecisions (CoresInfos *coresInfos);
-		
-		/**
-		 * @brief Destructor
-		 */
-		~NaiveDecisions (void);
+   public:
+      /**
+       * @brief Constructor
+       */
+      NaiveDecisions (CoresInfos * coresInfos);
 
-		/**
-		 * @brief Gives a core number and the new frequency to set
-		 * @param core the core ID
-		 * @param HWCounters integer array the three hardware counters given by the profiler
-		 * @param currentFreq the frequency currently set
-		 * @return the frequency to move to
-		 */
-		int giveReport (int core, long long HWCounters[3]);
+      /**
+       * @brief Destructor
+       */
+      ~NaiveDecisions (void);
+
+      /**
+       * @brief Gives a core number and the new frequency to set
+       * @param core the core ID
+       * @param HWCounters integer array the three hardware counters given by the profiler
+       * @param currentFreq the frequency currently set
+       * @return the frequency to move to
+       */
+      int giveReport (int core, const long long HWCounters[3]);
 };
 #endif

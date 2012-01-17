@@ -18,9 +18,9 @@
 
 /**
   @file Likwid.cpp
-  @brief The Likwid class is in this file 
+  @brief The Likwid class is in this file
  */
- 
+
 #include "Likwid.h"
 
 
@@ -36,22 +36,22 @@ Likwid::~Likwid (void)
 
 bool Likwid::startCounters (void)
 {
-	return false;
+   return false;
 }
 
 void Likwid::accumulator (void)
 {
 
 }
- 
+
 bool Likwid::closeCounters (void)
 {
-	return false;
+   return false;
 }
 
-unsigned long long Likwid::getTicks ( void )
+unsigned long long Likwid::getTicks (void)
 {
-	return 0;
+   return 0;
 }
 
 void Likwid::startLibrary (void)

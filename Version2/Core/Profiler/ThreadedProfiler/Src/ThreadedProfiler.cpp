@@ -18,16 +18,16 @@
 
 /**
   @file ThreadedProfiler.cpp
-  @brief The ThreadedProfiler class header is in this file 
+  @brief The ThreadedProfiler class header is in this file
  */
-  
+
 #include "ThreadedProfiler.h"
-  
+
 ThreadedProfiler::ThreadedProfiler (void)
 {
 
 }
-		
+
 ThreadedProfiler::~ThreadedProfiler (void)
 {
 

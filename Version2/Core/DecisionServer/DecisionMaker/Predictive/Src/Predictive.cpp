@@ -16,26 +16,31 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#if FALSE
+
+
 /**
   @file Predictive.cpp
-  @brief The Predictive class is in this file 
+  @brief The Predictive class is in this file
  */
 
-#include "Predictive.h" 
+#include "Predictive.h"
 
 Predictive::Predictive (void)
 {
 
 }
-		
+
 Predictive::~Predictive (void)
 {
 
 }
 
-int Predictive::decisionGiveReport (void *data, Profiler *profiler)
+int Predictive::decisionGiveReport (void * data, Profiler * profiler)
 {
-	(void) profiler;
-	(void) data;
-	return 0;
+   (void) profiler;
+   (void) data;
+   return 0;
 }
+
+#endif

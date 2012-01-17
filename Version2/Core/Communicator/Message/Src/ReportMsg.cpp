@@ -17,26 +17,28 @@
  */
 
 /**
- @file DecisionMaker.cpp
- @brief The  DecisionMaker class is in this file
+ @file ReportMsg.cpp
+ @brief The ReportMsg class is in this file
  */
 
-#include  <assert.h>
+#include "ReportMsg.h"
+#include <unistd.h>
 
-#include "DecisionMaker.h"
-
-
-DecisionMaker::DecisionMaker (CoresInfos * coresInfos)
-{
-   this->coresInfo = coresInfos;
+ReportMsg::ReportMsg(unsigned int sender, unsigned int dest, long long report[3]) : Message(Message::MSG_TP_REPORT, sender, dest) {
+    this->data[0] = report[0];
+    this->data[1] = report[1];
+    this->data[2] = report[2];
 }
 
-DecisionMaker::~DecisionMaker (void)
-{
+ReportMsg::~ReportMsg() {
 
 }
 
-float DecisionMaker::computeBoundness (long long sqFullStall, long long unhaltedCore, long long l2Miss)
-{
-   return (4*16*sqFullStall*unhaltedCore) / (l2Miss*l2Miss);
+const long long *ReportMsg::get_report() const {
+    return this->data;
 }
+
+bool ReportMsg::write_into (int fd) const {
+    return write(fd, this->data, sizeof(this->data)) == sizeof(this->data);
+}
+
