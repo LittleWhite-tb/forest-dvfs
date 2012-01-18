@@ -23,41 +23,69 @@
 
 #include "ThreadedProfiler.h"
 #include "PapiCounters.h"
+#include "Message.h"
+#include "ReportMsg.h"
+#include "YellowPages.h"
 
-#include <unistd.h>
 #include <cmath>
 #include <iostream>
 
-ThreadedProfiler::ThreadedProfiler (void)
+ThreadedProfiler::ThreadedProfiler (void) : Profiler()
 {
-    this->prof = new PapiCounters();
-    this->prof->attach_to(LibProf::getTID());
-    this->prof->start_counters();
+   this->prof = new PapiCounters();
+   this->prof->attach_to (LibProf::getTID());
+   this->prof->start_counters();
 
-    this->thid = pthread_create(&this->thid, NULL, ThreadedProfiler::profile_loop, this);
+   this->thid = pthread_create (&this->thid, NULL, ThreadedProfiler::profile_loop, this);
 }
 
 ThreadedProfiler::~ThreadedProfiler (void)
 {
-    delete(this->prof);
+    pthread_cancel(this->thid);
+    pthread_join(this->thid, NULL);
+   delete (this->prof);
 }
 
-void *ThreadedProfiler::profile_loop(void *arg)
+void * ThreadedProfiler::profile_loop (void * arg)
 {
-    ThreadedProfiler *obj = (ThreadedProfiler *) arg;
-    unsigned int win_sz = 1;
-    long long int values[3];
-    unsigned int sleepScale = INIT_SLEEP_SCALE;
+   ThreadedProfiler * obj = (ThreadedProfiler *) arg;
+   unsigned int win_sz = 1;
+   long long int values[3];
+   unsigned int sleep_scale = INIT_SLEEP_SCALE;
+   unsigned int sleep_time = std::pow (2, win_sz) * sleep_scale;
 
-    // reset counters
-    obj->prof->read(values);
+   unsigned int my_id = YellowPages::get_id();
+   unsigned int server_id = YellowPages::get_server_id();
 
-    // continue profiling for a while...
-    while (true) {
-        usleep(std::pow(2, win_sz) * sleepScale);
+   // reset counters
+   obj->prof->read (values);
+
+   // continue profiling for a while...
+   while (true)
+   {
+        Message *msg;
+        unsigned int timeout = sleep_time;
+        ReportMsg *report;
+
+        do {
+            msg = obj->comm->recv(&timeout);
+            
+            // most probably timeout (can be error too...)
+            if (msg == NULL) {
+                break;
+            }
+
+        } while (msg != NULL);
+
         obj->prof->read(values);
-        std::cout << values[0] << " " << values[1] << " " << values[2] << std::endl;
-    };
 
-    return NULL;
+        // send report to the decision server
+        report = new ReportMsg(my_id, server_id, values);
+        obj->comm->send(*report);
+        delete report;
+
+      std::cout << values[0] << " " << values[1] << " " << values[2] << std::endl;
+   };
+
+   return NULL;
 }

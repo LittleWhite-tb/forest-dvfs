@@ -31,25 +31,25 @@ LibProf::LibProf ()
 
 }
 
-LibProf::~LibProf () 
+LibProf::~LibProf ()
 {
 
 }
 
 unsigned long long LibProf::getTicks ()
 {
-    unsigned long long res;
-    rdtscll(res);
-    return res;
+   unsigned long long res;
+   rdtscll (res);
+   return res;
 }
 
 unsigned long int LibProf::getTID()
 {
-    #ifdef SYS_gettid
-		return syscall(SYS_gettid);
-	#elif defined(__NR_gettid)
-		return syscall(__NR_gettid);
-	#else
-		#error "Unable to implement gettid."
-	#endif
+#ifdef SYS_gettid
+   return syscall (SYS_gettid);
+#elif defined(__NR_gettid)
+   return syscall (__NR_gettid);
+#else
+#error "Unable to implement gettid."
+#endif
 }

@@ -51,7 +51,7 @@ class PapiCounters: public LibProf
        * @brief Tells the profiler to watch counter for the given thread.
        * @param tid The TID of the concerned thread.
        */
-      void attach_to(unsigned long int tid);
+      void attach_to (unsigned long int tid);
 
       /**
        * @brief Starts watching the counters.
@@ -67,9 +67,9 @@ class PapiCounters: public LibProf
        * @brief Reads the counter values and reset them.
        * @param values Where to write the couter values.
        */
-      void read(long long *values);
+      void read (long long * values);
 
-    private:
+   private:
 
       /**
        * @brief EventSet for papi.

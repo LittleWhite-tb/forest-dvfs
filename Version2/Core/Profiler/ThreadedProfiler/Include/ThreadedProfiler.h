@@ -34,28 +34,28 @@
  */
 class ThreadedProfiler: public Profiler
 {
-    public:
-        /**
-         * @brief Constructor
-         */
-        ThreadedProfiler (void);
+   public:
+      /**
+       * @brief Constructor
+       */
+      ThreadedProfiler (void);
 
-        /**
-         * @brief Destructor
-         */
-        virtual ~ThreadedProfiler (void);
+      /**
+       * @brief Destructor
+       */
+      virtual ~ThreadedProfiler (void);
 
-        /**
-         * @brief compute the ratio of boudness and cpuness
-         * @return the boundeness computed
-         */
-        float ComputeBoudness (void);
+      /**
+       * @brief compute the ratio of boudness and cpuness
+       * @return the boundeness computed
+       */
+      float ComputeBoudness (void);
 
-    private:
+   private:
       /**
        * @brief Backend profiler used.
        */
-      LibProf *prof;
+      LibProf * prof;
 
       /**
        * @brief thread id.
@@ -67,7 +67,7 @@ class ThreadedProfiler: public Profiler
        * @param arg The profiler that created the thread.
        * @return NULL
        */
-      static void *profile_loop(void *arg);
+      static void * profile_loop (void * arg);
 };
 
 #endif

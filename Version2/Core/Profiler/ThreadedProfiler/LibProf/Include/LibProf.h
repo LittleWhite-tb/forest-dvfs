@@ -25,17 +25,17 @@
 
 // Define rdtscll
 #ifdef __x86_64__
-	#define rdtscll(val) do { \
+#define rdtscll(val) do { \
 			unsigned int __a,__d; \
 			asm volatile("rdtsc" : "=a" (__a), "=d" (__d)); \
 			(val) = ((unsigned long)__a) | (((unsigned long)__d)<<32); \
 	} while(0)
 #elif defined(__i386__)
-	#define rdtscll(val) do { \
+#define rdtscll(val) do { \
 		asm volatile ("rdtsc" : "=A"(val)); \
 		} while(0)
 #else
-    #error "Cannot implement rtdscll"
+#error "Cannot implement rtdscll"
 #endif
 
 
@@ -71,13 +71,13 @@ class LibProf
        * @brief Tells the profiler to watch counter for the given thread.
        * @param tid The TID of the concerned thread.
        */
-      virtual void attach_to(unsigned long int tid) = 0;
+      virtual void attach_to (unsigned long int tid) = 0;
 
       /**
        * @brief Reads the counter values and reset them.
        * @param values Where to write the couter values.
        */
-      virtual void read(long long *values) = 0;
+      virtual void read (long long * values) = 0;
 
       /**
        * @brief Returns the clock's tick

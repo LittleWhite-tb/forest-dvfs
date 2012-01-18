@@ -96,13 +96,20 @@ class Communicator
 
       /** @brief Server thread id. */
       pthread_t server_th;
-      /** @brief mutex to access sockets_in */
-      pthread_mutex_t mutex_sockin;
       /** @brief Openned socket connections */
       std::map<unsigned int, int> sockets_in;
 
       /** @brief Outgoing connections. */
       std::map<unsigned int, int> sockets_out;
+
+      /** @brief mutex to access sockets_ukn */
+      pthread_mutex_t mutex_sockukn;
+      /** 
+       * @brief list of unidentified sockets. Those are people that connected
+       * to us but we have no id what is their id.
+       */
+      std::set<int> sockets_ukn;
+
 
       /**
        * @brief fds to notify new connections. new_conn[0] is the read end,

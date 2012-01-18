@@ -36,12 +36,15 @@ class Message
          MSG_TP_WAKE,
          MSG_TP_SETWIN,
          MSG_TP_DIE,
-         MSG_TP_REPORT
+         MSG_TP_REPORT,
+         MSG_TP_ID
       } Type;
 
       /**
        * @brief Creates a simple message only carrying type info.
        * @param tp The message type.
+       * @param sender The sender node id
+       * @param dest The destination node id
        */
       Message (Type tp, unsigned int sender, unsigned int dest);
 
@@ -55,7 +58,9 @@ class Message
       virtual ~Message();
 
       /**
-       * @brief Dumps the message into the file descriptor.
+       * @brief Dumps the message into the file descriptor. The message MUST
+       * start by the message type.
+       *
        * @param fd The file descriptor where to write into.
        * @return False in case of failure, true otherwise.
        */

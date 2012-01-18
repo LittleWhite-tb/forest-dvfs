@@ -17,41 +17,25 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is in this file
+  @file IdMsg.cpp
+  @brief The IdMsg class is in this file
  */
-#ifndef H_PROFILER
-#define H_PROFILER
 
-#include "Communicator.h"
+#include "IdMsg.h"
 
-/** @brief Initial sleep-scale for sleeping window (in usec) */
-#define INIT_SLEEP_SCALE 600
+#include <unistd.h>
 
-/**
- * @class Profiler
- * @brief The Profiler of ThreadedProfiler and ProfilerServer
- */
-class Profiler
+IdMsg::IdMsg(unsigned int sender, unsigned int dest, unsigned int id)
+    : Message(Message::MSG_TP_ID, sender, dest)
+{
+    this->id = id;
+}
+
+IdMsg::~IdMsg()
 {
 
-   public:
-      /**
-       * @brief Constructor
-       */
-      Profiler (void);
+}
 
-      /**
-       * @brief Destructor
-       */
-      virtual ~Profiler (void);
-
-    protected:
-      /**
-       * Communicator to transmit info to decision servers.
-       */
-      Communicator *comm;
-
-};
-
-#endif
+bool IdMsg::write_into(int fd) const {
+    return this->Message::write_into(fd) && write(fd, &this->id, sizeof(this->id)) == sizeof(this->id);
+}

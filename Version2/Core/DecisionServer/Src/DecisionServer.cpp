@@ -29,6 +29,7 @@
 #include "DecisionServer.h"
 #include "Message.h"
 #include "ReportMsg.h"
+#include "YellowPages.h"
 
 DecisionServer::DecisionServer (void)
 {
@@ -67,18 +68,18 @@ DecisionServer::~DecisionServer (void)
 
 int main (int argc, char ** argv)
 {
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " id config" << std::endl;
+        return 1;
+    }
 
-   std::istringstream iss; //Convert string to int
-   iss.str (argv[1]);
-   int curFreq = 0;
-   iss >> curFreq;
+    unsigned int id;
+    std::istringstream iss(argv[1], std::istringstream::in);
+    iss >> id;
+    std::string confpath(argv[2]);
+    YellowPages::init_from(id, confpath);
 
-   DecisionServer * decisionServer = new DecisionServer();
-   std::cout << "Before changing freq " << decisionServer->freqchanger->ReadCurrentFreq (0) << std::endl;
-   decisionServer->freqchanger->ChangeFreq (0, curFreq);
-   std::cout << "After  changing freq " << decisionServer->freqchanger->ReadCurrentFreq (0) << std::endl;
-
-   (void) (argc);
-   (void) (argv);
+    DecisionServer *dc = new DecisionServer();
+    delete dc;
 }
 

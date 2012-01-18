@@ -32,7 +32,8 @@
 #include <string>
 #include <map>
 
-#define YP_ADDRLEN(a) sizeof(a)
+#include <netinet/in.h>
+#define YP_ADDRLEN(a) (sizeof(struct sockaddr_in))
 
 class YellowPages
 {
@@ -40,7 +41,7 @@ class YellowPages
       /**
        * @brief Configures the yellow pages using the given config file.
        * Lines in the configuration file must follow the following format:
-       * ID ADDRESS SERVER_ID PROC_CORE
+       * ID HOST PORT SERVER_ID PROC_CORE
        * where the space character is used as separator between the fields.
        *
        * @param local_id The local_id to use
@@ -49,11 +50,10 @@ class YellowPages
       static void init_from (unsigned int local_id, std::string & fpath);
 
       /**
-       * @brief Returns the id of the node with the given address.
-       * @param addr The network address of the node.
-       * @return The ID of the node with the given address.
+       * @brief Cleanups the memory used by the yellow pages and reset
+       * the configuration to an empty state.
        */
-      static unsigned int get_id (struct sockaddr * addr);
+      static void reset();
 
       /**
        * @brief Returns the address of the node with the given id.
@@ -61,7 +61,7 @@ class YellowPages
        * @return The the address of the node with the given ID. Usable
        * only until next call to get_addr. Can be NULL.
        */
-      static struct sockaddr * get_addr (unsigned int id);
+      static const struct sockaddr * get_addr (unsigned int id);
 
       /**
        * @brief Returns the local id of the calling process.
@@ -95,10 +95,7 @@ class YellowPages
       static unsigned int server_id;
 
       /** @brief map id -> address */
-      static std::map<unsigned int, std::string> yp;
-
-      /** @brief map address -> id */
-      static std::map<std::string, unsigned int> ryp;
+      static std::map<unsigned int, const struct sockaddr *> yp;
 
       /** @brief map id -> core_id */
       static std::map<unsigned int, int> yp_core;
