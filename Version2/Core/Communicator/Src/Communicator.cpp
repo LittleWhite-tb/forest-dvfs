@@ -66,9 +66,10 @@ Communicator::Communicator ()
       exit (2);
    }
 
-   if (pipe (this->new_conn) == -1) {
-       std::perror("Failed to create notification pipe");
-       exit(2);
+   if (pipe (this->new_conn) == -1)
+   {
+      std::perror ("Failed to create notification pipe");
+      exit (2);
    }
 
    // start accepting connections
@@ -258,7 +259,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
       }
 
       pthread_mutex_unlock (&this->mutex_sockukn);
-    
+
       int sres = select (maxfd + 1, &fds, NULL, NULL, &tval);
       if (sres > 0)
       {
@@ -286,7 +287,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
             if (msg == NULL)
             {
-                std::cout << "Connection with node " << it->first << " lost" << std::endl;
+               std::cout << "Connection with node " << it->first << " lost" << std::endl;
                close (it->second);
                this->sockets_in.erase (it);
             }
@@ -312,7 +313,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                if (msg == NULL)
                {
-                   std::cout << "Connection with node " << it->first << " lost" << std::endl;
+                  std::cout << "Connection with node " << it->first << " lost" << std::endl;
                   close (it->second);
                   to_rm.insert (it->first);
                }
@@ -352,7 +353,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                if (msg == NULL)
                {
-                   std::cout << "Connection with unknown node " << *its << " lost" << std::endl;
+                  std::cout << "Connection with unknown node " << *its << " lost" << std::endl;
                   close (*its);
                   to_rm.insert (*its);
                   continue;

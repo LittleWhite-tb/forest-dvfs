@@ -42,7 +42,10 @@ ThreadedProfiler::ThreadedProfiler (void) : Profiler()
 ThreadedProfiler::~ThreadedProfiler (void)
 {
    pthread_cancel (this->thid);
-   pthread_join (this->thid, NULL);
+   if (pthread_join (this->thid, NULL))
+   {
+        std::cerr << "Failed to wait for profiler thread termination." << std::endl;
+   }
    delete (this->prof);
 }
 
@@ -56,6 +59,9 @@ void * ThreadedProfiler::profile_loop (void * arg)
 
    unsigned int my_id = YellowPages::get_id();
    unsigned int server_id = YellowPages::get_server_id();
+
+   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
    // reset counters
    obj->prof->read (values);

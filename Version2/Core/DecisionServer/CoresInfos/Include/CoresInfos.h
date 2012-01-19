@@ -26,58 +26,68 @@
 
 #include <vector>
 #include <fstream>
+#include <string>
 
 /**
  * @brief structure useful for each core
  */
 typedef struct coreData
 {
-        unsigned int idCore;    /**< @brief the id of the core associated to its profile informations*/
-        std::ofstream *freq_fd;  /**< @brief where to write the frequencies */
-        int currentFreq;	    /**< @brief int that holds the currentFrequency */
-        unsigned long int *freqTrack;  /**< @brief track the frequencies values changes*/
+   unsigned int idCore;    /**< @brief the id of the core associated to its profile informations*/
+   std::ofstream * freq_fd; /**< @brief where to write the frequencies */
+   int currentFreq;	    /**< @brief int that holds the currentFrequency */
+   unsigned long int * freqTrack; /**< @brief track the frequencies values changes*/
+   std::string old_gov; /**< @brief original governor registered for this code. */
 } CoreData;
 
 
 
 /**
  * @class CoresInfos
- * @brief 
+ * @brief
  */
 class CoresInfos
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		CoresInfos (void);
-		
-		/**
-		 * @brief Destructor
-		 */
-		~CoresInfos (void);
+   public:
+      /**
+       * @brief Constructor
+       */
+      CoresInfos (void);
 
-        CoreData *all_core_data; /**< @brief the available frequencies on the system of size numFreq*/
+      /**
+       * @brief Destructor
+       */
+      ~CoresInfos (void);
 
-		//variables
-		int freqMax;			/**< @brief the highest available frequencies*/
-		int freqMin;			/**< @brief the lowest available frequencies*/
-		unsigned int numFreqs;	/**< @brief the number of available frequencies*/
-		unsigned int numCores;	/**< @brief number of available cores**/
-		int *availableFreqs;   /**< @brief the available frequencies on the system of size numFreq*/
+      CoreData * all_core_data; /**< @brief the available frequencies on the system of size numFreq*/
 
-    private:
+      //variables
+      int freqMax;			/**< @brief the highest available frequencies*/
+      int freqMin;			/**< @brief the lowest available frequencies*/
+      unsigned int numFreqs;	/**< @brief the number of available frequencies*/
+      unsigned int numCores;	/**< @brief number of available cores**/
+      int * availableFreqs;  /**< @brief the available frequencies on the system of size numFreq*/
 
-		/**
-		 * @brief Learn about the hardware performances
-		 */
-		void initCpuDatas ();
+   private:
 
-		/**
-		 * @brief Initialize Structure containing important information for rest for a specific core
-		 * @param coreId the specific core
-		 * @return the core datas initialized
-		 */
-		CoreData initCoreDatas(unsigned int coreId);
+      /**
+       * @brief Learn about the hardware performances
+       */
+      void initCpuDatas ();
+
+      /**
+       * @brief Initialize Structure containing important information for rest for a specific core
+       * @param coreId the specific core
+       * @return the core datas initialized
+       */
+      CoreData initCoreDatas (unsigned int coreId);
+
+      /**
+       * @brief Cleanups the data and execution context related to the given
+       * core.
+       *
+       * @param coreId The id of the concerned core.
+       */
+      void freeCoreDatas(unsigned int coreId);
 };
 #endif

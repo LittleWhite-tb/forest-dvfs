@@ -25,11 +25,17 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 
 #include "DecisionServer.h"
 #include "Message.h"
 #include "ReportMsg.h"
 #include "YellowPages.h"
+
+static void cleanup_fn();
+
+static DecisionServer * dc = NULL; // ok, I know...
+
 
 DecisionServer::DecisionServer (void)
 {
@@ -38,8 +44,19 @@ DecisionServer::DecisionServer (void)
    naiveDecisions = new NaiveDecisions (coresInfos);
 
    this->comm = new Communicator();
+}
 
-   while (true)
+DecisionServer::~DecisionServer (void)
+{
+   delete this->comm;
+   delete this->naiveDecisions;
+   delete this->freqchanger;
+   delete this->coresInfos;
+}
+
+void DecisionServer::server_loop() 
+{
+    while (true)
    {
       Message * msg;
       Message::Type msgtp;
@@ -51,7 +68,7 @@ DecisionServer::DecisionServer (void)
       if (msgtp == Message::MSG_TP_REPORT)
       {
          int core = YellowPages::get_core_id (msg->get_sender());
-         int freq = naiveDecisions->giveReport (core, ( (ReportMsg *) msg)->get_report());
+         int freq = naiveDecisions->giveReport (core, ((ReportMsg *) msg)->get_report());
          freqchanger->ChangeFreq (core, freq);
       }
       else
@@ -61,10 +78,7 @@ DecisionServer::DecisionServer (void)
    }
 }
 
-DecisionServer::~DecisionServer (void)
-{
-   delete (this->comm);
-}
+
 
 int main (int argc, char ** argv)
 {
@@ -74,13 +88,21 @@ int main (int argc, char ** argv)
       return 1;
    }
 
+   atexit(cleanup_fn);
+
    unsigned int id;
    std::istringstream iss (argv[1], std::istringstream::in);
    iss >> id;
    std::string confpath (argv[2]);
    YellowPages::init_from (id, confpath);
 
-   DecisionServer * dc = new DecisionServer();
-   delete dc;
+   dc = new DecisionServer();
+   dc->server_loop();
 }
 
+
+static void cleanup_fn()
+{
+    YellowPages::reset();
+    delete(dc);
+}

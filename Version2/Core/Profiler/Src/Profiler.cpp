@@ -82,6 +82,8 @@ int main (int argc, char ** argv)
    int MEM_BOUND_ITER=round ( (float) updown_mem_product/ (float) NUM_UP_DOWN);
    int CPU_BOUND_ITER=MEM_BOUND_ITER*cpu_2_mem_ratio;
 
+NUM_UP_DOWN=1;
+
    ThreadedProfiler * p = new ThreadedProfiler();
 
    for (i=0; i<NUM_UP_DOWN; i++)
