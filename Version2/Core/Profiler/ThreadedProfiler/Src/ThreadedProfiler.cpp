@@ -41,8 +41,8 @@ ThreadedProfiler::ThreadedProfiler (void) : Profiler()
 
 ThreadedProfiler::~ThreadedProfiler (void)
 {
-    pthread_cancel(this->thid);
-    pthread_join(this->thid, NULL);
+   pthread_cancel (this->thid);
+   pthread_join (this->thid, NULL);
    delete (this->prof);
 }
 
@@ -63,26 +63,29 @@ void * ThreadedProfiler::profile_loop (void * arg)
    // continue profiling for a while...
    while (true)
    {
-        Message *msg;
-        unsigned int timeout = sleep_time;
-        ReportMsg *report;
+      Message * msg;
+      unsigned int timeout = sleep_time;
+      ReportMsg * report;
 
-        do {
-            msg = obj->comm->recv(&timeout);
-            
-            // most probably timeout (can be error too...)
-            if (msg == NULL) {
-                break;
-            }
+      do
+      {
+         msg = obj->comm->recv (&timeout);
 
-        } while (msg != NULL);
+         // most probably timeout (can be error too...)
+         if (msg == NULL)
+         {
+            break;
+         }
 
-        obj->prof->read(values);
+      }
+      while (msg != NULL);
 
-        // send report to the decision server
-        report = new ReportMsg(my_id, server_id, values);
-        obj->comm->send(*report);
-        delete report;
+      obj->prof->read (values);
+
+      // send report to the decision server
+      report = new ReportMsg (my_id, server_id, values);
+      obj->comm->send (*report);
+      delete report;
 
       std::cout << values[0] << " " << values[1] << " " << values[2] << std::endl;
    };

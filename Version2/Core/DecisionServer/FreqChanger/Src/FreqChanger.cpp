@@ -25,6 +25,7 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <cstdio>
 
 #include "FreqChanger.h"
 
@@ -36,9 +37,9 @@ FreqChanger::FreqChanger (CoresInfos *coresInfos)
 	assert(this->coresInfos);
 
 	//Initializing the current freq
-	for (int i = 0; i < coresInfos->numCores; i++)
+	for (unsigned int i = 0; i < coresInfos->numCores; i++)
 	{
-		coresInfos->coreDatasArray->at (i).currentFreq = ReadCurrentFreq (i);
+		coresInfos->all_core_data[i].currentFreq = ReadCurrentFreq (i);
 	}
 }
 
@@ -47,7 +48,7 @@ FreqChanger::~FreqChanger (void)
 
 }
 
-int FreqChanger::ReadCurrentFreq (int coreId)
+int FreqChanger::ReadCurrentFreq (unsigned int coreId)
 {
 	std::string curFreqString = ""; //Temp string for the current frequency
 	std::istringstream iss; //Convert string to int
@@ -57,20 +58,20 @@ int FreqChanger::ReadCurrentFreq (int coreId)
 
 	//Setting and Opening path leading to the cpuinfo data
 	oss << "/sys/devices/system/cpu/cpu" << coreId
-			<< "/cpufreq/cpuinfo_cur_freq";
+			<< "/cpufreq/scaling_cur_freq";
 	fp.open (oss.str ().c_str ());
 
 	//Reading the current frequency
 	//Paranoid
-	if (fp.bad () == true)
+	if (fp.fail())
 	{
-		std::cerr << "Failed to open cpufreq datafile" << std::endl;
+        std::perror("Failed to open cpufreq datafile");
 		return -1;
 	}
 	else
 	{
 		//Reading the current frequency
-		if (fp.bad () == false)
+		if (fp.good())
 		{
 			getline (fp, curFreqString);
 			iss.str (curFreqString);
@@ -79,38 +80,50 @@ int FreqChanger::ReadCurrentFreq (int coreId)
 		//Paranoid
 		else
 		{
-			std::cerr << "file open call failed somehow" << std::endl;
+			std::cerr << "Failed to read cpufreq data" << std::endl;
 			return -1;
 		}
 	}
 	fp.close ();
-	fp.clear();
 
 	return curFreq;
 }
 
-int FreqChanger::ReadFreq (int coreId)
+int FreqChanger::ReadFreq (unsigned int coreId)
 {
-	return coresInfos->coreDatasArray->at (coreId).currentFreq;
+    if (coreId < this->coresInfos->numCores)
+    {
+        return -1;
+    }
+
+	return this->coresInfos->all_core_data[coreId].currentFreq;
 }
 
-void FreqChanger::ChangeFreq (int coreId, int freqId)
+void FreqChanger::ChangeFreq (unsigned int coreId, int freqId)
 {
-	//long long int time = getTicks();
-	std::ostringstream oss; //Convert string to int
-	std::ofstream f;
-	CoreDatas *coreDatas = &coresInfos->coreDatasArray->at (coreId);
+    std::ostringstream oss;
 
-	coreDatas->freqTrack[freqId]++;
+    if (coreId > this->coresInfos->numCores) {
+        std::cerr << "Invalid core num for freq chande: " << coreId << std::endl;
+        return;
+    }
 
-	f.open (coreDatas->setFile.c_str ());
+	CoreData *cd = &this->coresInfos->all_core_data[coreId];
+    if (cd->currentFreq == freqId) {
+        return;
+    }
 
-	f.seekp (0, std::ios::beg);
-	oss << coresInfos->availableFreqs[freqId];
-	f << oss.str ();
-	coreDatas->currentFreq = coresInfos->availableFreqs[freqId];
-	f.flush();
+    if (freqId < 0 || freqId > (int) this->coresInfos->numFreqs) {
+        std::cerr << "Invalid frequence requested: " << freqId << std::endl;
+        return;
+    }
 
-	f.close ();
-	f.clear ();
+    cd->freqTrack[freqId]++;
+
+	cd->freq_fd->seekp (0, std::ios::beg);
+	oss << this->coresInfos->availableFreqs[freqId];
+	*cd->freq_fd << oss.str ();
+    cd->freq_fd->flush();
+
+    cd->currentFreq = this->coresInfos->availableFreqs[freqId];
 }

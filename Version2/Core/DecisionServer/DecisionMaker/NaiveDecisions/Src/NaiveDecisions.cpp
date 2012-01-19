@@ -23,6 +23,7 @@
 
 #include <assert.h>
 #include <cmath>
+#include <iostream>
 
 #include "NaiveDecisions.h"
 
@@ -39,15 +40,14 @@ NaiveDecisions::~NaiveDecisions (void)
 
 }
 
-int NaiveDecisions::giveReport (int core, const long long HWCounters[3])
+int NaiveDecisions::giveReport (unsigned int core, const long long HWCounters[3])
 {
    float boundness = computeBoundness (HWCounters[0], HWCounters[1],
                                        HWCounters[2]);
-
 #ifdef BINARYMODE
    int newFrequency = (boundness < 0.5) ?1:coresInfo->numFreqs-1;
 #else
-   int newFrequency = round ( (int) (boundness * coresInfo->numFreqs));
+   int newFrequency = round ((int) (boundness * coresInfo->numFreqs));
    newFrequency = (boundness == 0.0) ? 1 : newFrequency; //unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
    newFrequency = (boundness == 1.0) ? coresInfo->numFreqs - 1 : newFrequency; //if it's exactly 1.0 then we set it to the lowest frequency
 #endif
@@ -58,7 +58,7 @@ int NaiveDecisions::giveReport (int core, const long long HWCounters[3])
       newFrequency = 1;
    }
 
-   int currentFreq = coresInfo->coreDatasArray->at (core).currentFreq;
+   int currentFreq = this->coresInfo->all_core_data[core].currentFreq;
 
    int FreqDistance = std::abs ( (float) (newFrequency - currentFreq));
 

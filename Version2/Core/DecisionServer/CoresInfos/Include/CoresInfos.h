@@ -25,18 +25,18 @@
 #define H_CORESINFOS
 
 #include <vector>
-#include <string>
+#include <fstream>
 
 /**
  * @brief structure useful for each core
  */
-typedef struct coreDatas
+typedef struct coreData
 {
-        int idCore;			/**< @brief the id of the core associated to its profile informations*/
-        std::string setFile;		/**< @brief pointer to an array of File descriptors of size numCores used to change frequency */
-        int currentFreq;		/**< @brief int that holds the currentFrequency for */
-        std::vector<long int> freqTrack;/**< @brief track the frequencies values changes*/
-} CoreDatas;
+        unsigned int idCore;    /**< @brief the id of the core associated to its profile informations*/
+        std::ofstream *freq_fd;  /**< @brief where to write the frequencies */
+        int currentFreq;	    /**< @brief int that holds the currentFrequency */
+        unsigned long int *freqTrack;  /**< @brief track the frequencies values changes*/
+} CoreData;
 
 
 
@@ -57,6 +57,17 @@ class CoresInfos
 		 */
 		~CoresInfos (void);
 
+        CoreData *all_core_data; /**< @brief the available frequencies on the system of size numFreq*/
+
+		//variables
+		int freqMax;			/**< @brief the highest available frequencies*/
+		int freqMin;			/**< @brief the lowest available frequencies*/
+		unsigned int numFreqs;	/**< @brief the number of available frequencies*/
+		unsigned int numCores;	/**< @brief number of available cores**/
+		int *availableFreqs;   /**< @brief the available frequencies on the system of size numFreq*/
+
+    private:
+
 		/**
 		 * @brief Learn about the hardware performances
 		 */
@@ -67,15 +78,6 @@ class CoresInfos
 		 * @param coreId the specific core
 		 * @return the core datas initialized
 		 */
-		CoreDatas initCoreDatas(int coreId);
-
-		std::vector<CoreDatas> *coreDatasArray; /**< @brief the available frequencies on the system of size numFreq*/
-
-		//variables
-		int freqMax;			/**< @brief the highest available frequencies*/
-		int freqMin;			/**< @brief the lowest available frequencies*/
-		int numFreqs;			/**< @brief the number of available frequencies*/
-		int numCores;			/**< @brief number of available cores**/
-		std::vector<int> availableFreqs;/**< @brief the available frequencies on the system of size numFreq*/
+		CoreData initCoreDatas(unsigned int coreId);
 };
 #endif

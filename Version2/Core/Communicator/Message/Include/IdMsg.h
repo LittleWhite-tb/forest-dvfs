@@ -28,22 +28,22 @@
 
 class IdMsg : public Message
 {
-    public:
-        /**
-         * @brief Creates a simple message to identify which node is at the
-         * beginning of the communication channel.
-         *
-         * @param tp The message type.
-       * @param sender The sender node id.
-       * @param dest The destination node id.
-       * @param id The id carried in the message.
-         */
-        IdMsg(unsigned int sender, unsigned int dest, unsigned int id);
+   public:
+      /**
+       * @brief Creates a simple message to identify which node is at the
+       * beginning of the communication channel.
+       *
+       * @param tp The message type.
+             * @param sender The sender node id.
+             * @param dest The destination node id.
+             * @param id The id carried in the message.
+       */
+      IdMsg (unsigned int sender, unsigned int dest, unsigned int id);
 
-        /**
-         * @brief Sole destructor.
-         */
-        ~IdMsg();
+      /**
+       * @brief Sole destructor.
+       */
+      ~IdMsg();
 
 
       /**
@@ -58,11 +58,12 @@ class IdMsg : public Message
        *
        * @return The id in the message.
        */
-      inline unsigned int get_id() {
-          return this->id;
+      inline unsigned int get_id()
+      {
+         return this->id;
       }
 
-    private:
+   private:
 
       /**
        * The id carried by the message.

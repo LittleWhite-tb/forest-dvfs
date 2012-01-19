@@ -56,15 +56,15 @@ Message * MsgReader::read_msg (int fd, unsigned int src, unsigned int dst)
 
          return new ReportMsg (src, dst, data);
 
-    case Message::MSG_TP_ID:
+      case Message::MSG_TP_ID:
          unsigned int id;
 
-         if (read(fd, &id, sizeof(id)) < (ssize_t) sizeof(id)) 
+         if (read (fd, &id, sizeof (id)) < (ssize_t) sizeof (id))
          {
-             std::cerr << "Incomplete ID message received" << std::endl;
-             return NULL;
+            std::cerr << "Incomplete ID message received" << std::endl;
+            return NULL;
          }
-         return new IdMsg(src, dst, id);
+         return new IdMsg (src, dst, id);
 
       default:
          // UNSUPPORTED

@@ -50,15 +50,15 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
 
    std::ifstream ifs (fpath.c_str(), std::ifstream::in);
 
-    struct addrinfo addrhint;
-    addrhint.ai_flags = 0;
-    addrhint.ai_family = AF_INET;
-    addrhint.ai_socktype = SOCK_STREAM;
-    addrhint.ai_protocol = 0;
-    addrhint.ai_addrlen = 0;
-    addrhint.ai_addr = NULL;
-    addrhint.ai_canonname = NULL;
-    addrhint.ai_next = NULL;
+   struct addrinfo addrhint;
+   addrhint.ai_flags = 0;
+   addrhint.ai_family = AF_INET;
+   addrhint.ai_socktype = SOCK_STREAM;
+   addrhint.ai_protocol = 0;
+   addrhint.ai_addrlen = 0;
+   addrhint.ai_addr = NULL;
+   addrhint.ai_canonname = NULL;
+   addrhint.ai_next = NULL;
 
    // read all the data provided
    while (true)
@@ -68,8 +68,8 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
       char port[64];
       unsigned int sid;
       int core_id;
-      struct sockaddr_in *saddr;
-      struct addrinfo *res_addr;
+      struct sockaddr_in * saddr;
+      struct addrinfo * res_addr;
 
       ifs >> id;
       if (ifs.bad() || ifs.eof())
@@ -104,10 +104,10 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
          YellowPages::server_id = sid;
       }
 
-      getaddrinfo(host, port, &addrhint, &res_addr);
+      getaddrinfo (host, port, &addrhint, &res_addr);
       saddr = new struct sockaddr_in();
-      memcpy(saddr, res_addr->ai_addr, res_addr->ai_addrlen);
-      freeaddrinfo(res_addr);
+      memcpy (saddr, res_addr->ai_addr, res_addr->ai_addrlen);
+      freeaddrinfo (res_addr);
 
       YellowPages::yp[id] = (const struct sockaddr *) saddr;
       YellowPages::yp_core[id] = core_id;
@@ -119,20 +119,21 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
    }
 }
 
-void YellowPages::reset() {
-    std::map<unsigned int, const struct sockaddr *>::iterator it;
+void YellowPages::reset()
+{
+   std::map<unsigned int, const struct sockaddr *>::iterator it;
 
-    for (it = YellowPages::yp.begin();
+   for (it = YellowPages::yp.begin();
          it != YellowPages::yp.end();
          it++)
-    {
-        delete it->second;
-    }
+   {
+      delete it->second;
+   }
 
-    YellowPages::yp.clear();
-    YellowPages::yp_core.clear();
-    YellowPages::id = UINT_MAX;
-    YellowPages::server_id = UINT_MAX;
+   YellowPages::yp.clear();
+   YellowPages::yp_core.clear();
+   YellowPages::id = UINT_MAX;
+   YellowPages::server_id = UINT_MAX;
 }
 
 const struct sockaddr * YellowPages::get_addr (unsigned int id)

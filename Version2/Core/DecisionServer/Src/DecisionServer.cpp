@@ -68,18 +68,19 @@ DecisionServer::~DecisionServer (void)
 
 int main (int argc, char ** argv)
 {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " id config" << std::endl;
-        return 1;
-    }
+   if (argc != 3)
+   {
+      std::cerr << "Usage: " << argv[0] << " id config" << std::endl;
+      return 1;
+   }
 
-    unsigned int id;
-    std::istringstream iss(argv[1], std::istringstream::in);
-    iss >> id;
-    std::string confpath(argv[2]);
-    YellowPages::init_from(id, confpath);
+   unsigned int id;
+   std::istringstream iss (argv[1], std::istringstream::in);
+   iss >> id;
+   std::string confpath (argv[2]);
+   YellowPages::init_from (id, confpath);
 
-    DecisionServer *dc = new DecisionServer();
-    delete dc;
+   DecisionServer * dc = new DecisionServer();
+   delete dc;
 }
 

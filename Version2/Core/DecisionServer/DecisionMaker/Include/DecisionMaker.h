@@ -51,7 +51,7 @@ class DecisionMaker
        * @param HWCounters integer array the three hardware counters given by the profiler
        * @return the frequency to move to
        */
-      virtual int giveReport (int core, const long long HWCounters[3]) = 0;
+      virtual int giveReport (unsigned int core, const long long HWCounters[3]) = 0;
 
       /**
        * @brief compute the boundness of a program at a certain time, values shall

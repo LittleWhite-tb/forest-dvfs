@@ -43,6 +43,6 @@ const long long * ReportMsg::get_report() const
 
 bool ReportMsg::write_into (int fd) const
 {
-   return this->Message::write_into(fd) && write (fd, this->data, sizeof (this->data)) == sizeof (this->data);
+   return this->Message::write_into (fd) && write (fd, this->data, sizeof (this->data)) == sizeof (this->data);
 }
 

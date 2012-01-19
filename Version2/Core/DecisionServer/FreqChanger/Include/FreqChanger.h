@@ -48,7 +48,7 @@ class FreqChanger
 		 * @brief read the frequency of a specific core
 		 * @param coreId the id of the core to read
 		 */
-		int ReadCurrentFreq (int coreId);
+		int ReadCurrentFreq (unsigned int coreId);
 
 		/**
 		 * @brief it's the freq where the core is supposed to go to. It's possible that the current freq
@@ -56,15 +56,16 @@ class FreqChanger
 		 * @param coreId the id of the core
 		 * @return the latest frequency set
 		 */
-		int ReadFreq (int coreId);
+		int ReadFreq (unsigned int coreId);
 
 		/**
 		 * @brief Change the frequency at a specific one
 		 * @param coreId the id number of the core
 		 * @param freqId the freq to set the core
 		 */
-		void ChangeFreq(int coreId, int freqId);
+		void ChangeFreq(unsigned int coreId, int freqId);
 
+    private:
 		//Variables
 		CoresInfos *coresInfos; /**<@brief Save the point of the CoresInfos structure, see the class**/
 };

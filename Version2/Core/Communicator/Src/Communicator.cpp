@@ -48,7 +48,7 @@ Communicator::Communicator ()
    this->fd_server = socket (AF_INET, SOCK_STREAM, 0);
    if (this->fd_server == -1)
    {
-       std::perror ("Can't create server socket");
+      std::perror ("Can't create server socket");
       exit (2);
    }
 
@@ -66,7 +66,10 @@ Communicator::Communicator ()
       exit (2);
    }
 
-   pipe (this->new_conn);
+   if (pipe (this->new_conn) == -1) {
+       std::perror("Failed to create notification pipe");
+       exit(2);
+   }
 
    // start accepting connections
    if (pthread_create (&this->server_th, NULL, &Communicator::server_loop, this) != 0)
@@ -116,15 +119,15 @@ void * Communicator::server_loop (void * arg)
       socklen_t addr_len;
       int fd;
 
-        addr_len = sizeof(addr);
-      if ((fd = accept (obj->fd_server, (struct sockaddr *) &addr, &addr_len)) < 0)
+      addr_len = sizeof (addr);
+      if ( (fd = accept (obj->fd_server, (struct sockaddr *) &addr, &addr_len)) < 0)
       {
          std::perror ("Client connection error");
          continue;
       }
 
       pthread_mutex_lock (&obj->mutex_sockukn);
-      obj->sockets_ukn.insert(fd);
+      obj->sockets_ukn.insert (fd);
       pthread_mutex_unlock (&obj->mutex_sockukn);
 
       std::cout << "Unkown node " << fd << " connected" << std::endl;
@@ -162,18 +165,18 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
    assert (addr != NULL);
    if (connect (fd, addr, YP_ADDRLEN (addr)) < 0)
    {
-      std::cerr <<  "Failed to connect to node " << dest_id << ": " << strerror(errno) << std::endl;
+      std::cerr <<  "Failed to connect to node " << dest_id << ": " << strerror (errno) << std::endl;
       close (fd);
       return -1;
    }
 
    this->sockets_out[dest_id] = fd;
 
-    // tell the server who we are
+   // tell the server who we are
    unsigned int my_id = YellowPages::get_id();
-   IdMsg idmsg(my_id, dest_id, my_id);
-   this->send(idmsg);
-   
+   IdMsg idmsg (my_id, dest_id, my_id);
+   this->send (idmsg);
+
    return fd;
 }
 
@@ -185,7 +188,7 @@ void Communicator::send (const Message & msg)
    {
       if (!msg.write_into (fd))
       {
-          std::cerr << "Failure to write message in the channel" << std::endl;
+         std::cerr << "Failure to write message in the channel" << std::endl;
          close (fd);
          this->sockets_out.erase (msg.get_dest());
       }
@@ -203,17 +206,17 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
    fd_set fds;
    int maxfd;
 
-    // restart after any new connection and until receiving a message or timeout
+   // restart after any new connection and until receiving a message or timeout
    while (true)
    {
-       maxfd = -1;
+      maxfd = -1;
 
-       if (timeout != NULL && *timeout != 0)
-       {
-           tvalp = &tval;
-           tval.tv_sec = *timeout / 1000000;
-           tval.tv_usec = *timeout % 1000000;
-       }
+      if (timeout != NULL && *timeout != 0)
+      {
+         tvalp = &tval;
+         tval.tv_sec = *timeout / 1000000;
+         tval.tv_usec = *timeout % 1000000;
+      }
 
       // get file descriptors to watch
       FD_ZERO (&fds);
@@ -243,19 +246,19 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
       maxfd = (this->new_conn[0] > maxfd ? this->new_conn[0] : maxfd);
 
       // and finally consider unidentified sockets
-       pthread_mutex_lock (&this->mutex_sockukn);
-        std::set<int>::iterator it;
-        
-        for (it = this->sockets_ukn.begin();
+      pthread_mutex_lock (&this->mutex_sockukn);
+      std::set<int>::iterator it;
+
+      for (it = this->sockets_ukn.begin();
             it != this->sockets_ukn.end();
             it++)
-        {
-            FD_SET(*it, &fds);
-            maxfd = (*it > maxfd ? *it : maxfd);
-        }
+      {
+         FD_SET (*it, &fds);
+         maxfd = (*it > maxfd ? *it : maxfd);
+      }
 
-        pthread_mutex_unlock(&this->mutex_sockukn);
-
+      pthread_mutex_unlock (&this->mutex_sockukn);
+    
       int sres = select (maxfd + 1, &fds, NULL, NULL, &tval);
       if (sres > 0)
       {
@@ -268,8 +271,8 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
          // new connection ? restart !
          if (FD_ISSET (this->new_conn[0], &fds))
          {
-             int dummy;
-             read(this->new_conn[0], &dummy, sizeof(int));
+            int dummy;
+            read (this->new_conn[0], &dummy, sizeof (int));
             continue;
          }
 
@@ -283,6 +286,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
             if (msg == NULL)
             {
+                std::cout << "Connection with node " << it->first << " lost" << std::endl;
                close (it->second);
                this->sockets_in.erase (it);
             }
@@ -308,10 +312,11 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                if (msg == NULL)
                {
+                   std::cout << "Connection with node " << it->first << " lost" << std::endl;
                   close (it->second);
                   to_rm.insert (it->first);
                }
-               
+
                break;
             }
 
@@ -325,65 +330,66 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
             if (msg != NULL)
             {
-                return msg;
+               return msg;
             }
 
             // watch unidentified connections and check if they can be identified
             to_rm.clear();
 
-            pthread_mutex_lock(&this->mutex_sockukn);
+            pthread_mutex_lock (&this->mutex_sockukn);
 
             std::set<int>::iterator its;
             for (its = this->sockets_ukn.begin();
-                 its != this->sockets_ukn.end();
-                 its++)
+                  its != this->sockets_ukn.end();
+                  its++)
             {
-                if (!FD_ISSET (*its, &fds)) 
-                {
-                    continue;
-                }
+               if (!FD_ISSET (*its, &fds))
+               {
+                  continue;
+               }
 
-                msg = MsgReader::read_msg(*its, 0, 0);
+               msg = MsgReader::read_msg (*its, 0, 0);
 
-                if (msg == NULL)
-                {
-                    close (*its);
-                    to_rm.insert(*its);
-                }
+               if (msg == NULL)
+               {
+                   std::cout << "Connection with unknown node " << *its << " lost" << std::endl;
+                  close (*its);
+                  to_rm.insert (*its);
+                  continue;
+               }
 
-                if (msg->get_type() != Message::MSG_TP_ID)
-                {
-                    std::cerr << "Skipping unexpected message from unidentified connection" << std::endl;
-                    continue;
-                }
+               if (msg->get_type() != Message::MSG_TP_ID)
+               {
+                  std::cerr << "Skipping unexpected message from unidentified node " << *its << std::endl;
+                  continue;
+               }
 
-                // connection is now identified, we can start regular communications
+               // connection is now identified, we can start regular communications
 
-                std::cout << "Unkown node " << *its << " identified as Node " << ((IdMsg *) msg)->get_id() << std::endl;
+               std::cout << "Unkown node " << *its << " identified as Node " << ( (IdMsg *) msg)->get_id() << std::endl;
 
-                this->sockets_in[((IdMsg *) msg)->get_id()] = *its;
-                to_rm.insert(*its);
+               this->sockets_in[ ( (IdMsg *) msg)->get_id() ] = *its;
+               to_rm.insert (*its);
             }
 
             // cleanup closed/identified sockets
             for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
             {
-               close (*it_rm);
-               this->sockets_ukn.erase(*it_rm);
+               this->sockets_ukn.erase (*it_rm);
             }
 
-            pthread_mutex_unlock(&this->mutex_sockukn);
+            pthread_mutex_unlock (&this->mutex_sockukn);
          }
       }
       else if (sres < 0)
       {
-        // error on select
-          std::perror("Error while waiting for data");
-          return NULL;
-         } 
+         // error on select
+         std::perror ("Error while waiting for data");
+         return NULL;
+      }
       else
       {
-        // timeout
+         // timeout
          return NULL;
       }
    }

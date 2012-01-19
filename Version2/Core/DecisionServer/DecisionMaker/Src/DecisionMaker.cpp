@@ -38,5 +38,15 @@ DecisionMaker::~DecisionMaker (void)
 
 float DecisionMaker::computeBoundness (long long sqFullStall, long long unhaltedCore, long long l2Miss)
 {
-   return (4*16*sqFullStall*unhaltedCore) / (l2Miss*l2Miss);
+    float res;
+
+    if (unhaltedCore == 0)
+    {
+        return 0.5;
+    }
+
+    res = (4.*16*sqFullStall*l2Miss) / (unhaltedCore*unhaltedCore);
+    res = res > 1 ? 1 : res;
+
+   return res;
 }

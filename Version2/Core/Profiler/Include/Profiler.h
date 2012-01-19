@@ -46,11 +46,11 @@ class Profiler
        */
       virtual ~Profiler (void);
 
-    protected:
+   protected:
       /**
        * Communicator to transmit info to decision servers.
        */
-      Communicator *comm;
+      Communicator * comm;
 
 };
 

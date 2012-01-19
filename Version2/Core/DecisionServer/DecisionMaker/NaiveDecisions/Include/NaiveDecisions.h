@@ -52,6 +52,6 @@ class NaiveDecisions : public DecisionMaker
        * @param currentFreq the frequency currently set
        * @return the frequency to move to
        */
-      int giveReport (int core, const long long HWCounters[3]);
+      int giveReport (unsigned int core, const long long HWCounters[3]);
 };
 #endif

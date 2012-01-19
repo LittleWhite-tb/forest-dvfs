@@ -104,7 +104,7 @@ class Communicator
 
       /** @brief mutex to access sockets_ukn */
       pthread_mutex_t mutex_sockukn;
-      /** 
+      /**
        * @brief list of unidentified sockets. Those are people that connected
        * to us but we have no id what is their id.
        */

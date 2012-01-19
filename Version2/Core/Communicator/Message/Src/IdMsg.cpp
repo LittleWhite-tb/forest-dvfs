@@ -25,10 +25,10 @@
 
 #include <unistd.h>
 
-IdMsg::IdMsg(unsigned int sender, unsigned int dest, unsigned int id)
-    : Message(Message::MSG_TP_ID, sender, dest)
+IdMsg::IdMsg (unsigned int sender, unsigned int dest, unsigned int id)
+   : Message (Message::MSG_TP_ID, sender, dest)
 {
-    this->id = id;
+   this->id = id;
 }
 
 IdMsg::~IdMsg()
@@ -36,6 +36,7 @@ IdMsg::~IdMsg()
 
 }
 
-bool IdMsg::write_into(int fd) const {
-    return this->Message::write_into(fd) && write(fd, &this->id, sizeof(this->id)) == sizeof(this->id);
+bool IdMsg::write_into (int fd) const
+{
+   return this->Message::write_into (fd) && write (fd, &this->id, sizeof (this->id)) == sizeof (this->id);
 }

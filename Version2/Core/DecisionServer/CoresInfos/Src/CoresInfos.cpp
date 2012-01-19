@@ -33,17 +33,24 @@ CoresInfos::CoresInfos (void)
 	initCpuDatas ();
 
 	//Initilize array of data per core
-	coreDatasArray = new std::vector<CoreDatas> ();
+    this->all_core_data = new CoreData[this->numCores];
 
-	for (int i = 0; i < numCores; i++)
+	for (unsigned int i = 0; i < this->numCores; i++)
 	{
-		coreDatasArray->push_back (initCoreDatas (i));
+		this->all_core_data[i] = initCoreDatas (i);
 	}
 }
 
 CoresInfos::~CoresInfos (void)
 {
+    for (unsigned int i = 0; i < this->numCores; i++)
+    {
+        delete[] this->all_core_data[i].freqTrack;
+        this->all_core_data[i].freq_fd->close();
+        delete this->all_core_data[i].freq_fd;
+    }
 
+    delete[] this->all_core_data;
 }
 
 void CoresInfos::initCpuDatas ()
@@ -110,67 +117,63 @@ void CoresInfos::initCpuDatas ()
 	freqMin = globalFrequency[num_frequency - 1];
 
 	//Initialize tracker and available frequencies
+    this->availableFreqs = new int[num_frequency];
 	for (i = 0; i < num_frequency; i++)
 	{
-		availableFreqs.push_back (globalFrequency[i]); //Copy frequencies into data structure
+		availableFreqs[i] = globalFrequency[i]; //Copy frequencies into data structure
 	}
 }
 
-CoreDatas CoresInfos::initCoreDatas (int coreId)
+CoreData CoresInfos::initCoreDatas (unsigned int coreId)
 {
 	std::ifstream fp; //File descriptor R
 	std::ofstream f; //File descriptor R/W
 	std::ostringstream oss; // Usefull for converting string to int
 
-	CoreDatas coreDatas;
-	coreDatas.idCore = coreId;
+	CoreData res;
+	res.idCore = coreId;
+    res.freqTrack = new unsigned long int[this->numFreqs];
 
 	//Initialize tracker and available frequencies
-	for (int i = 0; i < numFreqs; i++)
+	for (unsigned int i = 0; i < this->numFreqs; i++)
 	{
-		coreDatas.freqTrack.push_back (numFreqs); //Initializing the frequencies tracker
+		res.freqTrack[i] = 0;
 	}
 
 	//first set the governor to userspace
-	oss << "/sys/devices/system/cpu/cpu" << coreDatas.idCore
+	oss << "/sys/devices/system/cpu/cpu" << res.idCore
 			<< "/cpufreq/scaling_governor";
 	f.open (oss.str ().c_str ());
 
-	if (f == NULL && f.bad () == true)
+	if (f.fail ())
 	{
-		std::cerr << "Error opening file: " << oss.str ().c_str () << std::endl;
-		std::cerr << "Perhaps you don't have sudo rights?" << std::endl;
-		assert(f.bad());
+		std::cerr << "Error opening file: " << oss.str ().c_str () << ": ";
+        std::perror("");
 	}
-
-	//Setting to user space
-	f << "userspace";
-	f.flush ();
-	f.close ();
-	f.clear ();
+    else 
+    {
+        //Setting to user space
+	    f << "userspace";
+	    f.flush ();
+    }
+    f.close ();
 
 	//Open and Check the file descriptor
 	oss.str ("");
-	oss << "/sys/devices/system/cpu/cpu" << coreDatas.idCore
-			<< "/cpufreq/scaling_setspeed";
-	coreDatas.setFile.assign (oss.str ().c_str ());
+	oss << "/sys/devices/system/cpu/cpu" << res.idCore	<< "/cpufreq/scaling_setspeed";
 
-	fp.open (coreDatas.setFile.c_str ());
+    res.freq_fd = new std::ofstream();
+    res.freq_fd->open(oss.str().c_str());
 
 	//Paranoid
-	if (fp.bad () == true)
+	if (res.freq_fd->fail())
 	{
-		std::cerr << "Error opening file: " << coreDatas.setFile.c_str ()
-				<< std::endl;
-		std::cerr << "Perhaps you don't have sudo rights?" << std::endl;
-		assert(fp.bad() == true);
+		std::cerr << "Error opening file: " << oss.str().c_str () << ": ";
+        std::perror("");
 	}
 
-	fp.close ();
-	fp.clear ();
-
 	//We can't know for now current frequency
-	coreDatas.currentFreq = -1;
+	res.currentFreq = -1;
 
-	return coreDatas;
+	return res;
 }
