@@ -203,7 +203,7 @@ void Communicator::send (const Message & msg)
 Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 {
    struct timeval tval;
-   struct timeval * tvalp;
+   struct timeval * tvalp = NULL;
    fd_set fds;
    int maxfd;
 
@@ -260,7 +260,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
       pthread_mutex_unlock (&this->mutex_sockukn);
 
-      int sres = select (maxfd + 1, &fds, NULL, NULL, &tval);
+      int sres = select (maxfd + 1, &fds, NULL, NULL, tvalp);
       if (sres > 0)
       {
          // update the timeval value
