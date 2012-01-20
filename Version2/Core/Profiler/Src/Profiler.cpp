@@ -169,11 +169,10 @@ static int rest_main (int argc, char ** argv, char ** env)
 
 // we redefine libc_start_main because at this point main is an arguement so we
 // can store it in our symbol table and hook in
-int __libc_start_main (int (*main) (int, char **, char **), int argc,
-                       char ** ubp_av, void (*init) (), void (*fini) (), void (*rtld_fini) (),
-                       void * stack_end)
+extern "C" int __libc_start_main (int (*main) (int, char **, char **), int argc,
+                                  char ** ubp_av, void (*init) (), void (*fini) (), void (*rtld_fini) (),
+                                  void * stack_end)
 {
-
    //reset main to our global variable so our wrapper can call it easily
    original_main = main;
 
@@ -183,6 +182,8 @@ int __libc_start_main (int (*main) (int, char **, char **), int argc,
                       void* stack_end) = (int ( *) (int ( *) (int, char **, char **), int, char **,
                                           void ( *) (), void ( *) (), void ( *) (), void *))
                                          dlsym (RTLD_NEXT, "__libc_start_main");
+
+   std::cout << "in start main" << std::endl;
 
    //call the wrapper with the real libc_start_main
    return real_start (rest_main, argc, ubp_av, init, fini, rtld_fini, stack_end);

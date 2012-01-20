@@ -44,6 +44,9 @@ rest_prof.so: $(COMMPIC_OBJ) $(PROF_OBJ) $(LOGPIC_OBJ)
 clean:
 	@rm -rf obj decisionServer rest_prof.so
 
+install: rest_prof.so
+	@cp rest_prof.so /usr/lib
+
 obj/%.d: %.cpp
 	@mkdir -p $(@D)
 	@$(CXX) -MM $(ALL_INC_FLAGS) $< > $@ 2> /dev/null

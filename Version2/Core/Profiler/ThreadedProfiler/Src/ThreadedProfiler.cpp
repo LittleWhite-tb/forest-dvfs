@@ -94,7 +94,7 @@ void * ThreadedProfiler::profile_loop (void * arg)
       obj->comm->send (*report);
       delete report;
 
-      std::cout << values[0] << " " << values[1] << " " << values[2] << std::endl;
+      //std::cout << values[0] << " " << values[1] << " " << values[2] << std::endl;
    };
 
    return NULL;

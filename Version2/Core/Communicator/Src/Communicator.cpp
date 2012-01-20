@@ -203,7 +203,7 @@ void Communicator::send (const Message & msg)
 Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 {
    struct timeval tval;
-   struct timeval * tvalp = NULL;
+   struct timeval * tvalp;
    fd_set fds;
    int maxfd;
 
@@ -316,6 +316,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
                   std::cout << "Connection with node " << it->first << " lost" << std::endl;
                   close (it->second);
                   to_rm.insert (it->first);
+                  continue;
                }
 
                break;
@@ -325,7 +326,6 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
             std::set<int>::iterator it_rm;
             for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
             {
-               close (this->sockets_in[*it_rm]);
                this->sockets_in.erase (*it_rm);
             }
 
