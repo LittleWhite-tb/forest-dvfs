@@ -29,6 +29,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <cstdio>
 
 ThreadedProfiler::ThreadedProfiler (void) : Profiler()
 {
@@ -36,7 +37,7 @@ ThreadedProfiler::ThreadedProfiler (void) : Profiler()
    this->prof->attach_to (LibProf::getTID());
    this->prof->start_counters();
 
-   this->thid = pthread_create (&this->thid, NULL, ThreadedProfiler::profile_loop, this);
+   pthread_create (&this->thid, NULL, ThreadedProfiler::profile_loop, this);
 }
 
 ThreadedProfiler::~ThreadedProfiler (void)
@@ -44,7 +45,7 @@ ThreadedProfiler::~ThreadedProfiler (void)
    pthread_cancel (this->thid);
    if (pthread_join (this->thid, NULL))
    {
-        std::cerr << "Failed to wait for profiler thread termination." << std::endl;
+      std::perror ("Failed to wait for profiler thread termination");
    }
    delete (this->prof);
 }
@@ -60,8 +61,8 @@ void * ThreadedProfiler::profile_loop (void * arg)
    unsigned int my_id = YellowPages::get_id();
    unsigned int server_id = YellowPages::get_server_id();
 
-   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+   pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
+   pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
    // reset counters
    obj->prof->read (values);

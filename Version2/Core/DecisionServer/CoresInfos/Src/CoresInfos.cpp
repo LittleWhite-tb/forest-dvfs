@@ -26,7 +26,6 @@
 #include <iostream>
 #include <fstream>
 
-
 #include "CoresInfos.h"
 
 CoresInfos::CoresInfos (void)
@@ -46,7 +45,7 @@ CoresInfos::~CoresInfos (void)
 {
    for (unsigned int i = 0; i < this->numCores; i++)
    {
-       this->freeCoreDatas(i);
+      this->freeCoreDatas (i);
    }
 
    delete[] this->all_core_data;
@@ -123,27 +122,27 @@ void CoresInfos::initCpuDatas ()
    }
 }
 
-void CoresInfos::freeCoreDatas(unsigned int coreId)
+void CoresInfos::freeCoreDatas (unsigned int coreId)
 {
-    CoreData *cd;
-    std::ostringstream oss;
-    std::ofstream f;
+   CoreData * cd;
+   std::ostringstream oss;
+   std::ofstream f;
 
-    if (coreId >= this->numCores)
-    {
-        return;
-    }
+   if (coreId >= this->numCores)
+   {
+      return;
+   }
 
-    cd = &this->all_core_data[coreId];
+   cd = &this->all_core_data[coreId];
 
-    delete[] cd->freqTrack;
+   delete[] cd->freqTrack;
 
-    cd->freq_fd->close();
-    delete cd->freq_fd;
+   cd->freq_fd->close();
+   delete cd->freq_fd;
 
-    // restore the original governor
-    oss << "/sys/devices/system/cpu/cpu" << coreId 
-        << "/cpufreq/scaling_governor";
+   // restore the original governor
+   oss << "/sys/devices/system/cpu/cpu" << coreId
+       << "/cpufreq/scaling_governor";
    f.open (oss.str ().c_str ());
    if (f.fail ())
    {
@@ -175,27 +174,44 @@ CoreData CoresInfos::initCoreDatas (unsigned int coreId)
       res.freqTrack[i] = 0;
    }
 
-   //first set the governor to userspace
+   //remember the current governor
    oss << "/sys/devices/system/cpu/cpu" << res.idCore
        << "/cpufreq/scaling_governor";
    f.open (oss.str ().c_str ());
-
    if (f.fail ())
    {
-      std::cerr << "Error opening file: " << oss.str ().c_str () << ": ";
+      std::cerr << "Error opening file for reading: " << oss.str ().c_str () << ": ";
       std::perror ("");
    }
    else
    {
-        // remember former governor
-        f >> &sb;
-        res.old_gov = sb.str();
+      // remember former governor
+      f >> &sb;
+      res.old_gov = sb.str();
 
-      //Setting to user space
-      f << "userspace";
-      f.flush ();
+      if (f.fail()){
+          std::cerr << "Failed to read current governor" << std::endl;
+      }
    }
    f.close ();
+
+    //set the governor to userspace
+   f.open (oss.str ().c_str ());
+   if (f.fail ())
+   {
+      std::cerr << "Error opening file for writting: " << oss.str ().c_str () << ": ";
+      std::perror ("");
+   }
+   else
+   {
+         //Setting to user space
+      f << "userspace";
+      f.flush ();
+
+      if (f.fail()){
+          std::cerr << "Failed to set userspace governor" << std::endl;
+      }
+   }
 
    //Open and Check the file descriptor
    oss.str ("");

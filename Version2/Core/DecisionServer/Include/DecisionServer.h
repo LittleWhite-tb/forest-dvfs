@@ -53,12 +53,12 @@ class DecisionServer
       FreqChanger * freqchanger;
       NaiveDecisions * naiveDecisions;
 
-        /**
-         * @brief Main server loop.
-         */
+      /**
+       * @brief Main server loop.
+       */
       void server_loop();
 
-      
+
    private:
 
       Communicator * comm;

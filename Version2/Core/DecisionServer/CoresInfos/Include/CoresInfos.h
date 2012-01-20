@@ -88,6 +88,6 @@ class CoresInfos
        *
        * @param coreId The id of the concerned core.
        */
-      void freeCoreDatas(unsigned int coreId);
+      void freeCoreDatas (unsigned int coreId);
 };
 #endif

@@ -33,6 +33,7 @@
 #include <string.h>
 #include <assert.h>
 #include <string>
+#include <dlfcn.h>
 
 
 Profiler::Profiler (void)
@@ -44,6 +45,8 @@ Profiler::~Profiler (void)
 {
    delete this->comm;
 }
+
+#if FALSE
 
 #define MEM_BOUND_FOOTPRINT (4*1024*1024 / 32)
 static double BigVec[MEM_BOUND_FOOTPRINT*32];
@@ -82,7 +85,7 @@ int main (int argc, char ** argv)
    int MEM_BOUND_ITER=round ( (float) updown_mem_product/ (float) NUM_UP_DOWN);
    int CPU_BOUND_ITER=MEM_BOUND_ITER*cpu_2_mem_ratio;
 
-NUM_UP_DOWN=1;
+   NUM_UP_DOWN=1;
 
    ThreadedProfiler * p = new ThreadedProfiler();
 
@@ -129,3 +132,58 @@ NUM_UP_DOWN=1;
    return 0;
 }
 
+#endif
+
+static void profiler_cleanup();
+static int rest_main(int argc, char** argv, char** env);
+
+static int (*original_main)(int argc, char** argv, char** env);
+static ThreadedProfiler *tp;
+
+static void profiler_cleanup()
+{
+    delete tp;
+    YellowPages::reset();
+}
+
+static int rest_main(int argc, char** argv, char** env)
+{
+    if (argc < 3)
+   {
+      std::cerr << "Usage: " << argv[0] << " id config [program options]" << std::endl;
+      return 1;
+   }
+
+    unsigned int id;
+   std::istringstream iss (argv[1], std::istringstream::in);
+   iss >> id;
+   std::string confpath (argv[2]);
+   YellowPages::init_from (id, confpath);
+    tp = new ThreadedProfiler();
+
+    atexit(profiler_cleanup);
+
+    argv[2] = argv[0];
+    return original_main(argc - 2, argv + 2, env);
+}
+
+// we redefine libc_start_main because at this point main is an arguement so we
+// can store it in our symbol table and hook in
+int __libc_start_main(int (*main) (int, char **, char **), int argc,
+        char** ubp_av, void (*init)(), void (*fini)(), void (*rtld_fini)(),
+        void* stack_end)
+{
+
+    //reset main to our global variable so our wrapper can call it easily
+    original_main = main;
+    
+    //Initialisation :
+    int (*real_start)(int (*main) (int, char **, char **), int argc,
+        char** ubp_av, void (*init)(), void (*fini)(), void (*rtld_fini)(),
+        void* stack_end) = (int (*)(int (*)(int, char**, char**), int, char**,
+        void (*)(), void (*)(), void (*)(), void*)) 
+            dlsym(RTLD_NEXT, "__libc_start_main");
+
+    //call the wrapper with the real libc_start_main
+    return real_start(rest_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
+}

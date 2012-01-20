@@ -26,6 +26,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <signal.h>
 
 #include "DecisionServer.h"
 #include "Message.h"
@@ -33,6 +34,7 @@
 #include "YellowPages.h"
 
 static void cleanup_fn();
+static void sighandler(int ns);
 
 static DecisionServer * dc = NULL; // ok, I know...
 
@@ -54,9 +56,9 @@ DecisionServer::~DecisionServer (void)
    delete this->coresInfos;
 }
 
-void DecisionServer::server_loop() 
+void DecisionServer::server_loop()
 {
-    while (true)
+   while (true)
    {
       Message * msg;
       Message::Type msgtp;
@@ -68,7 +70,7 @@ void DecisionServer::server_loop()
       if (msgtp == Message::MSG_TP_REPORT)
       {
          int core = YellowPages::get_core_id (msg->get_sender());
-         int freq = naiveDecisions->giveReport (core, ((ReportMsg *) msg)->get_report());
+         int freq = naiveDecisions->giveReport (core, ( (ReportMsg *) msg)->get_report());
          freqchanger->ChangeFreq (core, freq);
       }
       else
@@ -88,7 +90,10 @@ int main (int argc, char ** argv)
       return 1;
    }
 
-   atexit(cleanup_fn);
+    signal(SIGTERM, sighandler);
+    signal(SIGINT, sighandler);
+
+   atexit (cleanup_fn);
 
    unsigned int id;
    std::istringstream iss (argv[1], std::istringstream::in);
@@ -103,6 +108,13 @@ int main (int argc, char ** argv)
 
 static void cleanup_fn()
 {
-    YellowPages::reset();
-    delete(dc);
+   YellowPages::reset();
+   delete (dc);
+}
+
+static void sighandler(int ns) {
+    (void) ns;
+
+    // will indirectly call cleanup
+    exit(0);
 }
