@@ -189,13 +189,14 @@ CoreData CoresInfos::initCoreDatas (unsigned int coreId)
       f >> &sb;
       res.old_gov = sb.str();
 
-      if (f.fail()){
-          std::cerr << "Failed to read current governor" << std::endl;
+      if (f.fail())
+      {
+         std::cerr << "Failed to read current governor" << std::endl;
       }
    }
    f.close ();
 
-    //set the governor to userspace
+   //set the governor to userspace
    f.open (oss.str ().c_str ());
    if (f.fail ())
    {
@@ -204,12 +205,13 @@ CoreData CoresInfos::initCoreDatas (unsigned int coreId)
    }
    else
    {
-         //Setting to user space
+      //Setting to user space
       f << "userspace";
       f.flush ();
 
-      if (f.fail()){
-          std::cerr << "Failed to set userspace governor" << std::endl;
+      if (f.fail())
+      {
+         std::cerr << "Failed to set userspace governor" << std::endl;
       }
    }
 

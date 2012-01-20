@@ -21,16 +21,24 @@ PROF_SRC=$(shell find Core/Profiler/ -type f -name '*.cpp')
 PROF_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pic.o, $(PROF_SRC)))
 PROF_INC_FLAG=$(addprefix -I, $(sort $(dir $(PROF_HDR))))
 
-ALL_OBJ=$(COMM_OBJ) $(DECS_OBJ) $(PROF_OBJ)
-ALL_INC_FLAGS=-I. $(COMM_INC_FLAG) $(DECS_INC_FLAG) $(PROF_INC_FLAG)
+LOG_HDR=$(shell find Core/Log/ -type f -name '*.h')
+LOG_SRC=$(shell find Core/Log/ -type f -name '*.cpp')
+LOG_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pdc.o, $(LOG_SRC)))
+LOG_INC_FLAG=$(addprefix -I, $(sort $(dir $(LOG_HDR))))
+
+LOGPIC_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pic.o, $(LOG_SRC)))
+
+
+ALL_OBJ=$(COMM_OBJ) $(COMMPIC_OBJ) $(DECS_OBJ) $(PROF_OBJ) $(LOG_OBJ) $(LOGPIC_OBJ)
+ALL_INC_FLAGS=-I. $(COMM_INC_FLAG) $(DECS_INC_FLAG) $(PROF_INC_FLAG) $(LOG_INC_FLAG)
 
 
 all: decisionServer rest_prof.so
 
-decisionServer: $(COMM_OBJ) $(DECS_OBJ)
+decisionServer: $(COMM_OBJ) $(DECS_OBJ) $(LOG_OBJ)
 	$(LD) $(LD_FLAGS) $^ $(LIBS) -o decisionServer
 
-rest_prof.so: $(COMMPIC_OBJ) $(PROF_OBJ)
+rest_prof.so: $(COMMPIC_OBJ) $(PROF_OBJ) $(LOGPIC_OBJ)
 	$(LD) $(LD_FLAGS) -shared $^ $(LIBS) -lpapi -o rest_prof.so
 
 clean:

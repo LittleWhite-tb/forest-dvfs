@@ -53,21 +53,21 @@ PapiCounters::PapiCounters (void)
    // initialize the event set
    int ev_codes[3] = {0, 0, 0};
 
-   if (PAPI_event_name_to_code (const_cast<char *>("SQ_FULL_STALL_CYCLES"),
+   if (PAPI_event_name_to_code (const_cast<char *> ("SQ_FULL_STALL_CYCLES"),
                                 &ev_codes[0]) != PAPI_OK)
    {
       std::cerr << "PAPI even_name_to_code failed!" << std::endl;
       exit (1);
    }
 
-   if (PAPI_event_name_to_code (const_cast<char *>("UNHALTED_CORE_CYCLES"),
+   if (PAPI_event_name_to_code (const_cast<char *> ("UNHALTED_CORE_CYCLES"),
                                 &ev_codes[1]) != PAPI_OK)
    {
       std::cerr << "PAPI even_name_to_code failed!" << std::endl;
       exit (1);
    }
 
-   if (PAPI_event_name_to_code (const_cast<char *>("L2_RQSTS:MISS"),
+   if (PAPI_event_name_to_code (const_cast<char *> ("L2_RQSTS:MISS"),
                                 &ev_codes[2]) != PAPI_OK)
    {
       std::cerr << "PAPI even_name_to_code failed!" << std::endl;

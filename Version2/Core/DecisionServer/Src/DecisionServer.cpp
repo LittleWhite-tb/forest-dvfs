@@ -34,7 +34,7 @@
 #include "YellowPages.h"
 
 static void cleanup_fn();
-static void sighandler(int ns);
+static void sighandler (int ns);
 
 static DecisionServer * dc = NULL; // ok, I know...
 
@@ -90,8 +90,8 @@ int main (int argc, char ** argv)
       return 1;
    }
 
-    signal(SIGTERM, sighandler);
-    signal(SIGINT, sighandler);
+   signal (SIGTERM, sighandler);
+   signal (SIGINT, sighandler);
 
    atexit (cleanup_fn);
 
@@ -112,9 +112,10 @@ static void cleanup_fn()
    delete (dc);
 }
 
-static void sighandler(int ns) {
-    (void) ns;
+static void sighandler (int ns)
+{
+   (void) ns;
 
-    // will indirectly call cleanup
-    exit(0);
+   // will indirectly call cleanup
+   exit (0);
 }
