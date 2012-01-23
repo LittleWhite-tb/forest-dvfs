@@ -33,11 +33,11 @@ CoresInfos::CoresInfos (void)
    initCpuDatas ();
 
    //Initilize array of data per core
-   this->all_core_data = new CoreData[this->numCores];
+   this->allCoreDatas = new CoreData[this->numCores];
 
    for (unsigned int i = 0; i < this->numCores; i++)
    {
-      this->all_core_data[i] = initCoreDatas (i);
+      this->allCoreDatas[i] = initCoreDatas (i);
    }
 }
 
@@ -48,7 +48,7 @@ CoresInfos::~CoresInfos (void)
       this->freeCoreDatas (i);
    }
 
-   delete[] this->all_core_data;
+   delete[] this->allCoreDatas;
 }
 
 void CoresInfos::initCpuDatas ()
@@ -133,7 +133,7 @@ void CoresInfos::freeCoreDatas (unsigned int coreId)
       return;
    }
 
-   cd = &this->all_core_data[coreId];
+   cd = &this->allCoreDatas[coreId];
 
    delete[] cd->freqTrack;
 

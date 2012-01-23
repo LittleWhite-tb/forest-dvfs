@@ -59,7 +59,7 @@ class CoresInfos
        */
       ~CoresInfos (void);
 
-      CoreData * all_core_data; /**< @brief the available frequencies on the system of size numFreq*/
+      CoreData * allCoreDatas; /**< @brief the available frequencies on the system of size numFreq*/
 
       //variables
       int freqMax;			/**< @brief the highest available frequencies*/

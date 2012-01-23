@@ -39,7 +39,7 @@ FreqChanger::FreqChanger (CoresInfos * coresInfos)
    //Initializing the current freq
    for (unsigned int i = 0; i < coresInfos->numCores; i++)
    {
-      coresInfos->all_core_data[i].currentFreq = ReadCurrentFreq (i);
+      coresInfos->allCoreDatas[i].currentFreq = ReadCurrentFreq (i);
    }
 }
 
@@ -96,7 +96,7 @@ int FreqChanger::ReadFreq (unsigned int coreId)
       return -1;
    }
 
-   return this->coresInfos->all_core_data[coreId].currentFreq;
+   return this->coresInfos->allCoreDatas[coreId].currentFreq;
 }
 
 void FreqChanger::ChangeFreq (unsigned int coreId, int freqId)
@@ -109,7 +109,7 @@ void FreqChanger::ChangeFreq (unsigned int coreId, int freqId)
       return;
    }
 
-   CoreData * cd = &this->coresInfos->all_core_data[coreId];
+   CoreData * cd = &this->coresInfos->allCoreDatas[coreId];
    if (cd->currentFreq == freqId)
    {
       return;
