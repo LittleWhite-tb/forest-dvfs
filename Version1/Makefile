@@ -18,11 +18,11 @@ FREQCHANGE_OBJ := $(patsubst FreqChange/Src/%.c,obj/%.o,$(wildcard FreqChange/Sr
 
 DECISION_OBJ = $(DECISION_NAIVE_OBJ) $(DECISION_PREDICTIVE_OBJ) $(DECISION_MARKOV_OBJ)
 PROFILER_OBJ = $(PAPI_COUNTERS_OBJ) $(THREADED_PROFILER_OBJ) 
-FULL_OBJ = $(MAIN_OBJ) $(FCT_REPLACE_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(MARKOV_OBJ)
+FULL_OBJ = $(MAIN_OBJ) $(PROFILER_OBJ) $(DECISION_OBJ) $(FREQCHANGE_OBJ) $(COMMON_OBJ) $(MARKOV_OBJ)
 
 
 LIBS = -lpthread -lpapi -ldl
-REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IProfiler/Likwid/Include -IProfiler/Likwid/Src/likwid/includes -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include -IFctReplacement/Include -I/opt/intel/impi/4.0.2.003/intel64/include/ -I. 
+REST_INCLUDE = -IProfiler/Include -IProfiler/VmadProfiler/Include -IProfiler/ThreadProfiler/Include -IProfiler/Papi/Include -IProfiler/Likwid/Include -IProfiler/Likwid/Src/likwid/includes -IDecision/Include -IDecision/PredictiveDM/Include -IDecision/NaiveDM/Include -IDecision/MarkovDM/Include -IFreqChange/Include -I/usr/local/include -ICommon/Include -IMarkov/Include -IFctReplacement/Include -I. 
 VMAD_INCLUDE = -I../../vmad/VMAD_version_under_development/camus_vm/include -I../../vmad/VMAD_version_under_development/camus_vm/ressource/ -I../../vmad/VMAD_version_under_development/camus_vm/modules/
 OPT_INCLUDE = $(REST_INCLUDE) $(VMAD_INCLUDE)
 OPT = -fPIC -O3 -Wall -Wextra -lm -g $(OPT_INCLUDE) -DX86
@@ -84,7 +84,7 @@ $(MARKOV_OBJ):obj/%.o: Markov/Src/%.c Markov/Include/%.h
 	@$(CC) -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 $(MAIN_OBJ):obj/%.o: %.c %.h
-	@mpicc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
+	@gcc -c $< -o $@ $(OPT) $(CFLAGS) $(LIBS)
 
 clean:
 	@rm $(OBJ) $(EXE) obj/*o tmp Log.txt doxygen_warn librest.so rest.a /usr/local/lib/librest.so `find . -name "*~"` output/* *out 2> /dev/null || echo "Done cleaning"

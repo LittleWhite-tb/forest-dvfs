@@ -50,8 +50,8 @@ int PredictiveDecisions::giveReport (int core, long long HWCounters[3])
 	newFrequency = (boundness == 0.0) ? 1 : newFrequency; //unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
 
 	//Datas which belong to a core
-	CoreData *coreadata= &coresInfo->allCoreDatas [core];
-	
+	CoreData *coreadata = &coresInfo->allCoreDatas[core];
+
 	//Compute distance between current frequency to the new one
 	int currentFreq = coreadata->currentFreq;
 	int distance_frequecies = std::abs (newFrequency - currentFreq);

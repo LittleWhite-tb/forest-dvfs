@@ -25,10 +25,9 @@
 
 #include "DecisionMaker.h"
 
-
 DecisionMaker::DecisionMaker (CoresInfos * coresInfos)
 {
-   this->coresInfo = coresInfos;
+	this->coresInfo = coresInfos;
 }
 
 DecisionMaker::~DecisionMaker (void)
@@ -36,17 +35,18 @@ DecisionMaker::~DecisionMaker (void)
 
 }
 
-float DecisionMaker::computeBoundness (long long sqFullStall, long long unhaltedCore, long long l2Miss)
+float DecisionMaker::computeBoundness (long long sqFullStall,
+		long long unhaltedCore, long long l2Miss)
 {
-   float res;
+	float res;
 
-   if (unhaltedCore == 0)
-   {
-      return 0.5;
-   }
+	if (unhaltedCore == 0)
+	{
+		return 0.5;
+	}
 
-   res = (4.*16*sqFullStall*l2Miss) / (unhaltedCore*unhaltedCore);
-   res = res > 1 ? 1 : res;
+	res = (4. * 16 * sqFullStall * l2Miss) / (unhaltedCore * unhaltedCore);
+	res = res > 1 ? 1 : res;
 
-   return res;
+	return res;
 }
