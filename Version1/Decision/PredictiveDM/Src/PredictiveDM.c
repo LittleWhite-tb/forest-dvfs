@@ -94,16 +94,6 @@ int branchDecisionGiveReport (void *handle, SProfReport *report)
 			&& (savedData->freqCounter[newFrequency]) * distance_frequecies
 			> savedData->freqCounter[currentFreq])
 		{
-			//int i;
-			
-			//reset to 0 all freq countersi
-			/*
-			for(i = 0; i < freqData->numFreq; i ++)
-				if(i != newFrequency)
-					savedData->freqCounter[currentCore][i] = 0;
-			*/
-			//change the frequency
-			//Log_output(0, "changing frequency %d\n", newFrequency);
 			
 			report->data.tp.nextWindow=1;
 			changeFreq (freqData, newFrequency);

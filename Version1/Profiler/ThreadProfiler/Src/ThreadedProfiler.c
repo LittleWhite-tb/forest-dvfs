@@ -142,7 +142,6 @@ void * profilerThread (void * ContextPtr)
 	int ret_code=0;
 
 	/*Algorithm related variables*/
-	int algorithm=0;
 	int myWindow=1;
 	float lastBoundedValue=.5;//just initializing to .5 so it's valid
 	float privateBounded;
@@ -284,7 +283,6 @@ void * profilerThread (void * ContextPtr)
 			{
 			  	myWindow=myReport.data.tp.nextWindow;
 				myWindow= (myWindow>log2(LONGESTSLEEP/sleepingPadding))?log2(LONGESTSLEEP/sleepingPadding):myWindow;	
-			   	algorithm=myReport.data.tp.algorithm;
 			   	/* @todo make a switch statement to do some changes to the papi counters as the DM asked and change your prof_id*/		
 			}
 			else

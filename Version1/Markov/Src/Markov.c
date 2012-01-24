@@ -1867,8 +1867,6 @@ void Markov_OutputTemporaryArcsDot(FILE *f, SNode *n)
 //depth is there to make sure we do not do an infinite loop
 static void Markov_OutputPredictionTreeDot(FILE* f, SMarkov* m, SNode* n, int depth)
 {
-	int i;
-
 	SNodeList* l;
 	//if depth is equal to 0 then we exit
 	if(!depth) {
@@ -1876,7 +1874,6 @@ static void Markov_OutputPredictionTreeDot(FILE* f, SMarkov* m, SNode* n, int de
 	}
 
 	//i will help for the label...
-	i = m->depth - depth;
 
 	//First define label
 #ifdef __POINTER_32_BIT__
