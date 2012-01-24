@@ -110,7 +110,7 @@ static __inline__ pid_t getTid (void)
 	{
 		Log_output (0,"Adding the PAPI add eventset failed: %d %s\n",ret_code, PAPI_strerror(ret_code));
 		exit (1);
-	}
+/	}
 
 	//This ensures that papi counters only reads the parent thread counters
 	ret_code=PAPI_attach (*EventSet, handle->parent);

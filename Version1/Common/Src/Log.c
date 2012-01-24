@@ -68,7 +68,8 @@ void Log_init()
 {
 	if(getenv("REST_OUTPUT") !=NULL)
     	{
-		char path[256];
+		char path[1024];
+
 		sprintf(path, "%s", getenv("REST_OUTPUT"));
 		
 		if(path[(strlen(path)-1)] != '/')
@@ -80,13 +81,13 @@ void Log_init()
 		if(logOutput == NULL)
 		{
 			logOutput = stderr;
-			Log_output(15, "REST_OUTPUT: Wrong directory: %s output will be redirected on stderr.\n", path);
+			Log_output(-1, "REST_OUTPUT: Wrong directory: %s output will be redirected on stderr.\n", path);
 		}
 	}
 	else
 	{
 		logOutput = stderr;	
-		Log_output(15, "REST_OUTPUT: output will be redirected on stderr.\n");
+		Log_output(-1, "REST_OUTPUT: output will be redirected on stderr.\n");
 	}
 }
 

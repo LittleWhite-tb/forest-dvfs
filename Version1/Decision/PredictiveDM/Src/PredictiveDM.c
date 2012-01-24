@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 void* branchDecisionInit (int coreId)
 {
-	int i, j;
+	int j;
 	
 	//allocation
 	SaveData *savedData = (SaveData*) malloc (sizeof (savedData));
@@ -40,22 +40,15 @@ void* branchDecisionInit (int coreId)
 		//initialized the freq data values
 		savedData->sFreqData = initCpufreq (coreId);
 		
-		//allocate the number of time we call each frequency
-		savedData->freqCounter = malloc(savedData->sFreqData->numCores * sizeof (int *));
-		
 		//initialize all the array of cores
-		for(i = 0; i < savedData->sFreqData->numCores; i++)
-		{
-			savedData->freqCounter[i] = malloc (savedData->sFreqData->numFreq * sizeof (int));
-		}
+		savedData->freqCounter = malloc (savedData->sFreqData->numFreq * sizeof (int));
+		
 		
 		//i is the core and j the frequeny and we initialize them to 0
-		for(i = 0; i < savedData->sFreqData->numCores; i++)
+		
+		for(j = 0; j < savedData->sFreqData->numFreq; j++)
 		{
-			for(j = 0; j < savedData->sFreqData->numFreq; j++)
-			{
-				savedData->freqCounter[i][j] = 0;
-			}
+			savedData->freqCounter[j] = 0;
 		}
 	}
 	else
@@ -83,30 +76,45 @@ int branchDecisionGiveReport (void *handle, SProfReport *report)
 		//Take new information on the frequency that we should move to and the current date
 		//to say that we wanted to move to it
 		int newFrequency = round((int) (report->data.tp.bounded * freqData->numFreq));
-		newFrequency=(newFrequency==freqData->numFreq)?newFrequency-1:newFrequency;
+		newFrequency=(report->data.tp.bounded == 0.0)?1:newFrequency;//unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
+		newFrequency=(report->data.tp.bounded == 1.0)?freqData->numFreq-1:newFrequency;//if it's exactly 1.0 then we set it to the lowest frequency		
+		
 		assert (newFrequency>=0 && newFrequency<freqData->numFreq);
-		int distance_frequecies = abs(newFrequency - freqData->currentFreqs);
+		
+		int currentFreq = readFreq (freqData);
+		int distance_frequecies = abs(newFrequency - currentFreq);
 		
 		//Increase the number of time that we call for this frequency
-		savedData->freqCounter[currentCore][newFrequency]++;
+		savedData->freqCounter[newFrequency]++;
 			
 		// if the new frequency isn't equal to the old one
 		// and if (the number of time that we have call this frequency) * (distance between each others)
 		// is greater than (the number of time that we have called the curent frequency) then change
-		if(newFrequency != readFreq (freqData) 
-			&& (savedData->freqCounter[currentCore][newFrequency]) * distance_frequecies
-			> savedData->freqCounter[currentCore][readFreq (freqData)])
+		if(newFrequency != currentFreq 
+			&& (savedData->freqCounter[newFrequency]) * distance_frequecies
+			> savedData->freqCounter[currentFreq])
 		{
-			int i;
+			//int i;
 			
-			//reset to 0 all freq counters
+			//reset to 0 all freq countersi
+			/*
 			for(i = 0; i < freqData->numFreq; i ++)
 				if(i != newFrequency)
 					savedData->freqCounter[currentCore][i] = 0;
-			
+			*/
 			//change the frequency
-			Log_output(0, "changing frequency %d\n", newFrequency);
+			//Log_output(0, "changing frequency %d\n", newFrequency);
+			
+			report->data.tp.nextWindow=1;
 			changeFreq (freqData, newFrequency);
+			freqData->officialWindowTrack = report->data.tp.nextWindow;
+			freqData->localWindowTrack=1;
+		}
+		else
+		{
+			report->data.tp.nextWindow = ++report->data.tp.window;
+			freqData->officialWindowTrack = report->data.tp.nextWindow;
+			freqData->localWindowTrack++;
 		}
 	
 	return 1;
@@ -118,17 +126,12 @@ void branchDecisionDestruct(void* handle)
 	
 	if (savedData != NULL)
 	{
-		int i;
-	
-		for(i = 0; i < savedData->sFreqData->numCores; i++)
-		{
-			free(savedData->freqCounter[i]), savedData->freqCounter[i] = NULL;
-		}
-		
 		free(savedData->freqCounter), savedData->freqCounter = NULL;
-		
+			
 		destroyCpufreq(savedData->sFreqData);
-		free(handle), handle = NULL;
 	}
+	
+	handle = NULL;
+
 }
 

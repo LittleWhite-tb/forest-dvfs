@@ -18,6 +18,7 @@ my $freqId = '';
 my $outputFolder = '';
 my $applicationName = '';
 my $verbose = '';
+my $procNum = '';
 
 #number of application arguments
 my $argc = $#ARGV+1;
@@ -29,21 +30,34 @@ sub main
 {
 	parseOptions();
 	setEnvValues();
-	if($applicationName eq "SPEC" || $applicationName eq "spec" || $applicationName eq "Spec")
-	{
-		buildSPEC(@ARGV);
-	}
-	print $freqRange."\n";
+	
 	if($freqRange ne "restonly")
 	{
+		if($applicationName eq "SPEC" || $applicationName eq "spec" || $applicationName eq "Spec")
+		{
+			buildSPEC(@ARGV);
+		}
+
 		freqSwitching(@ARGV);
+
+		if($applicationName eq "SPEC" || $applicationName eq "spec" || $applicationName eq "Spec")
+		{
+			buildSPEC(@ARGV,"rest");
+		}
+		
 		launchREST(@ARGV);
 	}
 	else
 	{
+		if($applicationName eq "SPEC" || $applicationName eq "spec" || $applicationName eq "Spec")
+		{
+			buildSPEC(@ARGV,"rest");
+		}
+		
 		launchREST(@ARGV);
 	}
-	
+	restoreOndemand();
+	LogOutput(OK, "Exiting sweeper.pl\n");
 }
 
 #Options Handeling
@@ -55,7 +69,8 @@ sub parseOptions
 	            "freqid=s"  	=> \$freqId,
 		    "application=s"	=> \$applicationName,
 	    	    "verbose!"		=> \$verbose,
-		    "output_folder=s" 	=> \$outputFolder); 
+		    "output_folder=s" 	=> \$outputFolder,
+    		    "nb_proc=s"		=> \$procNum); 
 	
 	if($activateHelp == 1)
 	{
@@ -139,11 +154,11 @@ sub launchML
 	
 	if ( -e  $runSpecFile)
 	{
-		execBashCmd("microlaunch --basename $basename --output-dir $ENV{ML_OUTPUT} --metarepetition 1 --repetition 1 --evallib \"$ENV{EVAL_LIBS}\" --nbprocess=$nbCores --execname=$runSpecFile --execargs \"@_\"");
+		execBashCmd("microlaunch --basename $basename --output-dir $ENV{ML_OUTPUT} --metarepetition 1 --repetition 1 --evallib \"$ENV{EVAL_LIBS}\" --nbprocess=$nbCores --cpupin=\"{0,6,1,7,2,8,3,9,4,10,5,11}\" --execname=$runSpecFile --execargs \"@_\"");
 	}
 	elsif ( -e $pathToRun)
 	{
-		execBashCmd("microlaunch --basename $basename --output-dir $ENV{ML_OUTPUT} --metarepetition 1 --repetition 1 --evallib \"$ENV{EVAL_LIBS}\" --nbprocess=$nbCores --execname=$pathToRun --execargs \"@_\"");
+		execBashCmd("microlaunch --basename $basename --output-dir $ENV{ML_OUTPUT} --metarepetition 1 --repetition 1 --evallib \"$ENV{EVAL_LIBS}\" --nbprocess=$nbCores --cpupin=\"{0,6,1,7,2,8,3,9,4,10,5,11}\"--execname=$pathToRun --execargs \"@_\"");
 	}
 	else
 	{
@@ -173,6 +188,7 @@ sub freqSwitching
 {
 	my $nbProc = execBashCmd("cat /proc/cpuinfo | grep \"processor\" | wc -l");
 	chomp $nbProc;
+	
 	my $freqs = execBashCmd("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies");
 	chomp $freqs;
 	my @tmpfreqList = split (/ +/,$freqs);
@@ -188,7 +204,7 @@ sub freqSwitching
 	{
 		@freqList = @tmpfreqList;
 	}
-	
+	$nbProc = $procNum;	
 	LogOutput(OK,"Launching $applicationName with [@_]\n");
 	LogOutput(OK,"Running the benchmark on $nbProc cores\n");
 
@@ -205,6 +221,7 @@ sub freqSwitching
 		}
 		
 	}
+	sleep 1;
 	for ($j=0;$j<=$#freqList;$j++)
 	{		
 		for ($i=0;$i<$nbProc;$i++)
@@ -219,7 +236,7 @@ sub freqSwitching
 				die;
 			}
 		}
-
+		sleep 1;
 		LogOutput(OK,"Frequency set to $freqList[$j] and userspace setting\n");
 		LogOutput(OK,"Launching Microlaunch ....");
 		launchML ($freqList[$j],$nbProc,@_);
@@ -230,7 +247,7 @@ sub freqSwitching
 	{
 		if( -e "/sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor")
 		{
-			execBashCmd("echo userspace > /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor");
+			execBashCmd("echo ondemand > /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor");
 		}
 		else
 		{
@@ -238,24 +255,59 @@ sub freqSwitching
 			die;
 		}
 	}
-	if ($#freqIds == -1)
-	{
-		LogOutput(OK,"Restore Ondemand setting\n");
-		LogOutput(OK,"Launching Microlaunch ....");
-		launchML ("ondemand",$nbProc,@_);
-		LogOutput("",".... Microlaunch Ended\n");
-	}
+	
+	sleep 1;
+	LogOutput(OK,"Restore Ondemand setting\n");
+	LogOutput(OK,"Launching Microlaunch ....");
+	launchML ("ondemand",$nbProc,@_);
+	LogOutput("",".... Microlaunch Ended\n");
+
 }
 
 sub launchREST
 {
 	my $nbProc = execBashCmd("cat /proc/cpuinfo | grep \"processor\" | wc -l");
 	chomp $nbProc;
+	$nbProc = $procNum;
+	for ($i=0;$i<$nbProc;$i++)
+	{
+		if( -e "/sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor")
+		{
+			execBashCmd("echo ondemand > /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor");
+		}
+		else
+		{
+			LogOutput(ERROR,"/sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor does not exists");
+			die;
+		}
+	}
+	
+	
+	LogOutput(OK,"Restore Ondemand setting\n");
 	LogOutput(OK,"Launching REST on the application\n");
 	LogOutput(OK,"Launching Microlaunch ....");
-	launchML("naive",$nbProc,@_); 
-;
+	launchML("naive",$nbProc,@_,"rest"); 
 	LogOutput("",".... Microlaunch Ended\n");
+}
+
+sub restoreOndemand
+{
+	for ($i=0;$i<$nbProc;$i++)
+	{
+		if( -e "/sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor")
+		{
+			execBashCmd("echo ondemand > /sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor");
+		}
+		else
+		{
+			LogOutput(ERROR,"/sys/devices/system/cpu/cpu${i}/cpufreq/scaling_governor does not exists");
+			die;
+		}
+	}
+	
+	
+	LogOutput(OK,"Restore Ondemand setting\n");
+
 }
 
 sub displayHelp

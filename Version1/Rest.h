@@ -81,8 +81,11 @@ int RestInit (toolChainInit profiler, toolChainInit decisionMaker, toolChainInit
 
 /**
  * @brief Fortran Wrapper for REST*/
-int RestInitF ();
+int restinitf_ ();
 
+/**
+ * @brief Fortran Wrapper for REST*/
+void restdestroy_ ();
 /**
  * @brief destroys the context of the rest runtime, returns threads back used for profiling, and dumps all statistics to files
  **/

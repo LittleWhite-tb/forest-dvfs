@@ -37,7 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 profilerHandle *restHandle = NULL;
 
-int RestInitF ()
+int restinitf_ ()
 {
 	return RestInit (REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
 }	
@@ -47,20 +47,21 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 	toolChainInit profiler = profilerArg, decisionMaker = decisionMakerArg, freqChanger = freqChangerArg;
 	int isRestEnvVar = 0;
 
+	//Log_init();
 	if((getenv("REST_PROFILER") !=NULL) || (getenv("REST_DM") !=NULL) || (getenv("REST_FREQ_CHANGER") !=NULL))
 		isRestEnvVar = 1;
-
+	
 	if((restHandle == NULL) || ((restHandle != NULL) && !isRestEnvVar))
 	{
 
 		if((restHandle != NULL))
 		{
-			Log_output (-1,"Rest Already initialized overwriting previous parameters \n");
+			Log_output (1,"Rest Already initialized overwriting previous parameters \n");
 			RestDestroy();
 		}
 		else
 		{
-			Log_init();
+			//Log_init();
 		}
 
 		//Choosing which profiler need to use
@@ -184,6 +185,11 @@ int RestInit (toolChainInit profilerArg, toolChainInit decisionMakerArg, toolCha
 	}
 
 	return 1;
+}
+
+void restdestroy_ ()
+{
+	RestDestroy ();
 }
 
 void RestDestroy ( void )

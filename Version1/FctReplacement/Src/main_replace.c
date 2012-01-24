@@ -14,17 +14,17 @@ char ldPreload[256]="\0";
 //wrapper for the original function
 static int rest_main(int argc, char** argv, char** env)
 {
-     fprintf(stdout,"[DEBUG] Je suis dans le rest_main\n");
+     //fprintf(stdout,"[DEBUG] Je suis dans le rest_main\n");
      //LD PRELOAD Could work but we are not sure
-    char * tmp = NULL;
+    //char * tmp = NULL;
     setenv("LD_PRELOAD","",1);
-    tmp = getenv ("LD_PRELOAD");
+    //tmp = getenv ("LD_PRELOAD");
       		
-    if(tmp == NULL)
+    /*if(tmp == NULL)
     {
 	fprintf(stderr,"No LD_PRELOAD were defined, it will not be used");
         //return rest_original_main(argc, argv, env);
-    }
+    }*/
     
     RestInit(REST_T_PROFILER, REST_NAIVE_DM, REST_FREQ_CHANGER);
     

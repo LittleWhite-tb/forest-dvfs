@@ -7,6 +7,7 @@
 #include "Rest.h"
 #include "mpi_replace.h"
 
+#define REST
 
 #ifdef MPI
 void loadPowerlibraries()

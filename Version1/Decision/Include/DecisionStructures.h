@@ -38,7 +38,7 @@ typedef struct sProfReport
 typedef struct saveData
 {
 	SFreqData *sFreqData;/** @brief frequency's data**/
-	int **freqCounter;/** @brief the number of time we call each frequency for each core**/
+	int *freqCounter;/** @brief the number of time we call each frequency for each core**/
 	int duration;/** @brief the duration we have been at the current frequency**/
 	SMarkov ** predictor; /** @brief handle to my markov modeling system**/
 } SaveData;
