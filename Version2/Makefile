@@ -1,32 +1,64 @@
-EXE=rest
+CXX=g++
+CXXFLAGS=-O3 -Wall -Wextra -g
+LD=$(CXX)
+LD_FLAGS=
+LIBS=-lpthread -lm
 
-MAIN_OBJ := $(patsubst %.cpp,obj/%.o,$(wildcard *.cpp))
-CORE_OBJ := $(patsubst Core/Src/%.cpp,obj/%.o,$(wildcard Core/Src/*.cpp))
-LIBS =``
+COMM_HDR=$(shell find Core/Communicator/ -type f -name '*.h')
+COMM_SRC=$(shell find Core/Communicator/ -type f -name '*.cpp')
+COMM_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pdc.o, $(COMM_SRC)))
+COMM_INC_FLAG=$(addprefix -I, $(sort $(dir $(COMM_HDR))))
 
-OPT_INCLUDE = -ICore/Include
-OPT = -O3 -Wall -Wextra -g $(OPT_INCLUDE) 
+COMMPIC_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pic.o, $(COMM_SRC)))
 
-FULL_OBJ = $(MAIN_OBJ) $(CORE_OBJ)
+DECS_HDR=$(shell find Core/DecisionServer/ -type f -name '*.h')
+DECS_SRC=$(shell find Core/DecisionServer/ -type f -name '*.cpp')
+DECS_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pdc.o, $(DECS_SRC)))
+DECS_INC_FLAG=$(addprefix -I, $(sort $(dir $(DECS_HDR))))
 
-all: $(EXE)
+PROF_HDR=$(shell find Core/Profiler/ -type f -name '*.h')
+PROF_SRC=$(shell find Core/Profiler/ -type f -name '*.cpp')
+PROF_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pic.o, $(PROF_SRC)))
+PROF_INC_FLAG=$(addprefix -I, $(sort $(dir $(PROF_HDR))))
 
-$(EXE):	$(FULL_OBJ)
-	g++ -o $(EXE) $(FULL_OBJ) $(OPT) $(LIBS) -Wl,-E
+LOG_HDR=$(shell find Core/Log/ -type f -name '*.h')
+LOG_SRC=$(shell find Core/Log/ -type f -name '*.cpp')
+LOG_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pdc.o, $(LOG_SRC)))
+LOG_INC_FLAG=$(addprefix -I, $(sort $(dir $(LOG_HDR))))
 
-$(CORE_OBJ):obj/%.o: Core/Src/%.cpp Core/Include/%.h 
-	g++ -c $< -o $@ $(OPT)$(LIBS)
+LOGPIC_OBJ=$(addprefix obj/, $(patsubst %.cpp, %_pic.o, $(LOG_SRC)))
 
-$(MAIN_OBJ):obj/%.o: %.cpp %.h
-	g++ -c $< -o $@ $(OPT) $(LIBS)
+
+ALL_OBJ=$(COMM_OBJ) $(COMMPIC_OBJ) $(DECS_OBJ) $(PROF_OBJ) $(LOG_OBJ) $(LOGPIC_OBJ)
+ALL_INC_FLAGS=-I. $(COMM_INC_FLAG) $(DECS_INC_FLAG) $(PROF_INC_FLAG) $(LOG_INC_FLAG)
+
+
+all: decisionServer rest_prof.so
+
+decisionServer: $(COMM_OBJ) $(DECS_OBJ) $(LOG_OBJ)
+	$(LD) $(LD_FLAGS) $^ $(LIBS) -o decisionServer
+
+rest_prof.so: $(COMMPIC_OBJ) $(PROF_OBJ) $(LOGPIC_OBJ)
+	$(LD) $(LD_FLAGS) -shared $^ $(LIBS) -lpapi -o rest_prof.so
 
 clean:
-	@rm $(OBJ) $(EXE) obj/*o `find . -name "*~"` `rm -R doc/*` || echo "Done cleaning"
-count:
-	wc `find . -name "*\.cpp"|grep -v utils` `find . -name "*\.h"|grep -v utils` 
+	@rm -rf obj decisionServer rest_prof.so
 
-countfiles:
-	@echo "CPP: " `find . -name "*cpp" |wc -l`; \
-    echo "Headers:" `find . -name "*h" | wc -l`;\
-    echo "Txt:" `find data -name "*txt" |wc -l`
-    
+install: rest_prof.so
+	@cp rest_prof.so /usr/lib
+
+obj/%.d: %.cpp
+	@mkdir -p $(@D)
+	@$(CXX) -MM $(ALL_INC_FLAGS) $< > $@ 2> /dev/null
+
+-include $(patsubst %.o, %.d, $(ALL_OBJ))
+
+obj/%_pdc.o: %.cpp obj/%.d
+	@echo '$(CXX) $(CXXFLAGS) $<'
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) $(ALL_INC_FLAGS) -c $< -o $@
+
+obj/%_pic.o: %.cpp obj/%.d
+	@echo '$(CXX) $(CXXFLAGS) -fPIC $<'
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) -fPIC $(ALL_INC_FLAGS) -c $< -o $@
