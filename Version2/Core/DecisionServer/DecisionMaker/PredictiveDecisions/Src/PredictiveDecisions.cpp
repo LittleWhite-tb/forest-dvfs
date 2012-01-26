@@ -54,7 +54,7 @@ int PredictiveDecisions::giveReport (int core, long long HWCounters[3])
 
 	//Compute distance between current frequency to the new one
 	int currentFreq = coreadata->currentFreq;
-	int distance_frequecies = std::abs (newFrequency - currentFreq);
+	int distance_frequecies = std::abs ((float) (newFrequency - currentFreq));
 
 	//Increase the number of time that we call for this frequency
 	coreadata->freqTrack[newFrequency]++;
