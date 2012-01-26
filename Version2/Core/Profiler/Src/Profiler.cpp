@@ -148,6 +148,9 @@ typedef double (*evalGet) (void * data);
 typedef void * (*evalInit) (void);
 typedef int (*evalClose) (void * data);
 
+void * dlPower;
+void * dlTimer;
+
 static evalInit timer_init;
 static evalGet timer_start;
 static evalGet timer_stop;
@@ -166,12 +169,21 @@ static double power_endvalue;
 static void profiler_cleanup()
 {
    timer_endvalue = timer_stop (NULL);
+   if (power_stop) {
    power_endvalue = power_stop (NULL);
+   }
 
    timer_close (NULL);
+   if (power_close) {
    power_close (NULL);
+   }
 
+   if (dlPower) {
+   dlclose(dlPower);
    logger->LOG (Log::VERB_NFO, "Power consumed: %f\n", power_endvalue - power_begvalue);
+   }
+
+   dlclose(dlTimer);
    logger->LOG (Log::VERB_NFO, "Time consumed : %f\n", timer_endvalue - timer_begvalue);
 
    delete tp;
@@ -199,7 +211,15 @@ static int rest_main (int argc, char ** argv, char ** env)
    atexit (profiler_cleanup);
 
    // load and start power and timer libraries
-   void * dlPower = dlopen ("/opt/rest_modifications/power/timer.so", RTLD_NOW);
+   dlPower = NULL;
+   power_init = NULL;
+   power_start = NULL;
+   power_stop = NULL;
+   power_close = NULL;
+
+   if (id == 1) // temporary solution 
+   {
+   dlopen ("/opt/rest_modifications/power/timer.so", RTLD_NOW);
    assert (dlPower != NULL);
 
    power_init = (evalInit) dlsym (dlPower, "evaluationInit");
@@ -210,8 +230,9 @@ static int rest_main (int argc, char ** argv, char ** env)
    assert (power_stop != NULL);
    power_close = (evalClose) dlsym (dlPower, "evaluationClose");
    assert (power_close != NULL);
+    }
 
-   void * dlTimer = dlopen ("/opt/rest_modifications/timer/timer.so", RTLD_NOW);
+   dlopen ("/opt/rest_modifications/timer/timer.so", RTLD_NOW);
    assert (dlTimer != NULL);
 
    timer_init = (evalInit) dlsym (dlTimer, "evaluationInit");
@@ -224,10 +245,14 @@ static int rest_main (int argc, char ** argv, char ** env)
    assert (timer_close != NULL);
 
    timer_init();
+   if (power_init) {
    power_init();
+   }
 
    timer_begvalue = timer_start (NULL);
+   if (power_start) {
    power_begvalue = power_start (NULL);
+   }
 
    argv[2] = argv[0];
    return original_main (argc - 2, argv + 2, env);
