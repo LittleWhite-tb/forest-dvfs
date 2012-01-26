@@ -26,8 +26,8 @@
 
 #include "PredictiveDecisions.h"
 
-PredictiveDecisions::PredictiveDecisions (CoresInfos *coresInfos) :
-		DecisionMaker (coresInfos)
+PredictiveDecisions::PredictiveDecisions (CoresInfos * coresInfos) :
+   DecisionMaker (coresInfos)
 {
 
 }
@@ -39,37 +39,37 @@ PredictiveDecisions::~PredictiveDecisions (void)
 
 int PredictiveDecisions::giveReport (int core, long long HWCounters[3])
 {
-	assert(coresInfo != NULL);
+   assert (coresInfo != NULL);
 
-	//Compute the boundness of the program
-	float boundness = computeBoundness (HWCounters[0], HWCounters[1],
-			HWCounters[2]);
+   //Compute the boundness of the program
+   float boundness = computeBoundness (HWCounters[0], HWCounters[1],
+                                       HWCounters[2]);
 
-	//Choose to which frequency we want to go
-	int newFrequency = round ((int) (boundness * (coresInfo->numFreqs - 1)));
-	newFrequency = (boundness == 0.0) ? 1 : newFrequency; //unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
+   //Choose to which frequency we want to go
+   int newFrequency = round ( (int) (boundness * (coresInfo->numFreqs - 1)));
+   newFrequency = (boundness == 0.0) ? 1 : newFrequency; //unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
 
-	//Datas which belong to a core
-	CoreData *coreadata = &coresInfo->allCoreDatas[core];
+   //Datas which belong to a core
+   CoreData * coreadata = &coresInfo->allCoreDatas[core];
 
-	//Compute distance between current frequency to the new one
-	int currentFreq = coreadata->currentFreq;
-	int distance_frequecies = std::abs ((float) (newFrequency - currentFreq));
+   //Compute distance between current frequency to the new one
+   int currentFreq = coreadata->currentFreq;
+   int distance_frequecies = std::abs ( (float) (newFrequency - currentFreq));
 
-	//Increase the number of time that we call for this frequency
-	coreadata->freqTrack[newFrequency]++;
+   //Increase the number of time that we call for this frequency
+   coreadata->freqTrack[newFrequency]++;
 
-	// if the new frequency isn't equal to the old one
-	// and if (the number of time that we have call this frequency) * (distance between each others)
-	// is greater than (the number of time that we have called the curent frequency) then change
-	if (newFrequency != currentFreq
-			&& (coreadata->freqTrack[newFrequency]) * distance_frequecies
-					> coreadata->freqTrack[currentFreq])
-	{
-		return newFrequency;
-	}
+   // if the new frequency isn't equal to the old one
+   // and if (the number of time that we have call this frequency) * (distance between each others)
+   // is greater than (the number of time that we have called the curent frequency) then change
+   if (newFrequency != currentFreq
+         && (coreadata->freqTrack[newFrequency]) * distance_frequecies
+         > coreadata->freqTrack[currentFreq])
+   {
+      return newFrequency;
+   }
 
-	assert(true);
-	return 1;
+   assert (true);
+   return 1;
 }
 
