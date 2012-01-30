@@ -24,13 +24,15 @@
 #ifndef H_COMMUNICATOR
 #define H_COMMUNICATOR
 
-#include "YellowPages.h"
-#include "Message.h"
-
 #include <limits.h>
 #include <pthread.h>
 #include <map>
 #include <set>
+
+#include "YellowPages.h"
+#include "Message.h"
+
+typedef void (*CommConnectFn)(bool conn, unsigned int id);
 
 /**
  * @brief Handles all incoming and outgoing connections.
@@ -85,9 +87,24 @@ class Communicator
       Message * recv (unsigned int * timeout, unsigned int sender_id);
 
       /**
-      		 * @brief Gives information concerning the current state.
-      		 */
-      void getInformation (void);
+       * @brief Registers a callback function which will be called when a 
+       * new client will connect or disconnect.
+       * @param fn A pointer to the callback function.
+       */
+      inline void registerConnCallback(CommConnectFn &fn) 
+      {
+         this->connCallbacks->insert(fn);
+      }
+
+      /**
+       * @brief Unregisters a connection/disconnectino callback function.
+       * @param fn The function to unregister.
+       */
+      inline void unregisterConnCallback(CommConnectFn &fn)
+      {
+         this->connCallbacks->erase(fn);
+      }
+
 
    private:
 
@@ -109,6 +126,11 @@ class Communicator
        * to us but we have no id what is their id.
        */
       std::set<int> sockets_ukn;
+
+      /**
+       * @brief Registered (dis)connection callbacks.
+       */
+      std::set<CommConnectFn> *connCallbacks;
 
 
       /**

@@ -25,10 +25,10 @@
 
 #include "SetWinMsg.h"
 
-SetWinMsg::SetWinMsg(unsigned int sender, unsigned int dest, unsigned int win_sz)
-    : Message(Message::MSG_TP_SETWIN, sender, dest)
+SetWinMsg::SetWinMsg (unsigned int sender, unsigned int dest, unsigned int win_sz)
+   : Message (Message::MSG_TP_SETWIN, sender, dest)
 {
-    this->win_sz = win_sz;
+   this->win_sz = win_sz;
 }
 
 SetWinMsg::~SetWinMsg()
@@ -38,8 +38,8 @@ SetWinMsg::~SetWinMsg()
 
 bool SetWinMsg::write_into (int fd) const
 {
-    return this->Message::write_into (fd) 
-        && write (fd, &this->win_sz, sizeof (this->win_sz)) == sizeof (this->win_sz);
+   return this->Message::write_into (fd)
+          && write (fd, &this->win_sz, sizeof (this->win_sz)) == sizeof (this->win_sz);
 }
-    
+
 
