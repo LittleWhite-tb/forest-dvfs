@@ -26,6 +26,7 @@
 #include "Message.h"
 #include "ReportMsg.h"
 #include "YellowPages.h"
+#include "SetWinMsg.h"
 
 #include <cmath>
 #include <iostream>
@@ -53,10 +54,8 @@ ThreadedProfiler::~ThreadedProfiler (void)
 void * ThreadedProfiler::profile_loop (void * arg)
 {
    ThreadedProfiler * obj = (ThreadedProfiler *) arg;
-   unsigned int win_sz = 1;
    long long int values[3];
-   unsigned int sleep_scale = INIT_SLEEP_SCALE;
-   unsigned int sleep_time = std::pow (2, win_sz) * sleep_scale;
+   unsigned int sleep_time = INIT_SLEEP_WIN;
 
    unsigned int my_id = YellowPages::get_id();
    unsigned int server_id = YellowPages::get_server_id();
@@ -83,7 +82,13 @@ void * ThreadedProfiler::profile_loop (void * arg)
          {
             break;
          }
-
+         else if (msg->get_type() == Message::MSG_TP_SETWIN)
+         {
+            sleep_time = ( (SetWinMsg *) msg)->get_window_size();
+            timeout = sleep_time;
+            delete msg;
+            continue;
+         }
       }
       while (msg != NULL);
 

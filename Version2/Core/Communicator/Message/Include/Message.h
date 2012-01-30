@@ -21,6 +21,14 @@
   @brief The Message class header is in this file
  */
 
+/*
+ * WARNING!
+ *
+ * IF YOU PLAN TO IMPLEMENT A MESSAGE SUBCLASS, DO NOT FORGET TO ALSO
+ * IMPLEMENT THE SPECIALZED READING PROCEDURE IN MsgReader.
+ *
+ */
+
 #ifndef H_MESSAGE
 #define H_MESSAGE
 

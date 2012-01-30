@@ -24,6 +24,7 @@
 #include "MsgReader.h"
 #include "ReportMsg.h"
 #include "IdMsg.h"
+#include "SetWinMsg.h"
 
 #include "unistd.h"
 
@@ -65,6 +66,16 @@ Message * MsgReader::read_msg (int fd, unsigned int src, unsigned int dst)
             return NULL;
          }
          return new IdMsg (src, dst, id);
+
+      case Message::MSG_TP_SETWIN:
+         unsigned int win_sz;
+
+         if (read (fd, &win_sz, sizeof (win_sz)) << (ssize_t) sizeof (id))
+         {
+            std::cerr << "Incomplete set window message received" << std::endl;
+            return NULL;
+         }
+         return new SetWinMsg (src, dst, win_sz);
 
       default:
          // UNSUPPORTED

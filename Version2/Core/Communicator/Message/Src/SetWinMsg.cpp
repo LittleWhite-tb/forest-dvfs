@@ -17,42 +17,29 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is in this file
+  @file SetWinMsg.cpp
+  @brief The SetWinMsg class is in this file
  */
-#ifndef H_PROFILER
-#define H_PROFILER
 
-#include "Communicator.h"
+#include <unistd.h>
 
-/** @brief Initial sleep window (in usec) */
-#define INIT_SLEEP_WIN 600
-#define LONGEST_SLEEP_WIN 153600
+#include "SetWinMsg.h"
 
-/**
- * @class Profiler
- * @brief The Profiler of ThreadedProfiler and ProfilerServer
- */
-class Profiler
+SetWinMsg::SetWinMsg(unsigned int sender, unsigned int dest, unsigned int win_sz)
+    : Message(Message::MSG_TP_SETWIN, sender, dest)
+{
+    this->win_sz = win_sz;
+}
+
+SetWinMsg::~SetWinMsg()
 {
 
-   public:
-      /**
-       * @brief Constructor
-       */
-      Profiler (void);
+}
 
-      /**
-       * @brief Destructor
-       */
-      virtual ~Profiler (void);
+bool SetWinMsg::write_into (int fd) const
+{
+    return this->Message::write_into (fd) 
+        && write (fd, &this->win_sz, sizeof (this->win_sz)) == sizeof (this->win_sz);
+}
+    
 
-   protected:
-      /**
-       * Communicator to transmit info to decision servers.
-       */
-      Communicator * comm;
-
-};
-
-#endif

@@ -39,7 +39,7 @@ decisionServer: $(COMM_OBJ) $(DECS_OBJ) $(LOG_OBJ)
 	$(LD) $(LD_FLAGS) $^ $(LIBS) -o decisionServer
 
 rest_prof.so: $(COMMPIC_OBJ) $(PROF_OBJ) $(LOGPIC_OBJ)
-	$(LD) $(LD_FLAGS) -shared $^ $(LIBS) -lpapi -o rest_prof.so
+	$(LD) $(LD_FLAGS) -shared $^ $(LIBS) -lpapi -ldl -o rest_prof.so
 
 clean:
 	@rm -rf obj decisionServer rest_prof.so

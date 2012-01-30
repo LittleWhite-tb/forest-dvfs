@@ -37,29 +37,30 @@
 
 class DecisionServer
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		DecisionServer (void);
+   public:
+      /**
+       * @brief Constructor
+       */
+      DecisionServer (void);
 
-		/**
-		 * @brief Destructor
-		 */
-		~DecisionServer (void);
+      /**
+       * @brief Destructor
+       */
+      ~DecisionServer (void);
 
-		//variables
-		CoresInfos * coresInfos;
-		FreqChanger * freqchanger;
-		NaiveDecisions * naiveDecisions;
+      //variables
+      CoresInfos * coresInfos;
+      FreqChanger * freqchanger;
+      NaiveDecisions * naiveDecisions;
 
-		/**
-		 * @brief Main server loop.
-		 */
-		void server_loop ();
+      /**
+       * @brief Main server loop.
+       */
+      void server_loop ();
 
-	private:
-		Communicator * comm;
-		int **freqTracker;
+   private:
+      Communicator * comm;
+      int ** freqTracker;
+      unsigned int * sleep_windows;
 };
 #endif

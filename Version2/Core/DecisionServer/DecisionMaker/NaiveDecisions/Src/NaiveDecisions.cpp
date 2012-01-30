@@ -30,7 +30,7 @@
 //#define BINARYMODE
 
 NaiveDecisions::NaiveDecisions (CoresInfos * coresInfos) :
-		DecisionMaker (coresInfos)
+   DecisionMaker (coresInfos)
 {
 
 }
@@ -41,34 +41,34 @@ NaiveDecisions::~NaiveDecisions (void)
 }
 
 int NaiveDecisions::giveReport (unsigned int core,
-		const long long HWCounters[3])
+                                const long long HWCounters[3])
 {
-	float boundness = computeBoundness (HWCounters[0], HWCounters[1],
-			HWCounters[2]);
+   float boundness = computeBoundness (HWCounters[0], HWCounters[1],
+                                       HWCounters[2]);
 #ifdef BINARYMODE
-	int newFrequency = (boundness < 0.5) ?1:coresInfo->numFreqs-1;
+   int newFrequency = (boundness < 0.5) ?1:coresInfo->numFreqs-1;
 #else
-	int newFrequency = round ((int) (boundness * coresInfo->numFreqs));
-	newFrequency = (boundness == 0.0) ? 1 : newFrequency; //unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
-	newFrequency = (boundness == 1.0) ? coresInfo->numFreqs - 1 : newFrequency; //if it's exactly 1.0 then we set it to the lowest frequency
+   int newFrequency = round ( (int) (boundness * coresInfo->numFreqs));
+   newFrequency = (boundness == 0.0) ? 1 : newFrequency; //unless it's prefectly compute bound, which it never will be, we won't use the turbo frequency
+   newFrequency = (boundness == 1.0) ? coresInfo->numFreqs - 1 : newFrequency; //if it's exactly 1.0 then we set it to the lowest frequency
 #endif
 
-	//Trick to adjuste the right freq
-	if (boundness <= 0.1)
-	{
-		newFrequency = 1;
-	}
+   //Trick to adjuste the right freq
+   if (boundness <= 0.1)
+   {
+      newFrequency = 1;
+   }
 
-	int currentFreq = this->coresInfo->allCoreDatas[core].currentFreq;
+   int currentFreq = this->coresInfo->allCoreDatas[core].currentFreq;
 
-	int FreqDistance = std::abs ((float) (newFrequency - currentFreq));
+   int FreqDistance = std::abs ( (float) (newFrequency - currentFreq));
 
-	if (FreqDistance > 1 || (FreqDistance <= 1 && newFrequency > currentFreq))
-	{
-		return newFrequency;
-	}
-	else
-	{
-		return -1;
-	}
+   if (FreqDistance > 1)
+   {
+      return newFrequency;
+   }
+   else
+   {
+      return -1;
+   }
 }
