@@ -47,7 +47,7 @@ Communicator::Communicator ()
    this->sockets_out = std::map<unsigned int, int>();
    this->sockets_in = std::map<unsigned int, int>();
    pthread_mutex_init (&this->mutex_sockukn, NULL);
-   this->connCallbacks = new std::set<CommConnectFn>();
+   this->connCallbacks = new std::map<CommConnectFn, void *>();
 
    // incoming connection socket
    this->fd_server = socket (AF_INET, SOCK_STREAM, 0);
@@ -92,7 +92,7 @@ Communicator::Communicator ()
  */
 Communicator::~Communicator()
 {
-    // stop accepting connections
+   // stop accepting connections
    pthread_cancel (this->server_th);
    pthread_join (this->server_th, NULL);
 
@@ -309,7 +309,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
       {
 
 
-         assert(false); // DEPRECATED!!! WILL BE REMOVED ASAP
+         assert (false); // DEPRECATED!!! WILL BE REMOVED ASAP
 
 
          // update the timeval value
@@ -362,7 +362,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                if (msg == NULL)
                {
-                  std::set<CommConnectFn>::iterator it_fn;
+                  std::map<CommConnectFn, void*>::iterator it_fn;
 
                   std::cout << "Connection with node " << it->first << " lost" << std::endl;
                   close (it->second);
@@ -370,10 +370,10 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                   // notify callbacks about the deconnection
                   for (it_fn = this->connCallbacks->begin();
-                       it_fn != this->connCallbacks->end();
-                       it_fn++)
+                        it_fn != this->connCallbacks->end();
+                        it_fn++)
                   {
-                     (*it_fn)(false, it->first);
+                     it_fn->first (false, it->first, it_fn->second);
                   }
 
                   continue;
@@ -404,7 +404,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
                   its != this->sockets_ukn.end();
                   its++)
             {
-               std::set<CommConnectFn>::iterator it_fn;
+               std::map<CommConnectFn, void*>::iterator it_fn;
 
                if (!FD_ISSET (*its, &fds))
                {
@@ -439,10 +439,10 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                // notify registered callbacks
                for (it_fn = this->connCallbacks->begin();
-                    it_fn != this->connCallbacks->end();
-                    it_fn++)
+                     it_fn != this->connCallbacks->end();
+                     it_fn++)
                {
-                  (*it_fn)(true, ( (IdMsg *) msg)->get_id());
+                  it_fn->first (true, ( (IdMsg *) msg)->get_id(), it_fn->second);
                }
             }
 

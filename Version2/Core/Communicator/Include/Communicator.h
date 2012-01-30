@@ -32,7 +32,14 @@
 #include "YellowPages.h"
 #include "Message.h"
 
-typedef void (*CommConnectFn)(bool conn, unsigned int id);
+/**
+ * @brief Callback functions called when a client connects or disconnects.
+ * @param conn true when the client connected, false otherwise.
+ * @param id The id of the node involved
+ * @param arg User-defined value set when registering the callback.
+ */
+typedef void (*CommConnectFn) (bool conn, unsigned int id, void *arg);
+
 
 /**
  * @brief Handles all incoming and outgoing connections.
@@ -87,22 +94,23 @@ class Communicator
       Message * recv (unsigned int * timeout, unsigned int sender_id);
 
       /**
-       * @brief Registers a callback function which will be called when a 
+       * @brief Registers a callback function which will be called when a
        * new client will connect or disconnect.
        * @param fn A pointer to the callback function.
+       * @param arg An extra argument passed to the function when called.
        */
-      inline void registerConnCallback(CommConnectFn &fn) 
+      inline void registerConnCallback (CommConnectFn fn, void * arg)
       {
-         this->connCallbacks->insert(fn);
+         (*this->connCallbacks)[fn] = arg;
       }
 
       /**
        * @brief Unregisters a connection/disconnectino callback function.
        * @param fn The function to unregister.
        */
-      inline void unregisterConnCallback(CommConnectFn &fn)
+      inline void unregisterConnCallback (CommConnectFn & fn)
       {
-         this->connCallbacks->erase(fn);
+         this->connCallbacks->erase (fn);
       }
 
 
@@ -130,7 +138,7 @@ class Communicator
       /**
        * @brief Registered (dis)connection callbacks.
        */
-      std::set<CommConnectFn> *connCallbacks;
+      std::map<CommConnectFn, void *> *connCallbacks;
 
 
       /**
