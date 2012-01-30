@@ -60,7 +60,6 @@ DecisionServer::DecisionServer (void)
 
       for (int j = 0; j < numFreqs; ++j)
       {
-
          freqTracker[i][j] = 0;
       }
    }
@@ -87,6 +86,7 @@ void DecisionServer::server_loop ()
       assert (msg != NULL);
 
       msgtp = msg->get_type ();
+      
       if (msgtp == Message::MSG_TP_REPORT)
       {
          int core = YellowPages::get_core_id (msg->get_sender ());
@@ -99,25 +99,27 @@ void DecisionServer::server_loop ()
             freqchanger->ChangeFreq (core, freq);
 
             // reset profiler's sleep windows
-            this->sleep_windows[msg->get_sender() ] = INIT_SLEEP_WIN;
+            //--->look out bad id given to sleep window
+            this->sleep_windows [msg->get_sender()] = INIT_SLEEP_WIN;
             Message * swmsg = new SetWinMsg (msg->get_dest(), msg->get_sender(), INIT_SLEEP_WIN);
+            //Sending the new window to the profiler
             this->comm->send (*swmsg);
             delete swmsg;
          }
          else
          {
             // expand profiler window
-            unsigned int win = this->sleep_windows[msg->get_sender() ];
+            unsigned int win = this->sleep_windows [msg->get_sender()];
 
             // avoid un-necessary set window messages
-            if (win == LONGEST_SLEEP_WIN)
+            if (win >= LONGEST_SLEEP_WIN)
             {
                continue;
             }
 
             win *= 2;
             win = win > LONGEST_SLEEP_WIN ? LONGEST_SLEEP_WIN : win;
-            this->sleep_windows[msg->get_sender() ] = win;
+            this->sleep_windows [msg->get_sender()] = win;
 
             Message * swmsg = new SetWinMsg (msg->get_dest(), msg->get_sender(), win);
             this->comm->send (*swmsg);
@@ -140,11 +142,11 @@ int main (int argc, char ** argv)
       return 1;
    }
 
-   signal (SIGTERM, sighandler);
-   signal (SIGINT, sighandler);
-
    atexit (cleanup_fn);
 
+   signal (SIGTERM, sighandler);
+   signal (SIGINT, sighandler);
+   
    unsigned int id;
    std::istringstream iss (argv[1], std::istringstream::in);
    iss >> id;
