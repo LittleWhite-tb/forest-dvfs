@@ -28,40 +28,40 @@
 
 class SetWinMsg : public Message
 {
-    public:
-        /**
-         * @brief Sole constructor.
-         * @param sender The sender node's id
-         * @param dest The destination node's id
-         * @param win_sz The window size carried by the message.
-         */
-        SetWinMsg(unsigned int sender, unsigned int dest, unsigned int win_sz);
-        
-        /**
-         * @brief Sole destructor.
-         */
-        ~SetWinMsg();
-
-    /**
-       * @brief Dumps the message into the file descriptor. The message MUST
-       * start by the message type.
-       *
-       * @param fd The file descriptor where to write into.
-       * @return False in case of failure, true otherwise.
+   public:
+      /**
+       * @brief Sole constructor.
+       * @param sender The sender node's id
+       * @param dest The destination node's id
+       * @param win_sz The window size carried by the message.
        */
-        bool write_into (int fd) const;
-        
+      SetWinMsg (unsigned int sender, unsigned int dest, unsigned int win_sz);
 
-        /**
-         * @brief Returns the size of the window in the message.
+      /**
+       * @brief Sole destructor.
+       */
+      ~SetWinMsg();
+
+      /**
+         * @brief Dumps the message into the file descriptor. The message MUST
+         * start by the message type.
+         *
+         * @param fd The file descriptor where to write into.
+         * @return False in case of failure, true otherwise.
          */
-        inline unsigned int get_window_size() 
-        {
-            return this->win_sz;
-        }
-        
-    private:
-        unsigned int win_sz;
+      bool write_into (int fd) const;
+
+
+      /**
+       * @brief Returns the size of the window in the message.
+       */
+      inline unsigned int get_window_size()
+      {
+         return this->win_sz;
+      }
+
+   private:
+      unsigned int win_sz;
 };
 
 #endif

@@ -24,6 +24,8 @@
 #ifndef H_DECISIONSERVER
 #define H_DECISIONSERVER
 
+#include <set>
+
 #include "NaiveDecisions.h"
 #include "FreqChanger.h"
 #include "Communicator.h"
@@ -62,5 +64,16 @@ class DecisionServer
       Communicator * comm;
       int ** freqTracker;
       unsigned int * sleep_windows;
+
+      /**
+       * @brief Callback when profilers connect or disconnect
+       */
+      static void connectionCallback(bool conn, unsigned int id, void *arg);
+
+      /**
+       * @brief Number of connected profilers. Temporarly used for 
+       * printing purposes.
+       */
+      unsigned int nbProfs;
 };
 #endif

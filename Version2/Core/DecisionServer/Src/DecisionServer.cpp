@@ -47,6 +47,8 @@ DecisionServer::DecisionServer (void)
    this->coresInfos = new CoresInfos ();
    this->freqchanger = new FreqChanger (coresInfos);
    this->naiveDecisions = new NaiveDecisions (coresInfos);
+   this->nbProfs = 0;
+
    int numCores = coresInfos->numCores;
    int numFreqs = coresInfos->numFreqs;
 
@@ -65,6 +67,11 @@ DecisionServer::DecisionServer (void)
    }
 
    this->comm = new Communicator ();
+
+   // register callback
+   this->comm->registerConnCallback(DecisionServer::connectionCallback, this);
+
+   // FIXME: the communicator should only start listening here !! (and not before)
 }
 
 DecisionServer::~DecisionServer (void)
@@ -169,4 +176,25 @@ static void sighandler (int ns)
 
    // will indirectly call cleanup
    exit (0);
+}
+
+void DecisionServer::connectionCallback(bool conn, unsigned int id, void *arg) 
+{
+   (void) (conn);
+   (void) (id);
+
+   DecisionServer *obj = (DecisionServer *) arg;
+
+   if (conn) 
+   {
+      obj->nbProfs++;
+   }
+   else
+   {
+      obj->nbProfs--;
+      if (obj->nbProfs == 0)
+      {
+         // PRINTING HERE
+      }
+   }
 }

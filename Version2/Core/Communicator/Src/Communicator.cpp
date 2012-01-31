@@ -38,11 +38,16 @@
 
 #include <iostream>
 
+/*
+ * Creates a communicator which basically waits for incomming connections
+ * and allows one to send messages.
+ */
 Communicator::Communicator ()
 {
    this->sockets_out = std::map<unsigned int, int>();
    this->sockets_in = std::map<unsigned int, int>();
    pthread_mutex_init (&this->mutex_sockukn, NULL);
+   this->connCallbacks = new std::map<CommConnectFn, void *>();
 
    // incoming connection socket
    this->fd_server = socket (AF_INET, SOCK_STREAM, 0);
@@ -52,6 +57,7 @@ Communicator::Communicator ()
       exit (2);
    }
 
+   // my address
    const struct sockaddr * addr = YellowPages::get_addr (YellowPages::get_id());
    assert (addr != NULL);
    if (bind (this->fd_server, addr, YP_ADDRLEN (addr)) == -1)
@@ -66,13 +72,14 @@ Communicator::Communicator ()
       exit (2);
    }
 
+   // the pipe is used to notify an accepted incoming connection
    if (pipe (this->new_conn) == -1)
    {
       std::perror ("Failed to create notification pipe");
       exit (2);
    }
 
-   // start accepting connections
+   // start accepting connections in a thread
    if (pthread_create (&this->server_th, NULL, &Communicator::server_loop, this) != 0)
    {
       std::cerr << "Can't create accepting thread" << std::endl;
@@ -80,16 +87,23 @@ Communicator::Communicator ()
    }
 }
 
+/*
+ * Close all openned connections and free the allocated memory.
+ */
 Communicator::~Communicator()
 {
+   // stop accepting connections
    pthread_cancel (this->server_th);
    pthread_join (this->server_th, NULL);
 
+   // close listening socket
    close (this->fd_server);
 
+   // cannot be notified of a new incoming connection anymore
    close (this->new_conn[0]);
    close (this->new_conn[1]);
 
+   // close all outgoing connections
    std::map<unsigned int, int>::iterator it;
    for (it = this->sockets_out.begin();
          it != this->sockets_out.end();
@@ -98,6 +112,7 @@ Communicator::~Communicator()
       close (it->second);
    }
 
+   // close all incoming connection
    // safe to do it without any lock as no more connections are accepted
    for (it = this->sockets_in.begin();
          it != this->sockets_in.end();
@@ -105,21 +120,31 @@ Communicator::~Communicator()
    {
       close (it->second);
    }
+
+   delete this->connCallbacks;
 }
 
+/*
+ * Threaded function where the server indefinitely waits for new incoming
+ * connections and accept them ASAP.
+ */
 void * Communicator::server_loop (void * arg)
 {
    Communicator * obj = (Communicator *) arg;
 
+   // I can be cancelled at checkpoint only
    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
-   pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+   pthread_setcanceltype (PTHREAD_CANCEL_DEFERRED, NULL);
 
+   // while no-one wants me to die
+   // terminates me with a pthread_cancel is ok
    while (true)
    {
       struct sockaddr_storage addr;
       socklen_t addr_len;
       int fd;
 
+      // accept incoming connection
       addr_len = sizeof (addr);
       if ( (fd = accept (obj->fd_server, (struct sockaddr *) &addr, &addr_len)) < 0)
       {
@@ -127,6 +152,7 @@ void * Communicator::server_loop (void * arg)
          continue;
       }
 
+      // we have a new unidentified node
       pthread_mutex_lock (&obj->mutex_sockukn);
       obj->sockets_ukn.insert (fd);
       pthread_mutex_unlock (&obj->mutex_sockukn);
@@ -135,21 +161,30 @@ void * Communicator::server_loop (void * arg)
 
       // restart reading open connections
       write (obj->new_conn[1], &fd, sizeof (int));
+
+      // ok I can be killed here
+      pthread_testcancel();
    }
 
    return NULL;
 }
 
+/*
+ * Returns a socket to communicate with the given node. The socket
+ * is ensured to be correctly openned.
+ */
 int Communicator::get_socket (unsigned int dest_id, bool create)
 {
    std::map<unsigned int, int>::iterator it;
 
+   // do we already have openned a socket?
    it = this->sockets_out.find (dest_id);
    if (it != this->sockets_out.end())
    {
       return it->second;
    }
 
+   // nothing found and we are not asked for open connections
    if (!create)
    {
       return -1;
@@ -171,6 +206,7 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
       return -1;
    }
 
+   // remember this socket
    this->sockets_out[dest_id] = fd;
 
    // tell the server who we are
@@ -181,12 +217,17 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
    return fd;
 }
 
+/*
+ * Send a message (destination is encoded in the message)
+ */
 void Communicator::send (const Message & msg)
 {
    int fd = this->get_socket (msg.get_dest(), true);
 
+   // no socket can be found for the destination
    if (fd != -1)
    {
+      // try to send the message on the channel
       if (!msg.write_into (fd))
       {
          std::cerr << "Failure to write message in the channel" << std::endl;
@@ -200,6 +241,9 @@ void Communicator::send (const Message & msg)
    }
 }
 
+/*
+ * blocking reception function.
+ */
 Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 {
    struct timeval tval;
@@ -263,6 +307,11 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
       int sres = select (maxfd + 1, &fds, NULL, NULL, tvalp);
       if (sres > 0)
       {
+
+
+         assert (false); // DEPRECATED!!! WILL BE REMOVED ASAP
+
+
          // update the timeval value
          if (timeout != NULL && *timeout != 0)
          {
@@ -315,9 +364,20 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 			   //Deconnexion
                if (msg == NULL)
                {
+                  std::map<CommConnectFn, void*>::iterator it_fn;
+
                   std::cout << "Connection with node " << it->first << " lost" << std::endl;
                   close (it->second);
                   to_rm.insert (it->first);
+
+                  // notify callbacks about the deconnection
+                  for (it_fn = this->connCallbacks->begin();
+                        it_fn != this->connCallbacks->end();
+                        it_fn++)
+                  {
+                     it_fn->first (false, it->first, it_fn->second);
+                  }
+
                   continue;
                }
 
@@ -346,6 +406,8 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
                   its != this->sockets_ukn.end();
                   its++)
             {
+               std::map<CommConnectFn, void*>::iterator it_fn;
+
                if (!FD_ISSET (*its, &fds))
                {
                   continue;
@@ -359,6 +421,10 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
                   std::cout << "Connection with unknown node " << *its << " lost" << std::endl;
                   close (*its);
                   to_rm.insert (*its);
+
+                  // do not notify callbacks as the unknown nodes are not considered as being connected
+                  // for callbacks functions
+
                   continue;
                }
  
@@ -373,6 +439,14 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                this->sockets_in[ ( (IdMsg *) msg)->get_id() ] = *its;
                to_rm.insert (*its);
+
+               // notify registered callbacks
+               for (it_fn = this->connCallbacks->begin();
+                     it_fn != this->connCallbacks->end();
+                     it_fn++)
+               {
+                  it_fn->first (true, ( (IdMsg *) msg)->get_id(), it_fn->second);
+               }
             }
 
             // cleanup closed/identified sockets
