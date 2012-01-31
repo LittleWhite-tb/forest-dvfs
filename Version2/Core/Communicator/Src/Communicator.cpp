@@ -58,7 +58,7 @@ Communicator::Communicator ()
    }
 
    // my address
-   const struct sockaddr * addr = YellowPages::get_addr (YellowPages::get_id());
+   const struct sockaddr * addr = YellowPages::get_addr (YellowPages::get_id ());
    assert (addr != NULL);
    if (bind (this->fd_server, addr, YP_ADDRLEN (addr)) == -1)
    {
@@ -90,7 +90,7 @@ Communicator::Communicator ()
 /*
  * Close all openned connections and free the allocated memory.
  */
-Communicator::~Communicator()
+Communicator::~Communicator ()
 {
    // stop accepting connections
    pthread_cancel (this->server_th);
@@ -100,13 +100,13 @@ Communicator::~Communicator()
    close (this->fd_server);
 
    // cannot be notified of a new incoming connection anymore
-   close (this->new_conn[0]);
-   close (this->new_conn[1]);
+   close (this->new_conn [0]);
+   close (this->new_conn [1]);
 
    // close all outgoing connections
    std::map<unsigned int, int>::iterator it;
-   for (it = this->sockets_out.begin();
-         it != this->sockets_out.end();
+   for (it = this->sockets_out.begin ();
+         it != this->sockets_out.end ();
          it++)
    {
       close (it->second);
@@ -114,8 +114,8 @@ Communicator::~Communicator()
 
    // close all incoming connection
    // safe to do it without any lock as no more connections are accepted
-   for (it = this->sockets_in.begin();
-         it != this->sockets_in.end();
+   for (it = this->sockets_in.begin ();
+         it != this->sockets_in.end ();
          it++)
    {
       close (it->second);
@@ -146,7 +146,7 @@ void * Communicator::server_loop (void * arg)
 
       // accept incoming connection
       addr_len = sizeof (addr);
-      if ( (fd = accept (obj->fd_server, (struct sockaddr *) &addr, &addr_len)) < 0)
+      if ((fd = accept (obj->fd_server, (struct sockaddr *) &addr, &addr_len)) < 0)
       {
          std::perror ("Client connection error");
          continue;
@@ -160,10 +160,10 @@ void * Communicator::server_loop (void * arg)
       std::cout << "Unkown node " << fd << " connected" << std::endl;
 
       // restart reading open connections
-      write (obj->new_conn[1], &fd, sizeof (int));
+      write (obj->new_conn [1], &fd, sizeof (int));
 
       // ok I can be killed here
-      pthread_testcancel();
+      pthread_testcancel ();
    }
 
    return NULL;
@@ -179,7 +179,7 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
 
    // do we already have openned a socket?
    it = this->sockets_out.find (dest_id);
-   if (it != this->sockets_out.end())
+   if (it != this->sockets_out.end ())
    {
       return it->second;
    }
@@ -207,10 +207,10 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
    }
 
    // remember this socket
-   this->sockets_out[dest_id] = fd;
+   this->sockets_out [dest_id] = fd;
 
    // tell the server who we are
-   unsigned int my_id = YellowPages::get_id();
+   unsigned int my_id = YellowPages::get_id ();
    IdMsg idmsg (my_id, dest_id, my_id);
    this->send (idmsg);
 
@@ -222,7 +222,7 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
  */
 void Communicator::send (const Message & msg)
 {
-   int fd = this->get_socket (msg.get_dest(), true);
+   int fd = this->get_socket (msg.get_dest (), true);
 
    // no socket can be found for the destination
    if (fd != -1)
@@ -232,12 +232,12 @@ void Communicator::send (const Message & msg)
       {
          std::cerr << "Failure to write message in the channel" << std::endl;
          close (fd);
-         this->sockets_out.erase (msg.get_dest());
+         this->sockets_out.erase (msg.get_dest ());
       }
    }
    else
    {
-      std::cerr << "Failure to send message to " << msg.get_dest()  << std::endl;
+      std::cerr << "Failure to send message to " << msg.get_dest ()  << std::endl;
    }
 }
 
@@ -274,8 +274,8 @@ Message * Communicator::recv (unsigned int * timeout)
 
       // wait for data on oppened and identified connections
       FD_ZERO (&fds);
-      for (it_sockin = this->sockets_in.begin();
-            it_sockin != this->sockets_in.end();
+      for (it_sockin = this->sockets_in.begin ();
+            it_sockin != this->sockets_in.end ();
             it_sockin++)
       {
          FD_SET (it_sockin->second, &fds);
@@ -283,14 +283,14 @@ Message * Communicator::recv (unsigned int * timeout)
       }
 
       // also watch for new connection
-      FD_SET (this->new_conn[0], &fds);
-      maxfd = (this->new_conn[0] > maxfd ? this->new_conn[0] : maxfd);
+      FD_SET (this->new_conn [0], &fds);
+      maxfd = (this->new_conn [0] > maxfd ? this->new_conn [0] : maxfd);
 
       // and finally consider unidentified sockets
       pthread_mutex_lock (&this->mutex_sockukn);
 
-      for (it_sockukn = this->sockets_ukn.begin();
-            it_sockukn != this->sockets_ukn.end();
+      for (it_sockukn = this->sockets_ukn.begin ();
+            it_sockukn != this->sockets_ukn.end ();
             it_sockukn++)
       {
          FD_SET (*it_sockukn, &fds);
@@ -310,19 +310,19 @@ Message * Communicator::recv (unsigned int * timeout)
          }
 
          // new connection? restart and start listening to it!
-         if (FD_ISSET (this->new_conn[0], &fds))
+         if (FD_ISSET (this->new_conn [0], &fds))
          {
             int dummy;
 
             // consume the fd
-            read (this->new_conn[0], &dummy, sizeof (int));
+            read (this->new_conn [0], &dummy, sizeof (int));
 
             continue;
          }
 
          // ok check for actual data
-         for (it_sockin = this->sockets_in.begin();
-               it_sockin != this->sockets_in.end();
+         for (it_sockin = this->sockets_in.begin ();
+               it_sockin != this->sockets_in.end ();
                it_sockin++)
          {
             if (!FD_ISSET (it_sockin->second, &fds))
@@ -331,7 +331,7 @@ Message * Communicator::recv (unsigned int * timeout)
             }
 
             // read a message from the fd
-            msg = MsgReader::read_msg (it_sockin->second, it_sockin->first, YellowPages::get_id());
+            msg = MsgReader::read_msg (it_sockin->second, it_sockin->first, YellowPages::get_id ());
 
             // error while reading
             if (msg == NULL)
@@ -343,8 +343,8 @@ Message * Communicator::recv (unsigned int * timeout)
                to_rm.insert (it_sockin->first);
 
                // notify callbacks about the deconnection
-               for (it_fn = this->connCallbacks->begin();
-                     it_fn != this->connCallbacks->end();
+               for (it_fn = this->connCallbacks->begin ();
+                     it_fn != this->connCallbacks->end ();
                      it_fn++)
                {
                   it_fn->first (false, it_sockin->first, it_fn->second);
@@ -359,11 +359,11 @@ Message * Communicator::recv (unsigned int * timeout)
          }
 
          // cleanup closed sockets
-         for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
+         for (it_rm = to_rm.begin (); it_rm != to_rm.end (); it_rm++)
          {
             this->sockets_in.erase (*it_rm);
          }
-         to_rm.clear();
+         to_rm.clear ();
 
          // return the message read if any
          if (msg != NULL)
@@ -374,8 +374,8 @@ Message * Communicator::recv (unsigned int * timeout)
          // watch unidentified connections and check if they can be identified
          pthread_mutex_lock (&this->mutex_sockukn);
 
-         for (it_sockukn = this->sockets_ukn.begin();
-               it_sockukn != this->sockets_ukn.end();
+         for (it_sockukn = this->sockets_ukn.begin ();
+               it_sockukn != this->sockets_ukn.end ();
                it_sockukn++)
          {
             std::map<CommConnectFn, void *>::iterator it_fn;
@@ -402,29 +402,29 @@ Message * Communicator::recv (unsigned int * timeout)
             }
 
             // ignore unexpected messages
-            if (msg->get_type() != Message::MSG_TP_ID)
+            if (msg->get_type () != Message::MSG_TP_ID)
             {
                std::cerr << "Skipping unexpected message from unidentified node " << *it_sockukn << std::endl;
                continue;
             }
 
             // connection is now identified, we can start regular communications
-            std::cout << "Unkown node " << *it_sockukn << " identified as Node " << ( (IdMsg *) msg)->get_id() << std::endl;
+            std::cout << "Unkown node " << *it_sockukn << " identified as Node " << ((IdMsg *) msg)->get_id () << std::endl;
 
-            this->sockets_in[ ( (IdMsg *) msg)->get_id() ] = *it_sockukn;
+            this->sockets_in [( (IdMsg *) msg)->get_id ()] = *it_sockukn;
             to_rm.insert (*it_sockukn);
 
             // notify registered callbacks
-            for (it_fn = this->connCallbacks->begin();
-                  it_fn != this->connCallbacks->end();
+            for (it_fn = this->connCallbacks->begin ();
+                  it_fn != this->connCallbacks->end ();
                   it_fn++)
             {
-               it_fn->first (true, ( (IdMsg *) msg)->get_id(), it_fn->second); 
+               it_fn->first (true, ((IdMsg *) msg)->get_id (), it_fn->second);
             }
          }
 
          // cleanup closed/identified sockets
-         for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
+         for (it_rm = to_rm.begin (); it_rm != to_rm.end (); it_rm++)
          {
             this->sockets_ukn.erase (*it_rm);
          }
