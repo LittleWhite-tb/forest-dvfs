@@ -34,11 +34,11 @@
 #include "YellowPages.h"
 #include "Profiler.h"
 #include "SetWinMsg.h"
+#include "Log.h"
+#include "rdtsc.h"
 
-static void
-cleanup_fn ();
-static void
-sighandler (int ns);
+static void cleanup_fn ();
+static void sighandler (int ns);
 
 static DecisionServer * dc = NULL; // ok, I know...
 
@@ -73,6 +73,7 @@ DecisionServer::DecisionServer (void)
 
    // FIXME: the communicator should only start listening here !! (and not before)
 }
+
 
 DecisionServer::~DecisionServer (void)
 {
@@ -194,7 +195,34 @@ void DecisionServer::connectionCallback(bool conn, unsigned int id, void *arg)
       obj->nbProfs--;
       if (obj->nbProfs == 0)
       {
+
+    	  //Outputting core/frequency changes
+    	  std::ofstream file ("core_frequency_count.csv", std::ios::out | std::ios::trunc);
+    	  file << "Core,Frequency,Freqencies changes" << std::endl;
+
+    	  for (unsigned int i = 0; i < obj->coresInfos->numCores - 1; i++)
+    	  {
+        	  for (unsigned int j = 0; j < obj->coresInfos->numCores - 1; j++)
+        	  {
+        		  file << i << "," << j << "," << obj->freqTracker[i][j] << std::endl;
+        	  }
+    	  }
+
+    	  file.close();
+
+
+
+
          // PRINTING HERE
       }
    }
 }
+
+
+static __inline__ unsigned long long getTicks ( void )
+{
+   unsigned long long ret;
+   rdtscll (ret);
+   return ret;
+}
+

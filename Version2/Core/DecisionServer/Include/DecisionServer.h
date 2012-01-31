@@ -30,13 +30,23 @@
 #include "FreqChanger.h"
 #include "Communicator.h"
 
+struct sampler
+{
+		unsigned long long timeCumulative; //A
+		unsigned long long timeLatency;
+		int Core;
+		int frequency;
+		int windowPPOV;
+		int windowDPOV;
+};
+
+
 /**
  * @class DecisionServer
  * @brief The role of this class is to manage decisions to take during the execution of the program
  * to handle. Specifically it use a communicator to get Profiler's informations to give them to
  * the DecisionMaker.
  */
-
 class DecisionServer
 {
    public:
