@@ -73,7 +73,7 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
       int tmpc;
 
       // skip whitespaces
-      while (ifs.good() && isspace(ifs.get()));
+      while (ifs.good() && isspace (ifs.get()));
       ifs.unget();
 
       if (!ifs.good())

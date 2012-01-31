@@ -244,7 +244,7 @@ void Communicator::send (const Message & msg)
 /*
  * blocking reception function.
  */
-Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
+Message * Communicator::recv (unsigned int * timeout)
 {
    struct timeval tval;
    struct timeval * tvalp = NULL;
@@ -254,8 +254,17 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
    // restart after any new connection and until receiving a message or timeout
    while (true)
    {
+      std::map<unsigned int, int>::iterator it_sockin;
+      std::set<int>::iterator it_sockukn;
+      Message * msg = NULL;   // received message
+      int sres;               // result of select
+      std::set<unsigned int> to_rm = std::set<unsigned int>(); // set of fd to remove
+      std::set<unsigned int>::iterator it_rm;   // iterates over to_rm
+
+      // initialize the maximal fd value
       maxfd = -1;
 
+      // timeout given?
       if (timeout != NULL && *timeout != 0)
       {
          tvalp = &tval;
@@ -263,27 +272,14 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
          tval.tv_usec = *timeout % 1000000;
       }
 
-      // get file descriptors to watch
+      // wait for data on oppened and identified connections
       FD_ZERO (&fds);
-      if (sender_id != UINT_MAX)
+      for (it_sockin = this->sockets_in.begin();
+            it_sockin != this->sockets_in.end();
+            it_sockin++)
       {
-         std::map<unsigned int, int>::iterator it;
-         it = this->sockets_in.find (sender_id);
-         assert (it != this->sockets_in.end());
-
-         FD_SET (it->second, &fds);
-         maxfd = it->second;
-      }
-      else
-      {
-         std::map<unsigned int, int>::iterator it;
-         for (it = this->sockets_in.begin();
-               it != this->sockets_in.end();
-               it++)
-         {
-            FD_SET (it->second, &fds);
-            maxfd = (it->second > maxfd ? it->second : maxfd);
-         }
+         FD_SET (it_sockin->second, &fds);
+         maxfd = (it_sockin->second > maxfd ? it_sockin->second : maxfd);
       }
 
       // also watch for new connection
@@ -292,168 +288,148 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
       // and finally consider unidentified sockets
       pthread_mutex_lock (&this->mutex_sockukn);
-      std::set<int>::iterator it;
 
-      for (it = this->sockets_ukn.begin();
-            it != this->sockets_ukn.end();
-            it++)
+      for (it_sockukn = this->sockets_ukn.begin();
+            it_sockukn != this->sockets_ukn.end();
+            it_sockukn++)
       {
-         FD_SET (*it, &fds);
-         maxfd = (*it > maxfd ? *it : maxfd);
+         FD_SET (*it_sockukn, &fds);
+         maxfd = (*it_sockukn > maxfd ? *it_sockukn : maxfd);
       }
 
       pthread_mutex_unlock (&this->mutex_sockukn);
 
-      int sres = select (maxfd + 1, &fds, NULL, NULL, tvalp);
-      if (sres > 0)
+      // here is the actual wait
+      sres = select (maxfd + 1, &fds, NULL, NULL, tvalp);
+      if (sres > 0)  // some fd has received data
       {
-
-
-         assert (false); // DEPRECATED!!! WILL BE REMOVED ASAP
-
-
-         // update the timeval value
+         // update the timeout value
          if (timeout != NULL && *timeout != 0)
          {
             *timeout = tval.tv_sec + tval.tv_usec * 1000000;
          }
 
-         // new connection ? restart !
+         // new connection? restart and start listening to it!
          if (FD_ISSET (this->new_conn[0], &fds))
          {
             int dummy;
+
+            // consume the fd
             read (this->new_conn[0], &dummy, sizeof (int));
+
             continue;
          }
 
-         if (sender_id != UINT_MAX)
+         // ok check for actual data
+         for (it_sockin = this->sockets_in.begin();
+              it_sockin != this->sockets_in.end();
+              it_sockin++)
          {
-            // single sender
-            std::map<unsigned int, int>::iterator it;
-            it = this->sockets_in.find (sender_id);
-            assert (it != this->sockets_in.end());
-            Message * msg = MsgReader::read_msg (it->second, sender_id, YellowPages::get_id());
+            if (!FD_ISSET (it_sockin->second, &fds))
+            {
+               continue;
+            }
 
+            // read a message from the fd
+            msg = MsgReader::read_msg (it_sockin->second, it_sockin->first, YellowPages::get_id());
+
+            // error while reading
             if (msg == NULL)
-            {
-               std::cout << "Connection with node " << it->first << " lost" << std::endl;
-               close (it->second);
-               this->sockets_in.erase (it);
-            }
-
-            return msg;
-         }
-         else
-         {
-            // multiple connections
-            Message * msg = NULL;
-
-            std::set<int> to_rm = std::set<int>();
-
-            std::map<unsigned int, int>::iterator it;
-            for (it = this->sockets_in.begin(); it != this->sockets_in.end(); it++)
-            {
-               if (!FD_ISSET (it->second, &fds))
-               {
-                  continue;
-               }
-
-               msg = MsgReader::read_msg (it->second, it->first, YellowPages::get_id());
-
-               if (msg == NULL)
-               {
-                  std::map<CommConnectFn, void *>::iterator it_fn;
-
-                  std::cout << "Connection with node " << it->first << " lost" << std::endl;
-                  close (it->second);
-                  to_rm.insert (it->first);
-
-                  // notify callbacks about the deconnection
-                  for (it_fn = this->connCallbacks->begin();
-                        it_fn != this->connCallbacks->end();
-                        it_fn++)
-                  {
-                     it_fn->first (false, it->first, it_fn->second);
-                  }
-
-                  continue;
-               }
-
-               break;
-            }
-
-            // cleanup closed sockets
-            std::set<int>::iterator it_rm;
-            for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
-            {
-               this->sockets_in.erase (*it_rm);
-            }
-
-            if (msg != NULL)
-            {
-               return msg;
-            }
-
-            // watch unidentified connections and check if they can be identified
-            to_rm.clear();
-
-            pthread_mutex_lock (&this->mutex_sockukn);
-
-            std::set<int>::iterator its;
-            for (its = this->sockets_ukn.begin();
-                  its != this->sockets_ukn.end();
-                  its++)
             {
                std::map<CommConnectFn, void *>::iterator it_fn;
 
-               if (!FD_ISSET (*its, &fds))
-               {
-                  continue;
-               }
+               std::cout << "Connection with node " << it_sockin->first << " lost" << std::endl;
+               close (it_sockin->second);
+               to_rm.insert (it_sockin->first);
 
-               msg = MsgReader::read_msg (*its, 0, 0);
-
-               if (msg == NULL)
-               {
-                  std::cout << "Connection with unknown node " << *its << " lost" << std::endl;
-                  close (*its);
-                  to_rm.insert (*its);
-
-                  // do not notify callbacks as the unknown nodes are not considered as being connected
-                  // for callbacks functions
-
-                  continue;
-               }
-
-               if (msg->get_type() != Message::MSG_TP_ID)
-               {
-                  std::cerr << "Skipping unexpected message from unidentified node " << *its << std::endl;
-                  continue;
-               }
-
-               // connection is now identified, we can start regular communications
-               std::cout << "Unkown node " << *its << " identified as Node " << ( (IdMsg *) msg)->get_id() << std::endl;
-
-               this->sockets_in[ ( (IdMsg *) msg)->get_id() ] = *its;
-               to_rm.insert (*its);
-
-               // notify registered callbacks
+               // notify callbacks about the deconnection
                for (it_fn = this->connCallbacks->begin();
                      it_fn != this->connCallbacks->end();
                      it_fn++)
                {
-                  it_fn->first (true, ( (IdMsg *) msg)->get_id(), it_fn->second);
+                  it_fn->first (false, it_sockin->first, it_fn->second);
                }
             }
-
-            // cleanup closed/identified sockets
-            for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
+            else
             {
-               this->sockets_ukn.erase (*it_rm);
+               // we have correctly read the message, it's time to return it
+               // just cleanup closed connections before
+               break;
+            }
+         }
+
+         // cleanup closed sockets
+         for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
+         {
+            this->sockets_in.erase (*it_rm);
+         }
+         to_rm.clear();
+
+         // return the message read if any
+         if (msg != NULL)
+         {
+            return msg;
+         }
+
+         // watch unidentified connections and check if they can be identified
+         pthread_mutex_lock (&this->mutex_sockukn);
+
+         for (it_sockukn = this->sockets_ukn.begin();
+              it_sockukn != this->sockets_ukn.end();
+              it_sockukn++)
+         {
+            std::map<CommConnectFn, void *>::iterator it_fn;
+
+            if (!FD_ISSET (*it_sockukn, &fds))
+            {
+               continue;
             }
 
-            pthread_mutex_unlock (&this->mutex_sockukn);
+            // read the message here
+            msg = MsgReader::read_msg (*it_sockukn, 0, 0);
+
+            // failure while reading the message
+            if (msg == NULL)
+            {
+               std::cout << "Connection with unknown node " << *it_sockukn << " lost" << std::endl;
+               close (*it_sockukn);
+               to_rm.insert (*it_sockukn);
+
+               // do not notify callbacks as the unknown nodes are not considered as being connected
+               // for callbacks functions
+
+               continue;   // skip the rest of the message processing
+            }
+
+            // ignore unexpected messages
+            if (msg->get_type() != Message::MSG_TP_ID)
+            {
+               std::cerr << "Skipping unexpected message from unidentified node " << *it_sockukn << std::endl;
+               continue;
+            }
+
+            // connection is now identified, we can start regular communications
+            std::cout << "Unkown node " << *it_sockukn << " identified as Node " << ( (IdMsg *) msg)->get_id() << std::endl;
+
+            this->sockets_in[ ( (IdMsg *) msg)->get_id() ] = *it_sockukn;
+            to_rm.insert (*it_sockukn);
+
+            // notify registered callbacks
+            for (it_fn = this->connCallbacks->begin();
+                  it_fn != this->connCallbacks->end();
+                  it_fn++)
+            {
+               it_fn->first (true, ( (IdMsg *) msg)->get_id(), it_fn->second);
+            }
          }
+
+         // cleanup closed/identified sockets
+         for (it_rm = to_rm.begin(); it_rm != to_rm.end(); it_rm++)
+         {
+            this->sockets_ukn.erase (*it_rm);
+         }
+
+         pthread_mutex_unlock (&this->mutex_sockukn);
       }
       else if (sres < 0)
       {

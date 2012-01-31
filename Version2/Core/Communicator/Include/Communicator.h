@@ -62,36 +62,13 @@ class Communicator
       void send (const Message & msg);
 
       /**
-       * @brief Blocking receive operation.
-       * @return One message received. Can be NULL.
-       * To be deallocated with delete.
-       */
-      inline Message * recv()
-      {
-         return recv (0, UINT_MAX);
-      };
-
-      /**
-       * @brief Blocking receive operation with a timeout.
-       * @param timeout The maximal waiting period in µs. 0 is unlimited.
-       * Updated with the remaining time in case of message reception.
-       * @return The received message. Can be NULL.
-       * To be deallocated with delete.
-       */
-      inline Message * recv (unsigned int * timeout)
-      {
-         return recv (timeout, UINT_MAX);
-      }
-
-      /**
        * @brief Blocking receive operation bounded in time for a specific
        * sender.
        * @param timeout The maximal waiting period in µs. 0 is unlimited.
        * Updated with the remaining time in case of message reception.
-       * @param sender_id The id of the sender node. UINT_MAX is anyone.
        * @return A received message or NULL. To be deallocated with delete.
        */
-      Message * recv (unsigned int * timeout, unsigned int sender_id);
+      Message * recv (unsigned int * timeout = NULL);
 
       /**
        * @brief Registers a callback function which will be called when a
