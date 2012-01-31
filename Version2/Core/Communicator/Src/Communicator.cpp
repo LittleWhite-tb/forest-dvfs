@@ -322,8 +322,8 @@ Message * Communicator::recv (unsigned int * timeout)
 
          // ok check for actual data
          for (it_sockin = this->sockets_in.begin();
-              it_sockin != this->sockets_in.end();
-              it_sockin++)
+               it_sockin != this->sockets_in.end();
+               it_sockin++)
          {
             if (!FD_ISSET (it_sockin->second, &fds))
             {
@@ -375,8 +375,8 @@ Message * Communicator::recv (unsigned int * timeout)
          pthread_mutex_lock (&this->mutex_sockukn);
 
          for (it_sockukn = this->sockets_ukn.begin();
-              it_sockukn != this->sockets_ukn.end();
-              it_sockukn++)
+               it_sockukn != this->sockets_ukn.end();
+               it_sockukn++)
          {
             std::map<CommConnectFn, void *>::iterator it_fn;
 
