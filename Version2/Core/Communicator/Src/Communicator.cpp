@@ -419,7 +419,7 @@ Message * Communicator::recv (unsigned int * timeout)
                   it_fn != this->connCallbacks->end();
                   it_fn++)
             {
-               it_fn->first (true, ( (IdMsg *) msg)->get_id(), it_fn->second);
+               it_fn->first (true, ( (IdMsg *) msg)->get_id(), it_fn->second); 
             }
          }
 

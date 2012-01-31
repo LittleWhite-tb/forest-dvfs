@@ -32,12 +32,12 @@
 
 struct sampler
 {
-		unsigned long long timeCumulative; //A
-		unsigned long long timeLatency;
-		int Core;
-		int frequency;
-		int windowPPOV;
-		int windowDPOV;
+   unsigned long long timeCumulative; //A
+   unsigned long long timeLatency;
+   int Core;
+   int frequency;
+   int windowPPOV;
+   int windowDPOV;
 };
 
 

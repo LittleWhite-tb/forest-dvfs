@@ -52,17 +52,17 @@ DecisionServer::DecisionServer (void)
    int numCores = coresInfos->numCores;
    int numFreqs = coresInfos->numFreqs;
 
-   this->sleep_windows = new unsigned int[numCores];
+   this->sleep_windows = new unsigned int [numCores];
    freqTracker = new int*[numCores];
 
    for (int i = 0; i < numCores; ++i)
    {
-      this->sleep_windows[i] = INIT_SLEEP_WIN;
-      freqTracker[i] = new int[numFreqs];
+      this->sleep_windows [i] = INIT_SLEEP_WIN;
+      freqTracker [i] = new int [numFreqs];
 
       for (int j = 0; j < numFreqs; ++j)
       {
-         freqTracker[i][j] = 0;
+         freqTracker [i][j] = 0;
       }
    }
 
@@ -99,17 +99,17 @@ void DecisionServer::server_loop ()
       {
          int core = YellowPages::get_core_id (msg->get_sender ());
          int freq = naiveDecisions->giveReport (core,
-                                                ( (ReportMsg *) msg)->get_report ());
+                                                ((ReportMsg *) msg)->get_report ());
 
          if (freq != -1)
          {
-            ++freqTracker[core][freq];
+            ++freqTracker [core][freq];
             freqchanger->ChangeFreq (core, freq);
 
             // reset profiler's sleep windows
             //--->look out bad id given to sleep window
-            this->sleep_windows [msg->get_sender() ] = INIT_SLEEP_WIN;
-            Message * swmsg = new SetWinMsg (msg->get_dest(), msg->get_sender(), INIT_SLEEP_WIN);
+            this->sleep_windows [msg->get_sender ()] = INIT_SLEEP_WIN;
+            Message * swmsg = new SetWinMsg (msg->get_dest (), msg->get_sender (), INIT_SLEEP_WIN);
             //Sending the new window to the profiler
             this->comm->send (*swmsg);
             delete swmsg;
@@ -117,7 +117,7 @@ void DecisionServer::server_loop ()
          else
          {
             // expand profiler window
-            unsigned int win = this->sleep_windows [msg->get_sender() ];
+            unsigned int win = this->sleep_windows [msg->get_sender ()];
 
             // avoid un-necessary set window messages
             if (win >= LONGEST_SLEEP_WIN)
@@ -127,9 +127,9 @@ void DecisionServer::server_loop ()
 
             win *= 2;
             win = win > LONGEST_SLEEP_WIN ? LONGEST_SLEEP_WIN : win;
-            this->sleep_windows [msg->get_sender() ] = win;
+            this->sleep_windows [msg->get_sender ()] = win;
 
-            Message * swmsg = new SetWinMsg (msg->get_dest(), msg->get_sender(), win);
+            Message * swmsg = new SetWinMsg (msg->get_dest (), msg->get_sender (), win);
             this->comm->send (*swmsg);
             delete swmsg;
          }
@@ -146,7 +146,7 @@ int main (int argc, char ** argv)
 {
    if (argc != 3)
    {
-      std::cerr << "Usage: " << argv[0] << " id config" << std::endl;
+      std::cerr << "Usage: " << argv [0] << " id config" << std::endl;
       return 1;
    }
 
@@ -156,9 +156,9 @@ int main (int argc, char ** argv)
    signal (SIGINT, sighandler);
 
    unsigned int id;
-   std::istringstream iss (argv[1], std::istringstream::in);
+   std::istringstream iss (argv [1], std::istringstream::in);
    iss >> id;
-   std::string confpath (argv[2]);
+   std::string confpath (argv [2]);
    YellowPages::init_from (id, confpath);
 
    dc = new DecisionServer ();
@@ -181,8 +181,8 @@ static void sighandler (int ns)
 
 void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
 {
-   (void) (conn);
-   (void) (id);
+   (void)(conn);
+   (void)(id);
 
    DecisionServer * obj = (DecisionServer *) arg;
 
@@ -196,19 +196,19 @@ void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
       if (obj->nbProfs == 0)
       {
 
-    	  //Outputting core/frequency changes
-    	  std::ofstream file ("core_frequency_count.csv", std::ios::out | std::ios::trunc);
-    	  file << "Core,Frequency,Freqencies changes" << std::endl;
+         //Outputting core/frequency changes
+         std::ofstream file ("core_frequency_count.csv", std::ios::out | std::ios::trunc);
+         file << "Core,Frequency,Freqencies changes" << std::endl;
 
-    	  for (unsigned int i = 0; i < obj->coresInfos->numCores - 1; i++)
-    	  {
-        	  for (unsigned int j = 0; j < obj->coresInfos->numCores - 1; j++)
-        	  {
-        		  file << i << "," << j << "," << obj->freqTracker[i][j] << std::endl;
-        	  }
-    	  }
+         for (unsigned int i = 0; i < obj->coresInfos->numCores - 1; i++)
+         {
+            for (unsigned int j = 0; j < obj->coresInfos->numCores - 1; j++)
+            {
+               file << i << "," << j << "," << obj->freqTracker [i][j] << std::endl;
+            }
+         }
 
-    	  file.close();
+         file.close ();
 
 
 
@@ -219,7 +219,7 @@ void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
 }
 
 
-static __inline__ unsigned long long getTicks ( void )
+static __inline__ unsigned long long getTicks (void)
 {
    unsigned long long ret;
    rdtscll (ret);
