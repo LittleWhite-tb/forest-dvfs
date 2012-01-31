@@ -38,7 +38,7 @@
  * @param id The id of the node involved
  * @param arg User-defined value set when registering the callback.
  */
-typedef void (*CommConnectFn) (bool conn, unsigned int id, void *arg);
+typedef void (*CommConnectFn) (bool conn, unsigned int id, void * arg);
 
 
 /**
@@ -101,7 +101,7 @@ class Communicator
        */
       inline void registerConnCallback (CommConnectFn fn, void * arg)
       {
-         (*this->connCallbacks)[fn] = arg;
+         (*this->connCallbacks) [fn] = arg;
       }
 
       /**
