@@ -362,7 +362,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                if (msg == NULL)
                {
-                  std::map<CommConnectFn, void*>::iterator it_fn;
+                  std::map<CommConnectFn, void *>::iterator it_fn;
 
                   std::cout << "Connection with node " << it->first << " lost" << std::endl;
                   close (it->second);
@@ -404,7 +404,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
                   its != this->sockets_ukn.end();
                   its++)
             {
-               std::map<CommConnectFn, void*>::iterator it_fn;
+               std::map<CommConnectFn, void *>::iterator it_fn;
 
                if (!FD_ISSET (*its, &fds))
                {

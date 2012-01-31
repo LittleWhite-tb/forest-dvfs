@@ -21,13 +21,11 @@
   @brief The YellowPages class is in this file
  */
 
-#include "YellowPages.h"
-
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
-
+#include <ctype.h>
 #include <iostream>
 #include <fstream>
 #include <netinet/in.h>
@@ -36,6 +34,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+
+#include "YellowPages.h"
 
 
 unsigned int YellowPages::id;
@@ -60,43 +60,80 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
    addrhint.ai_canonname = NULL;
    addrhint.ai_next = NULL;
 
-   // read all the data provided
-   while (true)
+   // read all the provided data
+   while (ifs.good())
    {
       unsigned int id;
       char host[512];
-      char port[64];
+      char port[8];
       unsigned int sid;
       int core_id;
       struct sockaddr_in * saddr;
       struct addrinfo * res_addr;
+      int tmpc;
 
-      ifs >> id;
-      if (ifs.bad() || ifs.eof())
+      // skip whitespaces
+      while (ifs.good() && isspace(ifs.get()));
+      ifs.unget();
+
+      if (!ifs.good())
       {
          break;
       }
 
+      // check if this is a comment
+      if (ifs.peek() == '#')
+      {
+         // skip the line
+         do
+         {
+            tmpc = ifs.get();
+         }
+         while (ifs.good() && tmpc != '\n');
+
+         continue;
+      }
+
+      if (!ifs.good())
+      {
+         break;
+      }
+
+      // read the id
+      ifs >> id;
+
+      if (!ifs.good())
+      {
+         break;
+      }
+
+      // read the host
       ifs.width (512);
       ifs >> host;
-      if (ifs.bad() || ifs.eof())
+
+      if (!ifs.good())
       {
          break;
       }
 
-      ifs.width (64);
+      // read the port
+      ifs.width (8);
       ifs >> port;
-      if (ifs.bad() || ifs.eof())
+
+      if (!ifs.good())
       {
          break;
       }
 
+      // read the server ID
       ifs >> sid;
-      if (ifs.bad() || ifs.eof())
+
+      if (!ifs.good())
       {
          break;
       }
 
+      // read the processor code ID
       ifs >> core_id;
 
       if (id == local_id)
@@ -111,11 +148,6 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
 
       YellowPages::yp[id] = (const struct sockaddr *) saddr;
       YellowPages::yp_core[id] = core_id;
-
-      if (ifs.bad() || ifs.eof())
-      {
-         break;
-      }
    }
 }
 

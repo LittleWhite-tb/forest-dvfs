@@ -69,7 +69,7 @@ DecisionServer::DecisionServer (void)
    this->comm = new Communicator ();
 
    // register callback
-   this->comm->registerConnCallback(DecisionServer::connectionCallback, this);
+   this->comm->registerConnCallback (DecisionServer::connectionCallback, this);
 
    // FIXME: the communicator should only start listening here !! (and not before)
 }
@@ -93,7 +93,7 @@ void DecisionServer::server_loop ()
       assert (msg != NULL);
 
       msgtp = msg->get_type ();
-      
+
       if (msgtp == Message::MSG_TP_REPORT)
       {
          int core = YellowPages::get_core_id (msg->get_sender ());
@@ -107,7 +107,7 @@ void DecisionServer::server_loop ()
 
             // reset profiler's sleep windows
             //--->look out bad id given to sleep window
-            this->sleep_windows [msg->get_sender()] = INIT_SLEEP_WIN;
+            this->sleep_windows [msg->get_sender() ] = INIT_SLEEP_WIN;
             Message * swmsg = new SetWinMsg (msg->get_dest(), msg->get_sender(), INIT_SLEEP_WIN);
             //Sending the new window to the profiler
             this->comm->send (*swmsg);
@@ -116,7 +116,7 @@ void DecisionServer::server_loop ()
          else
          {
             // expand profiler window
-            unsigned int win = this->sleep_windows [msg->get_sender()];
+            unsigned int win = this->sleep_windows [msg->get_sender() ];
 
             // avoid un-necessary set window messages
             if (win >= LONGEST_SLEEP_WIN)
@@ -126,7 +126,7 @@ void DecisionServer::server_loop ()
 
             win *= 2;
             win = win > LONGEST_SLEEP_WIN ? LONGEST_SLEEP_WIN : win;
-            this->sleep_windows [msg->get_sender()] = win;
+            this->sleep_windows [msg->get_sender() ] = win;
 
             Message * swmsg = new SetWinMsg (msg->get_dest(), msg->get_sender(), win);
             this->comm->send (*swmsg);
@@ -153,7 +153,7 @@ int main (int argc, char ** argv)
 
    signal (SIGTERM, sighandler);
    signal (SIGINT, sighandler);
-   
+
    unsigned int id;
    std::istringstream iss (argv[1], std::istringstream::in);
    iss >> id;
@@ -178,14 +178,14 @@ static void sighandler (int ns)
    exit (0);
 }
 
-void DecisionServer::connectionCallback(bool conn, unsigned int id, void *arg) 
+void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
 {
    (void) (conn);
    (void) (id);
 
-   DecisionServer *obj = (DecisionServer *) arg;
+   DecisionServer * obj = (DecisionServer *) arg;
 
-   if (conn) 
+   if (conn)
    {
       obj->nbProfs++;
    }

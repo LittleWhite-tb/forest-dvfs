@@ -68,10 +68,10 @@ class DecisionServer
       /**
        * @brief Callback when profilers connect or disconnect
        */
-      static void connectionCallback(bool conn, unsigned int id, void *arg);
+      static void connectionCallback (bool conn, unsigned int id, void * arg);
 
       /**
-       * @brief Number of connected profilers. Temporarly used for 
+       * @brief Number of connected profilers. Temporarly used for
        * printing purposes.
        */
       unsigned int nbProfs;
