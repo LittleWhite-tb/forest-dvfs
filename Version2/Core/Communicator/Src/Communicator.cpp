@@ -285,6 +285,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
             assert (it != this->sockets_in.end());
             Message * msg = MsgReader::read_msg (it->second, sender_id, YellowPages::get_id());
 
+			//Deconnexion
             if (msg == NULL)
             {
                std::cout << "Connection with node " << it->first << " lost" << std::endl;
@@ -311,6 +312,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                msg = MsgReader::read_msg (it->second, it->first, YellowPages::get_id());
 
+			   //Deconnexion
                if (msg == NULL)
                {
                   std::cout << "Connection with node " << it->first << " lost" << std::endl;
@@ -351,6 +353,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
 
                msg = MsgReader::read_msg (*its, 0, 0);
 
+			   //Deconnexion
                if (msg == NULL)
                {
                   std::cout << "Connection with unknown node " << *its << " lost" << std::endl;
@@ -358,7 +361,7 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
                   to_rm.insert (*its);
                   continue;
                }
-
+ 
                if (msg->get_type() != Message::MSG_TP_ID)
                {
                   std::cerr << "Skipping unexpected message from unidentified node " << *its << std::endl;
@@ -366,7 +369,6 @@ Message * Communicator::recv (unsigned int * timeout, unsigned int sender_id)
                }
 
                // connection is now identified, we can start regular communications
-
                std::cout << "Unkown node " << *its << " identified as Node " << ( (IdMsg *) msg)->get_id() << std::endl;
 
                this->sockets_in[ ( (IdMsg *) msg)->get_id() ] = *its;
