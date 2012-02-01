@@ -70,7 +70,7 @@ Message * MsgReader::read_msg (int fd, unsigned int src, unsigned int dst)
       case Message::MSG_TP_SETWIN:
          unsigned int win_sz;
 
-         if (read (fd, &win_sz, sizeof (win_sz)) << (ssize_t) sizeof (id))
+         if (read (fd, &win_sz, sizeof (win_sz)) < (ssize_t) sizeof (win_sz))
          {
             std::cerr << "Incomplete set window message received" << std::endl;
             return NULL;

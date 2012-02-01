@@ -35,7 +35,6 @@
 #include "Profiler.h"
 #include "SetWinMsg.h"
 #include "Log.h"
-#include "rdtsc.h"
 
 static void cleanup_fn ();
 static void sighandler (int ns);
@@ -107,7 +106,7 @@ void DecisionServer::server_loop ()
             freqchanger->ChangeFreq (core, freq);
 
             // reset profiler's sleep windows
-            //--->look out bad id given to sleep window
+            // FIXME: --->look out bad id given to sleep window
             this->sleep_windows [msg->get_sender ()] = INIT_SLEEP_WIN;
             Message * swmsg = new SetWinMsg (msg->get_dest (), msg->get_sender (), INIT_SLEEP_WIN);
             //Sending the new window to the profiler
@@ -167,6 +166,8 @@ int main (int argc, char ** argv)
 
 static void cleanup_fn ()
 {
+   std::cout << "closing stuff" << std::endl;
+
    YellowPages::reset ();
    delete (dc);
 }
@@ -174,6 +175,8 @@ static void cleanup_fn ()
 static void sighandler (int ns)
 {
    (void) ns;
+
+   std::cout << "signal " << ns << " received" << std::endl;
 
    // will indirectly call cleanup
    exit (0);
@@ -193,36 +196,33 @@ void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
    else
    {
       obj->nbProfs--;
+
       if (obj->nbProfs == 0)
       {
 
          //Outputting core/frequency changes
          std::ofstream file ("core_frequency_count.csv", std::ios::out | std::ios::trunc);
+
+         if (!file.good())
+         {
+            std::cerr << "Failed to open server output" << std::endl;
+            return;
+         }
+
          file << "Core,Frequency,Freqencies changes" << std::endl;
 
-         for (unsigned int i = 0; i < obj->coresInfos->numCores - 1; i++)
+         for (unsigned int i = 0; i < obj->coresInfos->numCores; i++)
          {
-            for (unsigned int j = 0; j < obj->coresInfos->numCores - 1; j++)
+            for (unsigned int j = 0; j < obj->coresInfos->numFreqs; j++)
             {
                file << i << "," << j << "," << obj->freqTracker [i][j] << std::endl;
             }
          }
 
+         file.flush();
          file.close ();
 
-
-
-
-         // PRINTING HERE
       }
    }
-}
-
-
-static __inline__ unsigned long long getTicks (void)
-{
-   unsigned long long ret;
-   rdtscll (ret);
-   return ret;
 }
 

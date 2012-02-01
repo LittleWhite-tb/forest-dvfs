@@ -44,6 +44,8 @@
  */
 Communicator::Communicator ()
 {
+   const int yes = 1;
+
    this->sockets_out = std::map<unsigned int, int>();
    this->sockets_in = std::map<unsigned int, int>();
    pthread_mutex_init (&this->mutex_sockukn, NULL);
@@ -55,6 +57,13 @@ Communicator::Communicator ()
    {
       std::perror ("Can't create server socket");
       exit (2);
+   }
+
+   // this is required to avoid annoying "address already in use" errors
+   if (setsockopt(this->fd_server, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
+   {
+      std::perror("Can't setup socket option");
+      exit(2);
    }
 
    // my address
@@ -130,7 +139,18 @@ Communicator::~Communicator ()
  */
 void * Communicator::server_loop (void * arg)
 {
+   sigset_t sigs;
    Communicator * obj = (Communicator *) arg;
+
+   // I do not want to receive termination signals!
+   sigemptyset(&sigs);
+   sigaddset(&sigs, SIGTERM);
+   sigaddset(&sigs, SIGINT);
+
+   if (pthread_sigmask(SIG_BLOCK, &sigs, NULL) != 0)
+   {
+      std::cerr << "Can't ignore termination signals." << std::endl;
+   }
 
    // I can be cancelled at checkpoint only
    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
@@ -341,6 +361,13 @@ Message * Communicator::recv (unsigned int * timeout)
                std::cout << "Connection with node " << it_sockin->first << " lost" << std::endl;
                close (it_sockin->second);
                to_rm.insert (it_sockin->first);
+              
+               // also close outgoing connection if any
+               if (this->sockets_out.find(it_sockin->first) != this->sockets_out.end())
+               {
+                  close(this->sockets_out[it_sockin->first]);
+                  this->sockets_out.erase(it_sockin->first);
+               }
 
                // notify callbacks about the deconnection
                for (it_fn = this->connCallbacks->begin ();

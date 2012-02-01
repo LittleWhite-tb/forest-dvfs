@@ -168,26 +168,21 @@ static double power_endvalue;
 
 static void profiler_cleanup()
 {
-   timer_endvalue = timer_stop (NULL);
-   if (power_stop)
+   if (dlTimer != NULL)
+   {
+      timer_endvalue = timer_stop (NULL);
+      timer_close (NULL);
+      dlclose (dlTimer);
+      logger->LOG (Log::VERB_NFO, "Time consumed : %f\n", timer_endvalue - timer_begvalue);
+   }
+
+   if (dlPower != NULL)
    {
       power_endvalue = power_stop (NULL);
-   }
-
-   timer_close (NULL);
-   if (power_close)
-   {
       power_close (NULL);
-   }
-
-   if (dlPower)
-   {
       dlclose (dlPower);
       logger->LOG (Log::VERB_NFO, "Power consumed: %f\n", power_endvalue - power_begvalue);
    }
-
-   dlclose (dlTimer);
-   logger->LOG (Log::VERB_NFO, "Time consumed : %f\n", timer_endvalue - timer_begvalue);
 
    delete tp;
    YellowPages::reset();
@@ -222,40 +217,54 @@ static int rest_main (int argc, char ** argv, char ** env)
 
    if (id == 1) // temporary solution
    {
-      dlopen ("/opt/rest_modifications/power/timer.so", RTLD_NOW);
-      assert (dlPower != NULL);
+      dlPower = dlopen ("/opt/rest_modifications/power/timer.so", RTLD_NOW);
 
-      power_init = (evalInit) dlsym (dlPower, "evaluationInit");
-      assert (power_init != NULL);
-      power_start = (evalGet) dlsym (dlPower, "evaluationStart");
-      assert (power_start != NULL);
-      power_stop = (evalGet) dlsym (dlPower, "evaluationStop");
-      assert (power_stop != NULL);
-      power_close = (evalClose) dlsym (dlPower, "evaluationClose");
-      assert (power_close != NULL);
+      // skip if the lib cannot be found
+      if (dlPower == NULL)
+      {
+         std::cerr << "Cannot open power library: " << dlerror() << std::endl;
+      }
+      else
+      {
+         power_init = (evalInit) dlsym (dlPower, "evaluationInit");
+         assert (power_init != NULL);
+         power_start = (evalGet) dlsym (dlPower, "evaluationStart");
+         assert (power_start != NULL);
+         power_stop = (evalGet) dlsym (dlPower, "evaluationStop");
+         assert (power_stop != NULL);
+         power_close = (evalClose) dlsym (dlPower, "evaluationClose");
+         assert (power_close != NULL);
+      }
    }
 
-   dlopen ("/opt/rest_modifications/timer/timer.so", RTLD_NOW);
-   assert (dlTimer != NULL);
+   dlTimer = dlopen ("/opt/rest_modifications/timer/timer.so", RTLD_NOW);
 
-   timer_init = (evalInit) dlsym (dlTimer, "evaluationInit");
-   assert (timer_init != NULL);
-   timer_start = (evalGet) dlsym (dlTimer, "evaluationStart");
-   assert (timer_start != NULL);
-   timer_stop = (evalGet) dlsym (dlTimer, "evaluationStop");
-   assert (timer_stop != NULL);
-   timer_close = (evalClose) dlsym (dlTimer, "evaluationClose");
-   assert (timer_close != NULL);
+   // skip if the lib cannot be found
+   if (dlTimer == NULL)
+   {
+      std::cerr << "Cannot open timer library: " << dlerror() << std::endl;
+   }
+   else
+   {
+      timer_init = (evalInit) dlsym (dlTimer, "evaluationInit");
+      assert (timer_init != NULL);
+      timer_start = (evalGet) dlsym (dlTimer, "evaluationStart");
+      assert (timer_start != NULL);
+      timer_stop = (evalGet) dlsym (dlTimer, "evaluationStop");
+      assert (timer_stop != NULL);
+      timer_close = (evalClose) dlsym (dlTimer, "evaluationClose");
+      assert (timer_close != NULL);
+   }
 
-   timer_init();
-   if (power_init)
+   if (dlTimer != NULL)
+   {
+      timer_init();
+      timer_begvalue = timer_start (NULL);
+   }
+
+   if (dlPower != NULL)
    {
       power_init();
-   }
-
-   timer_begvalue = timer_start (NULL);
-   if (power_start)
-   {
       power_begvalue = power_start (NULL);
    }
 

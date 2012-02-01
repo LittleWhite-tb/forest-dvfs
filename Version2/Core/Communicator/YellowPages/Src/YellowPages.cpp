@@ -50,6 +50,12 @@ void YellowPages::init_from (unsigned int local_id, std::string & fpath)
 
    std::ifstream ifs (fpath.c_str(), std::ifstream::in);
 
+   if (!ifs.good())
+   {
+      std::cerr << "Cannot open configuration file '" << fpath << "'" << std::endl;
+      return;
+   }
+
    struct addrinfo addrhint;
    addrhint.ai_flags = 0;
    addrhint.ai_family = AF_INET;
