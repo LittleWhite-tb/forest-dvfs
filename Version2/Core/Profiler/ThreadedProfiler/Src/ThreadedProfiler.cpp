@@ -21,6 +21,11 @@
   @brief The ThreadedProfiler class header is in this file
  */
 
+#include <cmath>
+#include <iostream>
+#include <cstdio>
+#include <stdlib.h>
+
 #include "ThreadedProfiler.h"
 #include "PapiCounters.h"
 #include "Message.h"
@@ -28,15 +33,12 @@
 #include "YellowPages.h"
 #include "SetWinMsg.h"
 
-#include <cmath>
-#include <iostream>
-#include <cstdio>
 
-ThreadedProfiler::ThreadedProfiler (void) : Profiler()
+ThreadedProfiler::ThreadedProfiler (void) : Profiler ()
 {
-   this->prof = new PapiCounters();
-   this->prof->attach_to (LibProf::getTID());
-   this->prof->start_counters();
+   this->prof = new PapiCounters ();
+   this->prof->attach_to (LibProf::getTID ());
+   this->prof->start_counters ();
 
    pthread_create (&this->thid, NULL, ThreadedProfiler::profile_loop, this);
 }
@@ -54,11 +56,11 @@ ThreadedProfiler::~ThreadedProfiler (void)
 void * ThreadedProfiler::profile_loop (void * arg)
 {
    ThreadedProfiler * obj = (ThreadedProfiler *) arg;
-   long long int values[3];
+   long long int values [3];
    unsigned int sleep_time = INIT_SLEEP_WIN;
 
-   unsigned int my_id = YellowPages::get_id();
-   unsigned int server_id = YellowPages::get_server_id();
+   unsigned int my_id = YellowPages::get_id ();
+   unsigned int server_id = YellowPages::get_server_id ();
 
    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
    pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -82,9 +84,9 @@ void * ThreadedProfiler::profile_loop (void * arg)
          {
             break;
          }
-         else if (msg->get_type() == Message::MSG_TP_SETWIN)
+         else if (msg->get_type () == Message::MSG_TP_SETWIN)
          {
-            sleep_time = ( (SetWinMsg *) msg)->get_window_size();
+            sleep_time = ((SetWinMsg *) msg)->get_window_size ();
             timeout = sleep_time;
             delete msg;
             continue;
@@ -99,7 +101,7 @@ void * ThreadedProfiler::profile_loop (void * arg)
       obj->comm->send (*report);
       delete report;
 
-      //std::cout << values[0] << " " << values[1] << " " << values[2] << std::endl;
+      //std::cout << values [0] << " " << values [1] << " " << values [2] << std::endl;
    };
 
    return NULL;

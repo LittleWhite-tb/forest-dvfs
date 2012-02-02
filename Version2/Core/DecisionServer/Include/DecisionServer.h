@@ -25,6 +25,7 @@
 #define H_DECISIONSERVER
 
 #include <set>
+#include <map>
 
 #include "NaiveDecisions.h"
 #include "FreqChanger.h"
@@ -73,7 +74,7 @@ class DecisionServer
    private:
       Communicator * comm;
       int ** freqTracker;
-      unsigned int * sleep_windows;
+      std::map<unsigned int, unsigned int> sleep_windows;
 
       /**
        * @brief Callback when profilers connect or disconnect

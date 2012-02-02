@@ -35,6 +35,7 @@
 #include "Profiler.h"
 #include "SetWinMsg.h"
 #include "Log.h"
+#include "Config.h"
 
 static void cleanup_fn ();
 static void sighandler (int ns);
@@ -51,12 +52,10 @@ DecisionServer::DecisionServer (void)
    int numCores = coresInfos->numCores;
    int numFreqs = coresInfos->numFreqs;
 
-   this->sleep_windows = new unsigned int [numCores];
    freqTracker = new int*[numCores];
 
    for (int i = 0; i < numCores; ++i)
    {
-      this->sleep_windows [i] = INIT_SLEEP_WIN;
       freqTracker [i] = new int [numFreqs];
 
       for (int j = 0; j < numFreqs; ++j)
@@ -76,46 +75,77 @@ DecisionServer::DecisionServer (void)
 
 DecisionServer::~DecisionServer (void)
 {
+   //Outputting core/frequency changes
+   std::ofstream file ("core_frequency_count.csv", std::ios::out | std::ios::trunc);
+
+   if (!file.good ())
+   {
+      std::cerr << "Failed to open server output" << std::endl;
+      return;
+   }
+
+   file << "\"Core\";\"Frequency\";\"Freqency changes\"" << std::endl;
+
+   for (unsigned int i = 0; i < this->coresInfos->numCores; i++)
+   {
+      for (unsigned int j = 0; j < this->coresInfos->numFreqs; j++)
+      {
+         file << i << ";" << j << ";" << this->freqTracker [i][j] << std::endl;
+      }
+   }
+
+   file.flush ();
+   file.close ();
+
+   // cleanup memory
    delete this->comm;
    delete this->naiveDecisions;
    delete this->freqchanger;
    delete this->coresInfos;
 }
 
+// main server loop in which the messages are handled
 void DecisionServer::server_loop ()
 {
+   // while we do not die
    while (true)
    {
       Message * msg;
       Message::Type msgtp;
 
+      // actual reception
       msg = this->comm->recv ();
       assert (msg != NULL);
 
       msgtp = msg->get_type ();
 
+      // report received
       if (msgtp == Message::MSG_TP_REPORT)
       {
+         // send the report to the decision maker
          int core = YellowPages::get_core_id (msg->get_sender ());
          int freq = naiveDecisions->giveReport (core,
                                                 ((ReportMsg *) msg)->get_report ());
 
+         // requested to switch the frequency
          if (freq != -1)
          {
+            // some bookkeeping...
             ++freqTracker [core][freq];
+
+            // actually change the frequency here
             freqchanger->ChangeFreq (core, freq);
 
             // reset profiler's sleep windows
-            // FIXME: --->look out bad id given to sleep window
             this->sleep_windows [msg->get_sender ()] = INIT_SLEEP_WIN;
+
+            // send this to the profiler
             Message * swmsg = new SetWinMsg (msg->get_dest (), msg->get_sender (), INIT_SLEEP_WIN);
-            //Sending the new window to the profiler
             this->comm->send (*swmsg);
             delete swmsg;
          }
-         else
+         else  // keep the same frequency
          {
-            // expand profiler window
             unsigned int win = this->sleep_windows [msg->get_sender ()];
 
             // avoid un-necessary set window messages
@@ -124,10 +154,12 @@ void DecisionServer::server_loop ()
                continue;
             }
 
+            // expand profiler window
             win *= 2;
             win = win > LONGEST_SLEEP_WIN ? LONGEST_SLEEP_WIN : win;
             this->sleep_windows [msg->get_sender ()] = win;
 
+            // send the set window message to the profiler
             Message * swmsg = new SetWinMsg (msg->get_dest (), msg->get_sender (), win);
             this->comm->send (*swmsg);
             delete swmsg;
@@ -140,6 +172,11 @@ void DecisionServer::server_loop ()
       }
    }
 }
+
+
+//
+// BELLOW IS THE STATIC CODE THAT LAUNCHES THE SERVER
+//
 
 int main (int argc, char ** argv)
 {
@@ -157,31 +194,30 @@ int main (int argc, char ** argv)
    unsigned int id;
    std::istringstream iss (argv [1], std::istringstream::in);
    iss >> id;
-   std::string confpath (argv [2]);
-   YellowPages::init_from (id, confpath);
+   Config cfg = Config (argv [2]);
+   YellowPages::init_from (id, cfg);
 
    dc = new DecisionServer ();
    dc->server_loop ();
 }
 
+// cleans the static decision server at its exit
 static void cleanup_fn ()
 {
-   std::cout << "closing stuff" << std::endl;
-
    YellowPages::reset ();
    delete (dc);
 }
 
+// signal handler for SIGINT, SIGTERM
 static void sighandler (int ns)
 {
    (void) ns;
-
-   std::cout << "signal " << ns << " received" << std::endl;
 
    // will indirectly call cleanup
    exit (0);
 }
 
+// connection and deconnection callback
 void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
 {
    (void)(conn);
@@ -192,37 +228,12 @@ void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
    if (conn)
    {
       obj->nbProfs++;
+      obj->sleep_windows [id] = INIT_SLEEP_WIN;
    }
    else
    {
       obj->nbProfs--;
-
-      if (obj->nbProfs == 0)
-      {
-
-         //Outputting core/frequency changes
-         std::ofstream file ("core_frequency_count.csv", std::ios::out | std::ios::trunc);
-
-         if (!file.good())
-         {
-            std::cerr << "Failed to open server output" << std::endl;
-            return;
-         }
-
-         file << "Core,Frequency,Freqencies changes" << std::endl;
-
-         for (unsigned int i = 0; i < obj->coresInfos->numCores; i++)
-         {
-            for (unsigned int j = 0; j < obj->coresInfos->numFreqs; j++)
-            {
-               file << i << "," << j << "," << obj->freqTracker [i][j] << std::endl;
-            }
-         }
-
-         file.flush();
-         file.close ();
-
-      }
+      obj->sleep_windows.erase (id);
    }
 }
 
