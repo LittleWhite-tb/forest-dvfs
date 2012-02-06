@@ -123,9 +123,9 @@ void DecisionServer::server_loop ()
       if (msgtp == Message::MSG_TP_REPORT)
       {
          // send the report to the decision maker
-         int core = YellowPages::get_core_id (msg->get_sender ());
+         int core = YellowPages::getCoreId (msg->get_sender ());
          int freq = naiveDecisions->giveReport (core,
-                                                ((ReportMsg *) msg)->get_report ());
+                                                ( (ReportMsg *) msg)->get_report ());
 
          // requested to switch the frequency
          if (freq != -1)
@@ -137,7 +137,7 @@ void DecisionServer::server_loop ()
             freqchanger->ChangeFreq (core, freq);
 
             // reset profiler's sleep windows
-            this->sleep_windows [msg->get_sender ()] = INIT_SLEEP_WIN;
+            this->sleep_windows [msg->get_sender () ] = INIT_SLEEP_WIN;
 
             // send this to the profiler
             Message * swmsg = new SetWinMsg (msg->get_dest (), msg->get_sender (), INIT_SLEEP_WIN);
@@ -146,7 +146,7 @@ void DecisionServer::server_loop ()
          }
          else  // keep the same frequency
          {
-            unsigned int win = this->sleep_windows [msg->get_sender ()];
+            unsigned int win = this->sleep_windows [msg->get_sender () ];
 
             // avoid un-necessary set window messages
             if (win >= LONGEST_SLEEP_WIN)
@@ -157,7 +157,7 @@ void DecisionServer::server_loop ()
             // expand profiler window
             win *= 2;
             win = win > LONGEST_SLEEP_WIN ? LONGEST_SLEEP_WIN : win;
-            this->sleep_windows [msg->get_sender ()] = win;
+            this->sleep_windows [msg->get_sender () ] = win;
 
             // send the set window message to the profiler
             Message * swmsg = new SetWinMsg (msg->get_dest (), msg->get_sender (), win);
@@ -195,7 +195,7 @@ int main (int argc, char ** argv)
    std::istringstream iss (argv [1], std::istringstream::in);
    iss >> id;
    Config cfg = Config (argv [2]);
-   YellowPages::init_from (id, cfg);
+   YellowPages::initFrom (id, cfg);
 
    dc = new DecisionServer ();
    dc->server_loop ();
@@ -220,8 +220,8 @@ static void sighandler (int ns)
 // connection and deconnection callback
 void DecisionServer::connectionCallback (bool conn, unsigned int id, void * arg)
 {
-   (void)(conn);
-   (void)(id);
+   (void) (conn);
+   (void) (id);
 
    DecisionServer * obj = (DecisionServer *) arg;
 

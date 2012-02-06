@@ -45,7 +45,7 @@ std::map<unsigned int, const struct sockaddr *> YellowPages::yp;
 std::map<unsigned int, int> YellowPages::yp_core;
 
 
-void YellowPages::init_from (unsigned int local_id, Config & cfg)
+void YellowPages::initFrom (unsigned int local_id, Config & cfg)
 {
    struct addrinfo addrhint;
    struct sockaddr_in * saddr;   // network address
@@ -107,7 +107,7 @@ void YellowPages::reset ()
    YellowPages::serverId = UINT_MAX;
 }
 
-const struct sockaddr * YellowPages::get_addr (unsigned int id)
+const struct sockaddr * YellowPages::getAddr (unsigned int id)
 {
    if (id == UINT_MAX)
    {
@@ -127,7 +127,7 @@ const struct sockaddr * YellowPages::get_addr (unsigned int id)
    }
 }
 
-int YellowPages::get_core_id (unsigned int id)
+int YellowPages::getCoreId (unsigned int id)
 {
    if (id == UINT_MAX)
    {

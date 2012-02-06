@@ -49,13 +49,15 @@ Config::Config (const char * fpath)
       return;
    }
 
+   skipJunk (ifs);
+
+
+
    // read all the network entries
    while (ifs.good ())
    {
       unsigned int id;
       NetConfEntry nce;
-
-      skipJunk (ifs);
 
       // read the node id
       ifs >> id;
@@ -63,6 +65,7 @@ Config::Config (const char * fpath)
 
       if (!ifs.good ())
       {
+         std::cerr << "Error while reading the configuration file." << std::endl;
          break;
       }
 
@@ -73,6 +76,7 @@ Config::Config (const char * fpath)
 
       if (!ifs.good ())
       {
+         std::cerr << "Error while reading the configuration file." << std::endl;
          break;
       }
 
@@ -82,6 +86,7 @@ Config::Config (const char * fpath)
 
       if (!ifs.good ())
       {
+         std::cerr << "Error while reading the configuration file." << std::endl;
          break;
       }
 
@@ -91,6 +96,7 @@ Config::Config (const char * fpath)
 
       if (!ifs.good ())
       {
+         std::cerr << "Error while reading the configuration file." << std::endl;
          break;
       }
 
@@ -99,8 +105,11 @@ Config::Config (const char * fpath)
 
       if (ifs.fail ())   // special: eof is not a failure here
       {
+         std::cerr << "Error while reading the configuration file." << std::endl;
          break;
       }
+
+      skipJunk (ifs);
 
       this->netEntries [id] = nce;
    }
@@ -131,7 +140,7 @@ static bool skipJunk (std::ifstream & ifs)
    }
 
    // check if this is a comment
-   if (ifs.peek () == '#')
+   while (ifs.peek () == '#')
    {
       // skip the rest of the line
       do
@@ -139,6 +148,20 @@ static bool skipJunk (std::ifstream & ifs)
          tmpc = ifs.get ();
       }
       while (ifs.good () && tmpc != '\n');
+
+      if (!ifs.good ())
+      {
+         return false;
+      }
+
+      // skip whitespaces
+      while (ifs.good () && isspace (ifs.get ()));
+      ifs.unget ();
+
+      if (!ifs.good ())
+      {
+         return false;
+      }
    }
 
    if (!ifs.good ())

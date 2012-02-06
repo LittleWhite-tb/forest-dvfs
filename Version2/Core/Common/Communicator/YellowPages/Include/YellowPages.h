@@ -33,7 +33,7 @@
 #include <map>
 
 #include <netinet/in.h>
-#define YP_ADDRLEN (a)(sizeof (struct sockaddr_in))
+#define YP_ADDRLEN(a) (sizeof (struct sockaddr_in))
 
 class YellowPages
 {
@@ -47,7 +47,7 @@ class YellowPages
        * @param local_id The local_id to use
        * @param fpath The path to the configuration file.
        */
-      static void init_from (unsigned int local_id, Config & cfg);
+      static void initFrom (unsigned int local_id, Config & cfg);
 
       /**
        * @brief Cleanups the memory used by the yellow pages and reset
@@ -59,15 +59,15 @@ class YellowPages
        * @brief Returns the address of the node with the given id.
        * @param id The node id.
        * @return The the address of the node with the given ID. Usable
-       * only until next call to get_addr. Can be NULL.
+       * only until next call to getAddr. Can be NULL.
        */
-      static const struct sockaddr * get_addr (unsigned int id);
+      static const struct sockaddr * getAddr (unsigned int id);
 
       /**
        * @brief Returns the local id of the calling process.
        * @return The id of the process.
        */
-      static inline unsigned int get_id ()
+      static inline unsigned int getId ()
       {
          return YellowPages::id;
       }
@@ -76,7 +76,7 @@ class YellowPages
        * @brief Returns the id of the server associated with me.
        * @return The id of my decision server.
        */
-      static inline unsigned int get_server_id ()
+      static inline unsigned int getServerId ()
       {
          return YellowPages::serverId;
       }
@@ -85,7 +85,7 @@ class YellowPages
        * @brief Returns the processor core, the given profiler is in charge of.
        * @return The id of the proc core watched by the profiler.
        */
-      static int get_core_id (unsigned int id);
+      static int getCoreId (unsigned int id);
 
    private:
       /** @brief My id */

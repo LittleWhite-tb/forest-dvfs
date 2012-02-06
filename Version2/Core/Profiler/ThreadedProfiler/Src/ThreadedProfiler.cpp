@@ -59,8 +59,8 @@ void * ThreadedProfiler::profile_loop (void * arg)
    long long int values [3];
    unsigned int sleep_time = INIT_SLEEP_WIN;
 
-   unsigned int my_id = YellowPages::get_id ();
-   unsigned int server_id = YellowPages::get_server_id ();
+   unsigned int my_id = YellowPages::getId ();
+   unsigned int server_id = YellowPages::getServerId ();
 
    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
    pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -86,7 +86,7 @@ void * ThreadedProfiler::profile_loop (void * arg)
          }
          else if (msg->get_type () == Message::MSG_TP_SETWIN)
          {
-            sleep_time = ((SetWinMsg *) msg)->get_window_size ();
+            sleep_time = ( (SetWinMsg *) msg)->get_window_size ();
             timeout = sleep_time;
             delete msg;
             continue;
