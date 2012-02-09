@@ -28,10 +28,10 @@ ALL_INC_FLAGS=-I. $(COMM_INC_FLAG) $(DECS_INC_FLAG) $(PROF_INC_FLAG)
 
 all: decisionServer rest_prof.so
 
-decisionServer: $(COMM_OBJ) $(DECS_OBJ) $(LOG_OBJ)
+decisionServer: $(COMM_OBJ) $(DECS_OBJ)
 	$(LD) $(LD_FLAGS) $^ $(LIBS) -o decisionServer
 
-rest_prof.so: $(COMMPIC_OBJ) $(PROF_OBJ) $(LOGPIC_OBJ)
+rest_prof.so: $(COMMPIC_OBJ) $(PROF_OBJ)
 	$(LD) $(LD_FLAGS) -shared $^ $(LIBS) -lpapi -ldl -o rest_prof.so
 
 clean:
