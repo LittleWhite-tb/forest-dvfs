@@ -69,7 +69,7 @@ Communicator::Communicator ()
    }
 
    // my address
-   const struct sockaddr * addr = YellowPages::getAddr (YellowPages::getId ());
+   const struct sockaddr * addr = YellowPages::get_addr (YellowPages::get_id ());
    assert (addr != NULL);
    if (bind (this->fd_server, addr, YP_ADDRLEN (addr)) == -1)
    {
@@ -168,7 +168,7 @@ void * Communicator::server_loop (void * arg)
 
       // accept incoming connection
       addr_len = sizeof (addr);
-      if ( (fd = accept (obj->fd_server, (struct sockaddr *) &addr, &addr_len)) < 0)
+      if ((fd = accept (obj->fd_server, (struct sockaddr *) &addr, &addr_len)) < 0)
       {
          std::perror ("Client connection error");
          continue;
@@ -219,7 +219,7 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
       return -1;
    }
 
-   const struct sockaddr * addr = YellowPages::getAddr (dest_id);
+   const struct sockaddr * addr = YellowPages::get_addr (dest_id);
    assert (addr != NULL);
    if (connect (fd, addr, YP_ADDRLEN (addr)) < 0)
    {
@@ -232,7 +232,7 @@ int Communicator::get_socket (unsigned int dest_id, bool create)
    this->sockets_out [dest_id] = fd;
 
    // tell the server who we are
-   unsigned int my_id = YellowPages::getId ();
+   unsigned int my_id = YellowPages::get_id ();
    IdMsg idmsg (my_id, dest_id, my_id);
    this->send (idmsg);
 
@@ -353,7 +353,7 @@ Message * Communicator::recv (unsigned int * timeout)
             }
 
             // read a message from the fd
-            msg = MsgReader::read_msg (it_sockin->second, it_sockin->first, YellowPages::getId ());
+            msg = MsgReader::read_msg (it_sockin->second, it_sockin->first, YellowPages::get_id ());
 
             // error while reading
             if (msg == NULL)
@@ -419,9 +419,9 @@ Message * Communicator::recv (unsigned int * timeout)
             }
 
             // connection is now identified, we can start regular communications
-            std::cout << "Unkown node " << *it_sockukn << " identified as Node " << ( (IdMsg *) msg)->get_id () << std::endl;
+            std::cout << "Unkown node " << *it_sockukn << " identified as Node " << ((IdMsg *) msg)->get_id () << std::endl;
 
-            this->sockets_in [ ( (IdMsg *) msg)->get_id () ] = *it_sockukn;
+            this->sockets_in [( (IdMsg *) msg)->get_id ()] = *it_sockukn;
             to_rm.insert (*it_sockukn);
 
             // notify registered callbacks
@@ -429,7 +429,7 @@ Message * Communicator::recv (unsigned int * timeout)
                   it_fn != this->connCallbacks->end ();
                   it_fn++)
             {
-               it_fn->first (true, ( (IdMsg *) msg)->get_id (), it_fn->second);
+               it_fn->first (true, ((IdMsg *) msg)->get_id (), it_fn->second);
             }
          }
 

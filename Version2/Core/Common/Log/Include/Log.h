@@ -32,7 +32,7 @@
 #include <unistd.h>
 #define LOG_ID() getpid ()
 
-#define LOG(verb, fmt, ...) log_extended(__FILE__, __LINE__, __FUNCTION__,\
+#define LOG(verb, fmt, ...) log_extended (__FILE__, __LINE__, __FUNCTION__,\
                                          verb, fmt, __VA_ARGS__)
 
 class Log
