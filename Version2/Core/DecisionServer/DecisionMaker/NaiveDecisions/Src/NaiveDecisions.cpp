@@ -39,20 +39,20 @@ NaiveDecisions::~NaiveDecisions (void)
 }
 
 int NaiveDecisions::giveReport (unsigned int core,
-                                const long long HWCounters[3])
+                                const long long HWCounters [3])
 {
-   float boundness = computeBoundness (HWCounters[0], HWCounters[1],
-                                       HWCounters[2]);
-   int newFrequency = round ( (int) (boundness * (coresInfo->numFreqs - 1)));
-   
+   float boundness = computeBoundness (HWCounters [0], HWCounters [1],
+                                       HWCounters [2]);
+   int newFrequency = round ((int)(boundness * (coresInfo->numFreqs - 1)));
+
    //Trick to adjuste the right freq
    if (boundness <= 0.1)   // WARNING incorrect when no TurboBoost
    {
       newFrequency = 1;
    }
 
-   int currentFreq = this->coresInfo->allCoreDatas[core].currentFreq;
-   int FreqDistance = std::abs ( (float) (newFrequency - currentFreq));
+   int currentFreq = this->coresInfo->allCoreDatas [core].currentFreq;
+   int FreqDistance = std::abs ((float)(newFrequency - currentFreq));
 
    if (FreqDistance > 1)
    {

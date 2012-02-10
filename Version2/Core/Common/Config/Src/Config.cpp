@@ -110,30 +110,33 @@ Config::~Config ()
 static bool skipJunk (std::ifstream & ifs)
 {
    int tmpc;
+   
+   while (ifs.good() && (ifs.peek() == '#' || isspace(ifs.peek()))) {
 
-   // skip whitespaces
-   while (ifs.good () && isspace (ifs.get ()));
-   ifs.unget ();
+      // skip whitespaces
+      while (ifs.good () && isspace (ifs.get ()));
+      ifs.unget ();
 
-   if (!ifs.good ())
-   {
-      return false;
-   }
-
-   // check if this is a comment
-   if (ifs.peek () == '#')
-   {
-      // skip the rest of the line
-      do
+      if (!ifs.good ())
       {
-         tmpc = ifs.get ();
+         return false;
       }
-      while (ifs.good () && tmpc != '\n');
-   }
 
-   if (!ifs.good ())
-   {
-      return false;
+      // check if this is a comment
+      if (ifs.peek () == '#')
+      {
+         // skip the rest of the line
+         do
+         {
+            tmpc = ifs.get ();
+         }
+         while (ifs.good () && tmpc != '\n');
+      }
+
+      if (!ifs.good ())
+      {
+         return false;
+      }
    }
 
    return true;

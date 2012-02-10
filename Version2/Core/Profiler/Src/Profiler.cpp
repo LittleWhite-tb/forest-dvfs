@@ -93,7 +93,7 @@ static int prof_main (int argc, char ** argv, char ** env)
    Config cfg = Config (argv [2]);
    YellowPages::init_from (id, cfg);
    tp = new ThreadedProfiler ();
-   logger = Log::get_log(LOG_ID());
+   logger = Log::get_log (LOG_ID ());
 
    // what we have to do in case of exit
    atexit (profiler_cleanup);

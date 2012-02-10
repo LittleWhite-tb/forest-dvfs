@@ -36,7 +36,7 @@ PapiCounters::PapiCounters (void)
       std::cerr << "PAPI library init error!" << std::endl;
       exit (1);
    }
-   retval = PAPI_is_initialized();
+   retval = PAPI_is_initialized ();
    if (retval != PAPI_LOW_LEVEL_INITED)
    {
       std::cerr << "Failed to init PAPI sub-system." << std::endl;
@@ -51,33 +51,33 @@ PapiCounters::PapiCounters (void)
    }
 
    // initialize the event set
-   int ev_codes[3] = {0, 0, 0};
+   int ev_codes [3] = {0, 0, 0};
 
    if (PAPI_event_name_to_code (const_cast<char *> ("SQ_FULL_STALL_CYCLES"),
-                                &ev_codes[0]) != PAPI_OK)
+                                &ev_codes [0]) != PAPI_OK)
    {
       std::cerr << "PAPI even_name_to_code failed!" << std::endl;
       exit (1);
    }
 
    if (PAPI_event_name_to_code (const_cast<char *> ("UNHALTED_CORE_CYCLES"),
-                                &ev_codes[1]) != PAPI_OK)
+                                &ev_codes [1]) != PAPI_OK)
    {
       std::cerr << "PAPI even_name_to_code failed!" << std::endl;
       exit (1);
    }
 
    if (PAPI_event_name_to_code (const_cast<char *> ("L2_RQSTS:MISS"),
-                                &ev_codes[2]) != PAPI_OK)
+                                &ev_codes [2]) != PAPI_OK)
    {
       std::cerr << "PAPI even_name_to_code failed!" << std::endl;
       exit (1);
    }
 
    // check for the events availability
-   if ( (PAPI_query_event (ev_codes[0]) != PAPI_OK)
-         || (PAPI_query_event (ev_codes[1]) != PAPI_OK)
-         || (PAPI_query_event (ev_codes[2]) != PAPI_OK))
+   if ((PAPI_query_event (ev_codes [0]) != PAPI_OK)
+         || (PAPI_query_event (ev_codes [1]) != PAPI_OK)
+         || (PAPI_query_event (ev_codes [2]) != PAPI_OK))
    {
       std::cerr << "Insufficient hardware counters support." << std::endl;
       exit (1);
@@ -102,7 +102,7 @@ PapiCounters::PapiCounters (void)
 
 PapiCounters::~PapiCounters (void)
 {
-   PAPI_shutdown();
+   PAPI_shutdown ();
 }
 
 void PapiCounters::attach_to (unsigned long int tid)
@@ -113,14 +113,14 @@ void PapiCounters::attach_to (unsigned long int tid)
    }
 }
 
-void PapiCounters::start_counters()
+void PapiCounters::start_counters ()
 {
    PAPI_start (this->ev_set);
 }
 
-void PapiCounters::stop_counters()
+void PapiCounters::stop_counters ()
 {
-   long long dummy[3];
+   long long dummy [3];
 
    PAPI_stop (this->ev_set, dummy);
 }
@@ -129,9 +129,9 @@ void PapiCounters::read (long long * values)
 {
    assert (values != NULL);
 
-   values[0] = 0;
-   values[1] = 0;
-   values[2] = 0;
+   values [0] = 0;
+   values [1] = 0;
+   values [2] = 0;
 
    if (PAPI_accum (this->ev_set, values) != PAPI_OK)
    {

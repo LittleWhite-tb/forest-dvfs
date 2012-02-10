@@ -21,18 +21,18 @@ typedef struct
 class Config
 {
    public:
-   
-   /**
-    * @brief Sole constructor.
-    * @param fpath The configuration file to read.
-    */
+
+      /**
+       * @brief Sole constructor.
+       * @param fpath The configuration file to read.
+       */
       Config (const char * fpath);
-      
+
       /**
        * @brief Sole destructor.
        */
       ~Config ();
-      
+
       /**
        * @brief Returns the map where each node ID is mapped to a network entry.
        *
@@ -40,13 +40,13 @@ class Config
        */
       inline const std::map<unsigned int, NetConfEntry> &getNetEntries () const
       {
-         return this->netEntries;     
+         return this->netEntries;
       }
-      
+
    private:
-     /**
-      * @brief Network configuration entries.
-      */
+      /**
+       * @brief Network configuration entries.
+       */
       std::map<unsigned int, NetConfEntry> netEntries;
 };
 
