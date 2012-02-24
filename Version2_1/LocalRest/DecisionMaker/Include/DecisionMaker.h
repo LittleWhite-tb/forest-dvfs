@@ -34,42 +34,42 @@
  */
 class DecisionMaker
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		DecisionMaker (CoresInfo * coresInfo);
+   public:
+      /**
+       * @brief Constructor
+       */
+      DecisionMaker (CoresInfo * coresInfo);
 
-		/**
-		 * @brief Destructor
-		 */
-		virtual ~DecisionMaker (void);
+      /**
+       * @brief Destructor
+       */
+      virtual ~DecisionMaker (void);
 
-		/**
-		 * @brief Gives a core number and the new frequency to set
-		 * @param core the core ID
-		 * @param HWCounters integer array the three hardware counters given by the profiler
-		 * @return the frequency to move to
-		 */
-		virtual int giveReport (unsigned int core,
-				const unsigned long long HWCounters[3]) = 0;
+      /**
+       * @brief Gives a core number and the new frequency to set
+       * @param core the core ID
+       * @param HWCounters integer array the three hardware counters given by the profiler
+       * @return the frequency to move to
+       */
+      virtual int giveReport (unsigned int core,
+                              const unsigned long long HWCounters [3]) const = 0;
 
-		/**
-		 * @brief compute the boundness of a program at a certain time, values shall
-		 * be given by the profiler
-		 * @param sqFullStall Counts cycles the Super Queue is full.
-		 * Neither of the threads on this core will be able to access the uncore
-		 * @param unhaltedCore elapsed cycles, correlation to time not maintained with
-		 * time when frequency scaling operates
-		 * @param l2Miss L2 cache misses
-		 * @return the boundness of the sample
-		 */
-		float computeBoundness (unsigned long long sqFullStall,
-            unsigned long long unhaltedCore, unsigned long long l2Miss) const;
+      /**
+       * @brief compute the boundness of a program at a certain time, values shall
+       * be given by the profiler
+       * @param sqFullStall Counts cycles the Super Queue is full.
+       * Neither of the threads on this core will be able to access the uncore
+       * @param unhaltedCore elapsed cycles, correlation to time not maintained with
+       * time when frequency scaling operates
+       * @param l2Miss L2 cache misses
+       * @return the boundness of the sample
+       */
+      float computeBoundness (unsigned long long sqFullStall,
+                              unsigned long long unhaltedCore, unsigned long long l2Miss) const;
 
    protected:
 
-		//Variables
-		CoresInfo * coresInfo;
+      //Variables
+      CoresInfo * coresInfo;
 };
 #endif

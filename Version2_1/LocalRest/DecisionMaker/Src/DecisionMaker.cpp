@@ -27,7 +27,7 @@
 
 DecisionMaker::DecisionMaker (CoresInfo * coresInfo)
 {
-	this->coresInfo = coresInfo;
+   this->coresInfo = coresInfo;
 }
 
 DecisionMaker::~DecisionMaker (void)
@@ -36,17 +36,17 @@ DecisionMaker::~DecisionMaker (void)
 }
 
 float DecisionMaker::computeBoundness (unsigned long long sqFullStall,
-		unsigned long long unhaltedCore, unsigned long long l2Miss) const
+                                       unsigned long long unhaltedCore, unsigned long long l2Miss) const
 {
-	float res;
+   float res;
 
-	if (unhaltedCore == 0)
-	{
-		return 0.5;
-	}
+   if (unhaltedCore == 0)
+   {
+      return 0.5;
+   }
 
-	res = (4. * 16 * sqFullStall * l2Miss) / (unhaltedCore * unhaltedCore);
-	res = res > 1 ? 1 : res;
+   res = (4. * 16 * sqFullStall * l2Miss) / (unhaltedCore * unhaltedCore);
+   res = res > 1 ? 1 : res;
 
-	return res;
+   return res;
 }

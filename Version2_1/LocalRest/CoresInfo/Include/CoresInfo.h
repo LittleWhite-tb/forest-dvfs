@@ -33,10 +33,10 @@
  */
 typedef struct coreData
 {
-		std::ofstream * freqFd;    /**< @brief where to write the frequencies */
-		unsigned long int * freqTrack;   /**< @brief track the frequencies values changes*/
-		unsigned int requestedFreq;      /**< @brief The last requested frequency */
-		std::string oldGov;        /**< @brief original governor registered for this core. */
+   std::ofstream * freqFd;    /**< @brief where to write the frequencies */
+   unsigned long int * freqTrack;   /**< @brief track the frequencies values changes*/
+   unsigned int requestedFreq;      /**< @brief The last requested frequency */
+   std::string oldGov;        /**< @brief original governor registered for this core. */
 } CoreData;
 
 /**
@@ -45,47 +45,47 @@ typedef struct coreData
  */
 class CoresInfo
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		CoresInfo (void);
+   public:
+      /**
+       * @brief Constructor
+       */
+      CoresInfo (void);
 
-		/**
-		 * @brief Destructor
-		 */
-		~CoresInfo (void);
+      /**
+       * @brief Destructor
+       */
+      ~CoresInfo (void);
 
-		CoreData * allCoreData; /**< @brief the available frequencies on the system of size numFreq*/
-		unsigned int numCores;  /**< @brief number of available cores**/
+      CoreData * allCoreData; /**< @brief the available frequencies on the system of size numFreq*/
+      unsigned int numCores;  /**< @brief number of available cores**/
 
-		// Limits valid for the whole system
-		int freqMax;   /**< @brief the highest available frequencies*/
-		int freqMin;   /**< @brief the lowest available frequencies*/
-		unsigned int numFreqs;  /**< @brief the number of available frequencies*/
-		unsigned int * availableFreqs;   /**< @brief the available frequencies on the system of size numFreq sorted in decreasing order*/
+      // Limits valid for the whole system
+      int freqMax;   /**< @brief the highest available frequencies*/
+      int freqMin;   /**< @brief the lowest available frequencies*/
+      unsigned int numFreqs;  /**< @brief the number of available frequencies*/
+      unsigned int * availableFreqs;   /**< @brief the available frequencies on the system of size numFreq sorted in decreasing order*/
       bool hasTurboBoost;  /**< @brief True when the processor has a TurboBoost mode. */
 
-	private:
+   private:
 
-		/**
-		 * @brief Learn about the hardware performances
-		 */
-		void initCpuData ();
+      /**
+       * @brief Learn about the hardware performances
+       */
+      void initCpuData ();
 
-		/**
-		 * @brief Initialize Structure containing important information for rest for a specific core
-		 * @param coreId the specific core
-		 * @param data the core data to initialize
-		 */
-		void initCoreData (unsigned int coreId, CoreData & data);
+      /**
+       * @brief Initialize Structure containing important information for rest for a specific core
+       * @param coreId the specific core
+       * @param data the core data to initialize
+       */
+      void initCoreData (unsigned int coreId, CoreData & data);
 
-		/**
-		 * @brief Cleanups the data and execution context related to the given
-		 * core.
-		 *
-		 * @param coreId The id of the concerned core.
-		 */
-		void freeCoreData (unsigned int coreId);
+      /**
+       * @brief Cleanups the data and execution context related to the given
+       * core.
+       *
+       * @param coreId The id of the concerned core.
+       */
+      void freeCoreData (unsigned int coreId);
 };
 #endif

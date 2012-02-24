@@ -33,43 +33,40 @@
  */
 class FreqChanger
 {
-	public:
-		/**
-		 * @brief Constructor
-		 */
-		FreqChanger (CoresInfos * coresInfos);
+   public:
+      /**
+       * @brief Constructor
+       */
+      FreqChanger (CoresInfo * coresInfo);
 
-		/**
-		 * @brief Destructor
-		 */
-		~FreqChanger (void);
+      /**
+       * @brief Destructor
+       */
+      ~FreqChanger (void);
 
-		/**
-		 * @brief read the frequency of a specific core
-		 * @param coreId the id of the core to read
-		 */
-		unsigned int
-		ReadCurrentFreq (unsigned int coreId);
+      /**
+       * @brief read the frequency of a specific core
+       * @param coreId the id of the core to read
+       */
+      unsigned int readCurrentFreq (unsigned int coreId);
 
-		/**
-		 * @brief it's the freq where the core is supposed to go to. It's possible that the current freq
-		 * is not equal to the one give by this method because of the latency to change the freq
-		 * @param coreId the id of the core
-		 * @return the latest frequency set
-		 */
-		unsigned int
-		ReadFreq (unsigned int coreId);
+      /**
+       * @brief it's the freq where the core is supposed to go to. It's possible that the current freq
+       * is not equal to the one give by this method because of the latency to change the freq
+       * @param coreId the id of the core
+       * @return the latest frequency set
+       */
+      unsigned int readFreq (unsigned int coreId);
 
-		/**
-		 * @brief Change the frequency at a specific one
-		 * @param coreId the id number of the core
-		 * @param freqId the freq to set the core
-		 */
-		void
-		ChangeFreq (unsigned int coreId, int freqId);
+      /**
+       * @brief Change the frequency at a specific one
+       * @param coreId the id number of the core
+       * @param freqId the freq to set the core
+       */
+      void changeFreq (unsigned int coreId, int freqId);
 
-	private:
-		//Variables
-		CoresInfo * coresInfo; /**<@brief Save the point of the CoresInfos structure, see the class**/
+   private:
+      //Variables
+      CoresInfo * coresInfo; /**<@brief Save the point of the CoresInfos structure, see the class**/
 };
 #endif

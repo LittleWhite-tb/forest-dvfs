@@ -42,7 +42,7 @@ class Profiler
       virtual ~Profiler (void);
 
       /**
-       * @brief Reads the counter values and "resets" them. 
+       * @brief Reads the counter values and "resets" them.
        * @param coreId The involved processor core's id.
        * @param values Where to write the differences of counter values compared
        * to the last measurement.

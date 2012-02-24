@@ -23,13 +23,15 @@
 #ifndef H_PFMPROFILER
 #define H_PFMPROFILER
 
+#include <stdint.h>
+
 #include "Profiler.h"
 
 /**
  * @class PfmProfiler
  * @brief Profiler implementation based on libpfm.
  */
-class PfmProfiler : Profiler
+class PfmProfiler : public Profiler
 {
 
    public:
@@ -44,7 +46,7 @@ class PfmProfiler : Profiler
       virtual ~PfmProfiler (void);
 
       /**
-       * @brief Reads the counter values and "resets" them. 
+       * @brief Reads the counter values and "resets" them.
        * @param coreId The involved processor core's number.
        * @param values Where to write the differences of counter values compared
        * to the last measurement.
@@ -56,10 +58,10 @@ class PfmProfiler : Profiler
       unsigned int nbCores;   /**< @brief Number of cpus */
 
       /**
-       * @brief List of fds for counters per cpu. Access with 
-       * pfmFds[cpu_num][counter_num]
+       * @brief List of fds for counters per cpu. Access with
+       * pfmFds [cpu_num][counter_num]
        */
-      int **pfmFds;
+      int ** pfmFds;
 
       /**
        * @brief List of number of fds per cpu. Related to pfmFds.
@@ -70,7 +72,7 @@ class PfmProfiler : Profiler
        * @brief Former measurement to allow difference computations.
        * One per counter for each cpu.
        */
-      uint64_t **oldValues;
+      uint64_t ** oldValues;
 };
 
 #endif

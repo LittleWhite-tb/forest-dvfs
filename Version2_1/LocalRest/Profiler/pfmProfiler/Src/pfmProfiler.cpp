@@ -26,23 +26,23 @@
 #include <sys/ioctl.h>
 #include <stdint.h>
 
-#include "PfmProfiler.h"
+#include "pfmProfiler.h"
 #include "perfmon/pfmlib.h"
+#include "perfmon/perf_event.h"
 #include "perfmon/pfmlib_perf_event.h"
 
 
-PfmProfiler::PfmProfiler (void) 
+PfmProfiler::PfmProfiler (void)
 {
-	int res;
-   perf_event_desc_t *fds;
-   const char * counters[] = 
-      { "SQ_FULL_STALL_CYCLES", "CPU_CLK_UNHALTED_CORE", "L2_RQSTS_MISS" };
-   const unsigned int nbCounters = sizeof(counters) / sizeof(*counters);
+   int res;
+   const char * counters [] =
+   { "SQ_FULL_STALL_CYCLES", "UNHALTED_CORE_CYCLES", "L2_RQSTS:MISS" };
+   const unsigned int nbCounters = sizeof (counters) / sizeof (*counters);
 
    // libpfm init
-	if ((res = pfm_initialize()) != PFM_SUCCESS)
+   if ((res = pfm_initialize ()) != PFM_SUCCESS)
    {
-      std::cerr << "Failed to initialize libpfm: " << pfm_strerror(res) << std::endl;
+      std::cerr << "Failed to initialize libpfm: " << pfm_strerror (res) << std::endl;
    }
 
    // fetch number of processors and initialize a few things
@@ -53,8 +53,8 @@ PfmProfiler::PfmProfiler (void)
    this->oldValues = new uint64_t *[this->nbCores];
    for (unsigned int i = 0; i < this->nbCores; i++)
    {
-      this->pfmFds[i] = new int[nbCounters];
-      this->oldValues[i] = new uint64_t[nbCounters];
+      this->pfmFds [i] = new int [nbCounters];
+      this->oldValues [i] = new uint64_t [nbCounters];
    }
 
 
@@ -64,39 +64,40 @@ PfmProfiler::PfmProfiler (void)
       pfm_perf_encode_arg_t arg;
 
       // initialize the structure
-      arg.attr = new perf_event_attr();
+      arg.attr = new perf_event_attr ();
       arg.fstr = NULL;
-      arg.size = sizeof(arg);
+      arg.size = sizeof (arg);
 
       // encode the counter
-      res = pfm_get_os_event_encoding(counters[i], PFM_PLM0 | PFM_PLM3,
-                                      PFM_OS_PERF_EVENT_EXT, &arg);
+      res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3,
+      PFM_OS_PERF_EVENT_EXT, &arg);
       if (res != PFM_SUCCESS)
       {
-         std::cerr << "Failed to get counter " << counters[i] << std::endl;
+         std::cerr << "Failed to get counter " << counters [i] << std::endl;
       }
 
       // request scaling in case of shared counters
-      arg.read_format = PERF_FORMAT_SCALE;
+      arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED
+      | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
       // convert that into a fd for every cpu
       for (unsigned int cpu = 0; cpu < this->nbCores; cpu++)
       {
          // open the file descriptor
-         this->pfmFds[cpu][i] = perf_event_open(&arg, -1, cpu, -1, 0);
-         if (this->pfmFds[cpu][i] == -1)
+         this->pfmFds [cpu][i] = perf_event_open (arg.attr, -1, cpu, -1, 0);
+         if (this->pfmFds [cpu][i] == -1)
          {
-            std::cerr << "Cannot open counter " << counters[i] << " on cpu " << cpu << std::endl;
+            std::cerr << "Cannot open counter " << counters [i] << " on cpu " << cpu << std::endl;
          }
 
          // Activate the counter
-         if (ioctl(this->pfmFds[cpu][i], PERF_EVENT_IOC_ENABLE, 0))
+         if (ioctl (this->pfmFds [cpu][i], PERF_EVENT_IOC_ENABLE, 0))
          {
-            std::cerr << "Cannot enable event " << counters[i] << " on cpu " << cpu << std::endl;
+            std::cerr << "Cannot enable event " << counters [i] << " on cpu " << cpu << std::endl;
          }
 
          // initially, old values are 0
-         this->oldValues[cpu][i] = 0;
+         this->oldValues [cpu][i] = 0;
       }
 
       // free some mem
@@ -104,53 +105,53 @@ PfmProfiler::PfmProfiler (void)
    }
 }
 
-PfmProfiler::~PfmProfiler(void)
+PfmProfiler::~PfmProfiler (void)
 {
    // free memory
    for (unsigned int cpu = 0; cpu < this->nbCores; cpu++)
    {
       for (unsigned int i = 0; i < this->nbFds; i++)
       {
-         close(this->pfmFds[cpu][i]);
+         close (this->pfmFds [cpu][i]);
       }
 
-      delete[] this->pfmFds[cpu];
-      delete[] this->oldValues[cpu];
+      delete [] this->pfmFds [cpu];
+      delete [] this->oldValues [cpu];
    }
 
-   delete[] this->oldValues;
-   delete[] this->pfmFds;
+   delete [] this->oldValues;
+   delete [] this->pfmFds;
 
    // close pfm
-   pfm_terminate();
+   pfm_terminate ();
 }
 
 void PfmProfiler::read (unsigned int coreId, unsigned long long * values)
 {
    int res;
 
-   for(unsigned int i = 0; i < this->nbFds; i++)
+   for (unsigned int i = 0; i < this->nbFds; i++)
    {
-      uint64_t buf[3];
+      uint64_t buf [3];
       uint64_t value;
 
-      res = read(this->pfmFds[coreId][i], buf, sizeof(buf));
-      if (res != sizeof(buf))
+      res = ::read (this->pfmFds [coreId][i], buf, sizeof (buf));
+      if (res != sizeof (buf))
       {
          std::cerr << "Failed to read counter #" << i << " on cpu " << coreId << std::endl;
       }
 
       // handle scaling to allow PMU sharing
-      value = (uint64_t) ((double) buf[0] * buf[1] / buf[2]);
-      if (oldValues[coreId][i] <= value)
+      value = (uint64_t)( (double) buf [0] * buf [1] / buf [2]);
+      if (oldValues [coreId][i] <= value)
       {
-         values[i] = value - oldValues[coreId][i];
+         values [i] = value - oldValues [coreId][i];
       }
       else  // overflow
       {
-         values[i] = 0xFFFFFFFFFFFFFFFFUL - oldValues[coreId][i] + value;
+         values [i] = 0xFFFFFFFFFFFFFFFFUL - oldValues [coreId][i] + value;
       }
-      oldValues[coreId][i] = value;
+      oldValues [coreId][i] = value;
    }
 }
 

@@ -44,8 +44,8 @@ const
 {
    float boundness = computeBoundness (HWCounters [0], HWCounters [1],
                                        HWCounters [2]);
-   unsigned int newFrequency = round ((unsigned int) 
-                                      (boundness * (coresInfo->numFreqs - 1)));
+   unsigned int newFrequency = round ((unsigned int)
+                                       (boundness * (coresInfo->numFreqs - 1)));
 
    // do not go into TurboBoost freq
    if (this->coresInfo->hasTurboBoost)
@@ -56,7 +56,7 @@ const
       }
    }
 
-   int currentFreq = this->coresInfo->allCoreDatas [core].requestedFreq;
+   unsigned int currentFreq = this->coresInfo->allCoreData [core].requestedFreq;
    int FreqDistance = std::abs ((float)(newFrequency - currentFreq));
 
    // only change freq when large increase (more than one jump)
