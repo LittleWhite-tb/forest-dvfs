@@ -38,7 +38,19 @@ FreqChanger::FreqChanger (CoresInfo * coresInfo)
    //Initializing the requested freq
    for (unsigned int i = 0; i < coresInfo->numCores; i++)
    {
-      coresInfo->allCoreData [i].requestedFreq = this->readCurrentFreq (i);
+      unsigned int curFreq = this->readCurrentFreq (i);
+      unsigned int j;
+
+      // get the frequency id...
+      for (j = 0; j < coresInfo->numFreqs; j++)
+      {
+         if (coresInfo->availableFreqs[j] == curFreq)
+         {
+             break;
+         }
+      }
+
+      coresInfo->allCoreData [i].requestedFreq = j;
    }
 }
 
@@ -77,13 +89,6 @@ unsigned int FreqChanger::readCurrentFreq (unsigned int coreId)
    return curFreq;
 }
 
-unsigned int FreqChanger::readFreq (unsigned int coreId)
-{
-   assert (coreId < this->coresInfo->numCores);
-
-   return this->coresInfo->allCoreData [coreId].requestedFreq;
-}
-
 void FreqChanger::changeFreq (unsigned int coreId, int freqId)
 {
    std::ostringstream oss;
@@ -104,5 +109,5 @@ void FreqChanger::changeFreq (unsigned int coreId, int freqId)
    *cd->freqFd << oss.str ();
    cd->freqFd->flush ();
 
-   cd->requestedFreq = this->coresInfo->availableFreqs [freqId];
+   cd->requestedFreq = freqId;
 }

@@ -87,8 +87,6 @@ int main (int argc, char ** argv)
       }
    }
 
-   delete [] thopts;
-
    // the main process is the main profiler
    thopts [0].cnfo = cnfo;
    thopts [0].dec = dec;

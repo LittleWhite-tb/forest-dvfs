@@ -35,7 +35,7 @@ typedef struct coreData
 {
    std::ofstream * freqFd;    /**< @brief where to write the frequencies */
    unsigned long int * freqTrack;   /**< @brief track the frequencies values changes*/
-   unsigned int requestedFreq;      /**< @brief The last requested frequency */
+   unsigned int requestedFreq;      /**< @brief The last requested frequency id */
    std::string oldGov;        /**< @brief original governor registered for this core. */
 } CoreData;
 
@@ -63,7 +63,7 @@ class CoresInfo
       int freqMax;   /**< @brief the highest available frequencies*/
       int freqMin;   /**< @brief the lowest available frequencies*/
       unsigned int numFreqs;  /**< @brief the number of available frequencies*/
-      unsigned int * availableFreqs;   /**< @brief the available frequencies on the system of size numFreq sorted in decreasing order*/
+      unsigned int * availableFreqs;   /**< @brief the available frequencies on the system of size numFreq sorted in increasing order*/
       bool hasTurboBoost;  /**< @brief True when the processor has a TurboBoost mode. */
 
    private:

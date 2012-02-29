@@ -51,14 +51,6 @@ class FreqChanger
       unsigned int readCurrentFreq (unsigned int coreId);
 
       /**
-       * @brief it's the freq where the core is supposed to go to. It's possible that the current freq
-       * is not equal to the one give by this method because of the latency to change the freq
-       * @param coreId the id of the core
-       * @return the latest frequency set
-       */
-      unsigned int readFreq (unsigned int coreId);
-
-      /**
        * @brief Change the frequency at a specific one
        * @param coreId the id number of the core
        * @param freqId the freq to set the core

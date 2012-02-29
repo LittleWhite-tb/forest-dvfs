@@ -56,7 +56,9 @@ class DecisionMaker
 
       /**
        * @brief compute the boundness of a program at a certain time, values shall
-       * be given by the profiler
+       * be given by the profiler. Boundness of 0 means totally CPU bound,
+       * 1 = memory bound.
+       *
        * @param sqFullStall Counts cycles the Super Queue is full.
        * Neither of the threads on this core will be able to access the uncore
        * @param unhaltedCore elapsed cycles, correlation to time not maintained with
