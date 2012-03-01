@@ -51,8 +51,8 @@ const
    // do not go into TurboBoost freq
    if (this->coresInfo->hasTurboBoost)
    {
-      newFrequency = (newFrequency == this->coresInfo->numFreqs - 1) ? 
-         this->coresInfo->numFreqs - 2 : newFrequency;
+      newFrequency = (newFrequency == this->coresInfo->numFreqs - 1) ?
+                     this->coresInfo->numFreqs - 2 : newFrequency;
    }
 
    unsigned int currentFreq = this->coresInfo->allCoreData [core].requestedFreq;

@@ -86,7 +86,7 @@ void CoresInfo::initCpuData ()
 
       while (fp >> curFreq)
       {
-         tmpAllFreqs.insert (tmpAllFreqs.begin(), curFreq); //Saving the freq
+         tmpAllFreqs.insert (tmpAllFreqs.begin (), curFreq); //Saving the freq
       }
    }
    fp.close ();

@@ -44,9 +44,9 @@ FreqChanger::FreqChanger (CoresInfo * coresInfo)
       // get the frequency id...
       for (j = 0; j < coresInfo->numFreqs; j++)
       {
-         if (coresInfo->availableFreqs[j] == curFreq)
+         if (coresInfo->availableFreqs [j] == curFreq)
          {
-             break;
+            break;
          }
       }
 
