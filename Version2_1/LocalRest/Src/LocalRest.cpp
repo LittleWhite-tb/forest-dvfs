@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <iostream>
+#include <signal.h>
 
 #include "LocalRest.h"
 #include "CoresInfo.h"
@@ -35,19 +36,28 @@
 #include "pfmProfiler.h"
 #include "FreqChanger.h"
 
+
 // Options for threads
 typedef struct
 {
-   CoresInfo * cnfo;    // shared cores info
-   DecisionMaker * dec; // shared decision maker
-   FreqChanger * freq;  // shared freq changer
-   Profiler * prof;     // shared profiler
    unsigned int cpu;    // which cpu they watch
    bool main;           // main thread
 } thOptions;
 
-// thread function
+
+// local functions
 static void * thProf (void * opts);
+static void exitCleanup ();
+static void sigHandler (int nsig);
+
+
+// variables shared among the threads
+static pthread_t * thIds;
+static CoresInfo * cnfo;
+static DecisionMaker * dec;
+static FreqChanger * freq;
+static Profiler * prof;
+static thOptions * thopts;
 
 /**
  * @brief Rest entry point.
@@ -58,40 +68,37 @@ int main (int argc, char ** argv)
    (void)(argc);
    (void)(argv);
 
-   CoresInfo * cnfo = new CoresInfo ();
-   DecisionMaker * dec = new NaiveDecisions (cnfo);
-   FreqChanger * freq = new FreqChanger (cnfo);
-   Profiler * prof = new PfmProfiler ();
+   // initialize helpers
+   cnfo = new CoresInfo ();
+   dec = new NaiveDecisions (cnfo);
+   freq = new FreqChanger (cnfo);
+   prof = new PfmProfiler ();
 
    // # of processors
    unsigned int numCores = sysconf (_SC_NPROCESSORS_ONLN);
-   thOptions * thopts = new thOptions [numCores];
+   thopts = new thOptions [numCores];
+   thIds = new pthread_t [numCores];
 
    // launch threads
    for (unsigned int i = 1; i < numCores; i++)
    {
-      pthread_t thid;
-
       // initialize options
-      thopts [i].cnfo = cnfo;
-      thopts [i].dec = dec;
-      thopts [i].freq = freq;
-      thopts [i].prof = prof;
       thopts [i].cpu = i;
       thopts [i].main = false;
 
       // run thread
-      if (pthread_create (&thid, NULL, thProf, &thopts [i]) != 0)
+      if (pthread_create (&thIds [i], NULL, thProf, &thopts [i]) != 0)
       {
          std::cerr << "Failed to create profiler thread" << std::endl;
+         return EXIT_FAILURE;
       }
    }
 
+   // cleanup stuff when exiting
+   signal (SIGINT, sigHandler);
+   atexit (exitCleanup);
+
    // the main process is the main profiler
-   thopts [0].cnfo = cnfo;
-   thopts [0].dec = dec;
-   thopts [0].freq = freq;
-   thopts [0].prof = prof;
    thopts [0].cpu = 0;
    thopts [0].main = true;
 
@@ -108,8 +115,18 @@ static void * thProf (void * arg)
    unsigned long long int counters [3];    // sq_full_cycles, unhalted_core_cycles, l2_misses
    int nfreq;
 
+   // only the main thread receives signals
+   if (!opt->main)
+   {
+      sigset_t set;
+
+      sigemptyset (&set);
+      sigaddset (&set, SIGINT);
+      pthread_sigmask (SIG_BLOCK, &set, NULL);
+   }
+
    // reset counters
-   opt->prof->read (opt->cpu, counters);
+   prof->read (opt->cpu, counters);
 
    // do it as long as we are not getting killed by a signal
    while (true)
@@ -118,8 +135,8 @@ static void * thProf (void * arg)
       usleep (sleepWin);
 
       // adapt to what's happening
-      opt->prof->read (opt->cpu, counters);
-      nfreq = opt->dec->giveReport (opt->cpu, counters);
+      prof->read (opt->cpu, counters);
+      nfreq = dec->giveReport (opt->cpu, counters);
 
       // frequency change requested
       if (nfreq != -1)
@@ -128,7 +145,7 @@ static void * thProf (void * arg)
          sleepWin = INIT_SLEEP_WIN;
 
          // change frequency
-         opt->freq->changeFreq (opt->cpu, nfreq);
+         freq->changeFreq (opt->cpu, nfreq);
       }
       else  // no frequency modification requested
       {
@@ -140,5 +157,38 @@ static void * thProf (void * arg)
 
    // pacify compiler but we never get out of while loop
    return NULL;
+}
+
+static void sigHandler (int nsig)
+{
+   // Ctrl + C
+   if (nsig == SIGINT)
+   {
+      exit (EXIT_FAILURE);
+   }
+}
+
+static void exitCleanup ()
+{
+   unsigned int i;
+   unsigned int numCores = sysconf (_SC_NPROCESSORS_ONLN);
+
+   std::cout << "atexit" << std::endl;
+
+   // cancel all threads (0 = main process, not a thread)
+   for (i = 1; i < numCores; i++)
+   {
+      pthread_cancel (thIds [i]);
+      pthread_join (thIds [i], NULL);
+   }
+
+   // free all memory
+   delete prof;
+   delete freq;
+   delete dec;
+   delete cnfo;
+
+   delete [] thopts;
+   delete [] thIds;
 }
 

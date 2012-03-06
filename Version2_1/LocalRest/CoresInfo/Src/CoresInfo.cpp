@@ -51,6 +51,7 @@ CoresInfo::~CoresInfo (void)
    }
 
    delete [] this->allCoreData;
+   delete [] this->availableFreqs;
 }
 
 void CoresInfo::initCpuData ()
