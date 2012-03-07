@@ -30,4 +30,6 @@
 /** @brief Maximal sleep window (usec) */
 #define LONGEST_SLEEP_WIN 153600
 
+const static char NAMEPIPE[] = "debug";
+
 #endif

@@ -24,6 +24,7 @@
 #ifndef H_FREQCHANGER
 #define H_FREQCHANGER
 
+#include <pthread.h>
 #include "CoresInfo.h"
 
 /**
@@ -57,8 +58,16 @@ class FreqChanger
        */
       void changeFreq (unsigned int coreId, int freqId);
 
+      /**
+       * @brief Return all infos on cores and frequencies changing
+       * @return the string containing infos
+       */
+      std::string debug();
+
    private:
       //Variables
       CoresInfo * coresInfo; /**<@brief Save the point of the CoresInfos structure, see the class**/
+      pthread_mutex_t * mutex; /** @brief Mutex to lock access to data contained in  CoresInfo**/
+
 };
 #endif

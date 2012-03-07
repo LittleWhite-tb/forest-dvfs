@@ -27,6 +27,9 @@
 #include <unistd.h>
 #include <iostream>
 #include <signal.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
 
 #include "LocalRest.h"
 #include "CoresInfo.h"
@@ -49,6 +52,7 @@ typedef struct
 static void * thProf (void * opts);
 static void exitCleanup ();
 static void sigHandler (int nsig);
+static void pipeDebug();
 
 
 // variables shared among the threads
@@ -58,6 +62,7 @@ static DecisionMaker * dec;
 static FreqChanger * freq;
 static Profiler * prof;
 static thOptions * thopts;
+static int pipeFD = -1;
 
 /**
  * @brief Rest entry point.
@@ -97,6 +102,16 @@ int main (int argc, char ** argv)
    // cleanup stuff when exiting
    signal (SIGINT, sigHandler);
    atexit (exitCleanup);
+
+   // handle debug request
+	if(mkfifo(NAMEPIPE, 0644) == 0)
+	{
+			std::cerr << "Error when creating debug pipe\n";
+			exit(EXIT_FAILURE);
+	}
+
+   signal (SIGUSR1, sigHandler);
+
 
    // the main process is the main profiler
    thopts [0].cpu = 0;
@@ -166,14 +181,31 @@ static void sigHandler (int nsig)
    {
       exit (EXIT_FAILURE);
    }
+   else
+	   // SIGUSER1
+	   if (nsig == SIGUSR1)
+		{
+			pipeDebug();
+		}
 }
+
+static void pipeDebug()
+{
+	std::string stats = freq->debug().c_str();
+	size_t size = stats.size();
+
+	if(pipeFD == -1)
+		pipeFD = open(NAMEPIPE, O_WRONLY);
+
+	if(write (pipeFD, stats.c_str(), size) == -1)
+		std::cerr << "Debug Failed" << std::endl;
+}
+
 
 static void exitCleanup ()
 {
    unsigned int i;
    unsigned int numCores = sysconf (_SC_NPROCESSORS_ONLN);
-
-   std::cout << "atexit" << std::endl;
 
    // cancel all threads (0 = main process, not a thread)
    for (i = 1; i < numCores; i++)
@@ -181,6 +213,9 @@ static void exitCleanup ()
       pthread_cancel (thIds [i]);
       pthread_join (thIds [i], NULL);
    }
+
+	close(pipeFD);
+   unlink(NAMEPIPE);
 
    // free all memory
    delete prof;
