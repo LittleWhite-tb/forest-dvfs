@@ -67,7 +67,7 @@ class FreqChanger
    private:
       //Variables
       CoresInfo * coresInfo; /**<@brief Save the point of the CoresInfos structure, see the class**/
-      pthread_mutex_t * mutex; /** @brief Mutex to lock access to data contained in  CoresInfo**/
+      pthread_mutex_t mutex; /** @brief Mutex to lock access to data contained in  CoresInfo**/
 
 };
 #endif
