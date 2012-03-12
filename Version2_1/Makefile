@@ -28,6 +28,7 @@ $(LIBPFM_BIN):
 
 clean:
 	@rm -rf obj localRest
+	@$(MAKE) -C libpfm-$(LIBPFM_VER) clean
 
 install: localRest
 	@cp localRest /usr/bin
