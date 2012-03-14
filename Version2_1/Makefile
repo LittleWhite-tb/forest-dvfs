@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-O3 -g -Wall -Wextra 
+CXXFLAGS=-O3 -g -Wall -Wextra -DARCH_SNB
 LD=$(CXX)
 LD_FLAGS=
 LIBS=-lpthread -lm
