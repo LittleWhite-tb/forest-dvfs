@@ -49,11 +49,11 @@ class AdaptiveDecisions : public DecisionMaker
        * @brief Decides what to do for the given processor core.
        * @param core the core ID
        * @param HWCounters integer array the three hardware counters given by the profiler
-       * @return A decision object where a new core frequency and sleeping 
+       * @return A decision object where a new core frequency and sleeping
        * window is given.
        */
-      Decision takeDecision  (unsigned int core, 
-                              const unsigned long long *HWCounters) const;
+      Decision takeDecision (unsigned int core,
+                             const unsigned long long * HWCounters) const;
 
    private:
 
@@ -65,7 +65,7 @@ class AdaptiveDecisions : public DecisionMaker
        * 0 <= boudness < 0.7 and the second one when 0.7 <= boundness < 1.0
        * for core 0
        */
-      float **decTable;
+      float ** decTable;
 
       /**
        * @brief Number of frequencies in the table.

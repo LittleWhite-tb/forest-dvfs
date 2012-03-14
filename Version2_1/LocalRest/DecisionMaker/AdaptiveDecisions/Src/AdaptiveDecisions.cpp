@@ -41,20 +41,20 @@ AdaptiveDecisions::AdaptiveDecisions (CoresInfo * coresInfo) :
    this->decTable = new float * [this->coresInfo->numCores];
    for (unsigned int i = 0; i < this->coresInfo->numCores; i++)
    {
-      this->decTable[i] = new float [this->nbFreqs];
+      this->decTable [i] = new float [this->nbFreqs];
       for (unsigned int j = 0; j < this->nbFreqs; j++)
       {
-         this->decTable[i][j] = j * boundStep;
+         this->decTable [i][j] = j * boundStep;
       }
    }
 
    // initialize internal structures
-   this->formerPerfIdx = new float[coresInfo->numCores];
-   this->formerBoundness = new float[coresInfo->numCores];
+   this->formerPerfIdx = new float [coresInfo->numCores];
+   this->formerBoundness = new float [coresInfo->numCores];
    for (unsigned int i = 0; i < coresInfo->numCores; i++)
    {
-      this->formerPerfIdx[i] = -1;  // < 0 to ignore this initialization value later
-      this->formerBoundness[i] = -1;
+      this->formerPerfIdx [i] = -1;  // < 0 to ignore this initialization value later
+      this->formerBoundness [i] = -1;
    }
 }
 
@@ -62,35 +62,35 @@ AdaptiveDecisions::~AdaptiveDecisions (void)
 {
    for (unsigned int i = 0; i < this->coresInfo->numCores; i++)
    {
-      delete[] this->decTable[i];
+      delete [] this->decTable [i];
    }
 
-   delete[] this->decTable;
-   
-   delete[] this->formerPerfIdx;
-   delete[] this->formerBoundness;
+   delete [] this->decTable;
+
+   delete [] this->formerPerfIdx;
+   delete [] this->formerBoundness;
 }
 
 Decision AdaptiveDecisions::takeDecision (unsigned int core,
-   const unsigned long long *HWCounters) const
+      const unsigned long long * HWCounters) const
 {
    Decision res;
 
    res.freqId = this->nbFreqs - 1;
    res.sleepWin = INIT_SLEEP_WIN;
 
-   float sqFull = HWCounters[0];
-   float cycles = HWCounters[1];
-   float L2Misses = HWCounters[2];
-   float retiredIns = HWCounters[3];
+   float sqFull = HWCounters [0];
+   float cycles = HWCounters [1];
+   float L2Misses = HWCounters [2];
+   float retiredIns = HWCounters [3];
 
-   float oldPerfIdx = this->formerPerfIdx[core];
-   float oldBoundness = this->formerBoundness[core];
-   unsigned int oldFreqId = this->decisions[core].freqId;
-   unsigned int oldSleepWin = this->decisions[core].sleepWin;
+   float oldPerfIdx = this->formerPerfIdx [core];
+   float oldBoundness = this->formerBoundness [core];
+   unsigned int oldFreqId = this->decisions [core].freqId;
+   unsigned int oldSleepWin = this->decisions [core].sleepWin;
 
    // compute boundness
-   float boundness = this->computeBoundness(sqFull, cycles, L2Misses);
+   float boundness = this->computeBoundness (sqFull, cycles, L2Misses);
 
    // retired ins / sec
    float perfIdx = retiredIns / oldSleepWin * 1000000 / oldSleepWin;
@@ -103,18 +103,18 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
       // >10% of performance degradation -> next time, be a bit more gentle
       if (perfEvo <= -0.1 && oldFreqId < this->nbFreqs - 1)
       {
-         this->decTable[core][oldFreqId + 1] = oldBoundness;
+         this->decTable [core][oldFreqId + 1] = oldBoundness;
 
          // ensure consistency over the table
          for (int i = oldFreqId; i >= 0; i--)
          {
-            if (this->decTable[core][i] >= this->decTable[core][i + 1])
+            if (this->decTable [core][i] >= this->decTable [core][i + 1])
             {
-               this->decTable[core][i] = this->decTable[core][i + 1] - 0.001;
+               this->decTable [core][i] = this->decTable [core][i + 1] - 0.001;
 
-               if (this->decTable[core][i] < 0)
+               if (this->decTable [core][i] < 0)
                {
-                  this->decTable[core][i] = 0;
+                  this->decTable [core][i] = 0;
                }
             }
          }
@@ -124,20 +124,20 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
          // <2% of perf degradation -> be more aggressive next time
          if (perfEvo >= -0.02 && oldFreqId > 0)
          {
-            this->decTable[core][oldFreqId] = oldBoundness + 0.001;
+            this->decTable [core][oldFreqId] = oldBoundness + 0.001;
 
             // ensure consistency of the table
             for (unsigned int i = oldFreqId + 1;
-                 i < this->coresInfo->numCores;
-                 i++)
+                  i < this->coresInfo->numCores;
+                  i++)
             {
-               if (this->decTable[core][i] <= this->decTable[core][i - 1])
+               if (this->decTable [core][i] <= this->decTable [core][i - 1])
                {
-                  this->decTable[core][i] = this->decTable[core][i - 1] + 0.001;
+                  this->decTable [core][i] = this->decTable [core][i - 1] + 0.001;
 
-                  if (this->decTable[core][i] > 1)
+                  if (this->decTable [core][i] > 1)
                   {
-                     this->decTable[core][i] = 1;
+                     this->decTable [core][i] = 1;
                   }
                }
             }
@@ -148,7 +148,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    // chose a frequency and a sleep window
    for (int i = this->nbFreqs - 1; i >= 0; i--)
    {
-      if (boundness >= this->decTable[core][i])
+      if (boundness >= this->decTable [core][i])
       {
          res.freqId = i;
          break;
@@ -169,9 +169,9 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    }
 
    // remember some stuff to take better decisions afterwards
-   this->formerBoundness[core] = boundness;
-   this->formerPerfIdx[core] = perfIdx;
-   this->decisions[core] = res;
+   this->formerBoundness [core] = boundness;
+   this->formerPerfIdx [core] = perfIdx;
+   this->decisions [core] = res;
 
    return res;
 }
