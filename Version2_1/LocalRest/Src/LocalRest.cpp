@@ -54,7 +54,7 @@ typedef struct
 static void * thProf (void * opts);
 static void exitCleanup ();
 static void sigHandler (int nsig);
-static void pipeDebug();
+static void pipeDebug ();
 
 
 // variables shared among the threads
@@ -106,11 +106,11 @@ int main (int argc, char ** argv)
    atexit (exitCleanup);
 
    // handle debug request
-	if(mkfifo(NAMEPIPE, 0644) != 0)
-	{
-			std::cerr << "Error when creating debug pipe: " << strerror(errno) << std::endl;
-			return EXIT_FAILURE;
-	}
+   if (mkfifo (NAMEPIPE, 0644) != 0)
+   {
+      std::cerr << "Error when creating debug pipe: " << strerror (errno) << std::endl;
+      return EXIT_FAILURE;
+   }
 
    signal (SIGUSR1, sigHandler);
 
@@ -184,23 +184,27 @@ static void sigHandler (int nsig)
       exit (EXIT_FAILURE);
    }
    else
-	   // SIGUSER1
-	   if (nsig == SIGUSR1)
-		{
-			pipeDebug();
-		}
+      // SIGUSER1
+      if (nsig == SIGUSR1)
+      {
+         pipeDebug ();
+      }
 }
 
-static void pipeDebug()
+static void pipeDebug ()
 {
-	std::string stats = freq->debug().c_str();
-	size_t size = stats.size();
+   std::string stats = freq->debug ().c_str ();
+   size_t size = stats.size ();
 
-	if(pipeFD == -1)
-		pipeFD = open(NAMEPIPE, O_WRONLY);
+   if (pipeFD == -1)
+   {
+      pipeFD = open (NAMEPIPE, O_WRONLY);
+   }
 
-	if(write (pipeFD, stats.c_str(), size) == -1)
-		std::cerr << "Debug Failed" << std::endl;
+   if (write (pipeFD, stats.c_str (), size) == -1)
+   {
+      std::cerr << "Debug Failed" << std::endl;
+   }
 }
 
 
@@ -216,8 +220,8 @@ static void exitCleanup ()
       pthread_join (thIds [i], NULL);
    }
 
-	close(pipeFD);
-   unlink(NAMEPIPE);
+   close (pipeFD);
+   unlink (NAMEPIPE);
 
    // free all memory
    delete prof;
