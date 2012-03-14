@@ -28,11 +28,12 @@
 DecisionMaker::DecisionMaker (CoresInfo * coresInfo)
 {
    this->coresInfo = coresInfo;
+   this->decisions = new Decision [coresInfo->numCores];
 }
 
 DecisionMaker::~DecisionMaker (void)
 {
-
+   delete [] this->decisions;
 }
 
 float DecisionMaker::computeBoundness (unsigned long long sqFullStall,

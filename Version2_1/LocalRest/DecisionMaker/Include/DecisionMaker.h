@@ -26,6 +26,21 @@
 
 #include "CoresInfo.h"
 
+/** @brief Initial sleep window (in usec) */
+#define INIT_SLEEP_WIN 600
+
+/** @brief Maximal sleep window (usec) */
+#define LONGEST_SLEEP_WIN 153600
+
+/**
+ * @brief Decision taken by the decision maker.
+ */
+typedef struct
+{
+   unsigned int freqId;    // new frequency to use
+   unsigned int sleepWin;  // new sleep window to use (usec)
+} Decision;
+
 /**
  * @class DecisionMaker
  * @brief This object take rights decision were ever it is pinned (on a CPU, on a server etc...)
@@ -46,13 +61,14 @@ class DecisionMaker
       virtual ~DecisionMaker (void);
 
       /**
-       * @brief Gives a core number and the new frequency to set
+       * @brief Decides what to do for the given processor core.
        * @param core the core ID
        * @param HWCounters integer array the three hardware counters given by the profiler
-       * @return the frequency to move to
+       * @return A decision object where a new core frequency and sleeping
+       * window is given.
        */
-      virtual int giveReport (unsigned int core,
-                              const unsigned long long HWCounters [3]) const = 0;
+      virtual Decision takeDecision (unsigned int core,
+                                     const unsigned long long * HWCounters) const = 0;
 
       /**
        * @brief compute the boundness of a program at a certain time, values shall
@@ -71,7 +87,10 @@ class DecisionMaker
 
    protected:
 
-      //Variables
+      // CPUs related information
       CoresInfo * coresInfo;
+
+      // previously taken decisions
+      Decision * decisions;
 };
 #endif

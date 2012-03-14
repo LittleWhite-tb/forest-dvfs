@@ -55,7 +55,7 @@ FreqChanger::FreqChanger (CoresInfo * coresInfo)
    }
 
    //Initializing mutex
-   pthread_mutex_init(&this->mutex, NULL);
+   pthread_mutex_init (&this->mutex, NULL);
 }
 
 FreqChanger::~FreqChanger (void)
@@ -93,26 +93,26 @@ unsigned int FreqChanger::readCurrentFreq (unsigned int coreId)
    return curFreq;
 }
 
-void FreqChanger::changeFreq (unsigned int coreId, int freqId)
+void FreqChanger::changeFreq (unsigned int coreId, unsigned int freqId)
 {
    std::ostringstream oss;
 
    assert (coreId < this->coresInfo->numCores);
-   assert (freqId >= 0 && (unsigned int) freqId < this->coresInfo->numFreqs);
+   assert (freqId < this->coresInfo->numFreqs);
 
    CoreData * cd = &this->coresInfo->allCoreData [coreId];
-   if (cd->requestedFreq == (unsigned int) freqId)
+   if (cd->requestedFreq == freqId)
    {
       return;
    }
 
    //locking access to coresInfos
-   pthread_mutex_lock(&this->mutex);
+   pthread_mutex_lock (&this->mutex);
 
    cd->freqTrack [freqId]++;
 
    //unlocking access to coresInfos
-   pthread_mutex_unlock(&this->mutex);
+   pthread_mutex_unlock (&this->mutex);
 
    cd->freqFd->seekp (0, std::ios::beg);
    oss << this->coresInfo->availableFreqs [freqId];
@@ -122,28 +122,28 @@ void FreqChanger::changeFreq (unsigned int coreId, int freqId)
    cd->requestedFreq = freqId;
 }
 
-std::string FreqChanger::debug()
+std::string FreqChanger::debug ()
 {
-	std::stringstream stats;
+   std::stringstream stats;
 
-	stats << "Core \tFrequency \tChanges" << std::endl;
+   stats << "Core \tFrequency \tChanges" << std::endl;
 
-	//locking access to coresInfos
-	pthread_mutex_lock(&this->mutex);
+   //locking access to coresInfos
+   pthread_mutex_lock (&this->mutex);
 
-	for (unsigned int i = 0; i < coresInfo->numCores; i++)
-	{
-	   CoreData coreData = coresInfo->allCoreData[i];
+   for (unsigned int i = 0; i < coresInfo->numCores; i++)
+   {
+      CoreData coreData = coresInfo->allCoreData [i];
 
-	   for ( unsigned int j = 0; j < coresInfo->numFreqs; ++j)
-	   {
-		   stats << i << " \t" << j << " \t" << coreData.freqTrack[j] << std::endl;
-	   }
-	}
+      for (unsigned int j = 0; j < coresInfo->numFreqs; ++j)
+      {
+         stats << i << " \t" << j << " \t" << coreData.freqTrack [j] << std::endl;
+      }
+   }
 
    //unlocking access to coresInfos
-   pthread_mutex_unlock(&this->mutex);
+   pthread_mutex_unlock (&this->mutex);
 
-   return stats.str();
+   return stats.str ();
 }
 

@@ -56,13 +56,13 @@ class FreqChanger
        * @param coreId the id number of the core
        * @param freqId the freq to set the core
        */
-      void changeFreq (unsigned int coreId, int freqId);
+      void changeFreq (unsigned int coreId, unsigned int freqId);
 
       /**
        * @brief Return all infos on cores and frequencies changing
        * @return the string containing infos
        */
-      std::string debug();
+      std::string debug ();
 
    private:
       //Variables

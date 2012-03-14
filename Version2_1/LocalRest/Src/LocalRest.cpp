@@ -33,9 +33,7 @@
 
 #include "LocalRest.h"
 #include "CoresInfo.h"
-#include "DecisionMaker.h"
-#include "NaiveDecisions.h"
-#include "Profiler.h"
+#include "AdaptiveDecisions.h"
 #include "pfmProfiler.h"
 #include "FreqChanger.h"
 
@@ -52,7 +50,7 @@ typedef struct
 static void * thProf (void * opts);
 static void exitCleanup ();
 static void sigHandler (int nsig);
-static void pipeDebug();
+static void pipeDebug ();
 
 
 // variables shared among the threads
@@ -75,7 +73,7 @@ int main (int argc, char ** argv)
 
    // initialize helpers
    cnfo = new CoresInfo ();
-   dec = new NaiveDecisions (cnfo);
+   dec = new AdaptiveDecisions (cnfo);
    freq = new FreqChanger (cnfo);
    prof = new PfmProfiler ();
 
@@ -104,11 +102,11 @@ int main (int argc, char ** argv)
    atexit (exitCleanup);
 
    // handle debug request
-	if(mkfifo(NAMEPIPE, 0644) == 0)
-	{
-			std::cerr << "Error when creating debug pipe\n";
-			exit(EXIT_FAILURE);
-	}
+   if (mkfifo (NAMEPIPE, 0644) == 0)
+   {
+      std::cerr << "Error when creating debug pipe\n";
+      exit (EXIT_FAILURE);
+   }
 
    signal (SIGUSR1, sigHandler);
 
@@ -128,7 +126,6 @@ static void * thProf (void * arg)
    thOptions * opt = (thOptions *) arg;
    unsigned int sleepWin = INIT_SLEEP_WIN;
    unsigned long long int counters [3];    // sq_full_cycles, unhalted_core_cycles, l2_misses
-   int nfreq;
 
    // only the main thread receives signals
    if (!opt->main)
@@ -146,28 +143,17 @@ static void * thProf (void * arg)
    // do it as long as we are not getting killed by a signal
    while (true)
    {
+      Decision resDec;
+
       // wait for a while
       usleep (sleepWin);
 
       // adapt to what's happening
       prof->read (opt->cpu, counters);
-      nfreq = dec->giveReport (opt->cpu, counters);
+      resDec = dec->takeDecision (opt->cpu, counters);
 
-      // frequency change requested
-      if (nfreq != -1)
-      {
-         // reset sleep window size
-         sleepWin = INIT_SLEEP_WIN;
-
-         // change frequency
-         freq->changeFreq (opt->cpu, nfreq);
-      }
-      else  // no frequency modification requested
-      {
-         // increase sleep window size
-         sleepWin *= 2;
-         sleepWin = sleepWin > LONGEST_SLEEP_WIN ? LONGEST_SLEEP_WIN : sleepWin;
-      }
+      freq->changeFreq (opt->cpu, resDec.freqId);
+      sleepWin = resDec.sleepWin;
    }
 
    // pacify compiler but we never get out of while loop
@@ -182,23 +168,27 @@ static void sigHandler (int nsig)
       exit (EXIT_FAILURE);
    }
    else
-	   // SIGUSER1
-	   if (nsig == SIGUSR1)
-		{
-			pipeDebug();
-		}
+      // SIGUSER1
+      if (nsig == SIGUSR1)
+      {
+         pipeDebug ();
+      }
 }
 
-static void pipeDebug()
+static void pipeDebug ()
 {
-	std::string stats = freq->debug().c_str();
-	size_t size = stats.size();
+   std::string stats = freq->debug ().c_str ();
+   size_t size = stats.size ();
 
-	if(pipeFD == -1)
-		pipeFD = open(NAMEPIPE, O_WRONLY);
+   if (pipeFD == -1)
+   {
+      pipeFD = open (NAMEPIPE, O_WRONLY);
+   }
 
-	if(write (pipeFD, stats.c_str(), size) == -1)
-		std::cerr << "Debug Failed" << std::endl;
+   if (write (pipeFD, stats.c_str (), size) == -1)
+   {
+      std::cerr << "Debug Failed" << std::endl;
+   }
 }
 
 
@@ -214,8 +204,8 @@ static void exitCleanup ()
       pthread_join (thIds [i], NULL);
    }
 
-	close(pipeFD);
-   unlink(NAMEPIPE);
+   close (pipeFD);
+   unlink (NAMEPIPE);
 
    // free all memory
    delete prof;
