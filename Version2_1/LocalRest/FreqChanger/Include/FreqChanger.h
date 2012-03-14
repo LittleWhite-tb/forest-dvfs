@@ -62,7 +62,7 @@ class FreqChanger
        * @brief Return all infos on cores and frequencies changing
        * @return the string containing infos
        */
-      std::string debug();
+      std::string debug ();
 
    private:
       //Variables

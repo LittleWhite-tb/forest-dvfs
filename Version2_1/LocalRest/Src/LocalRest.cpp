@@ -29,6 +29,8 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <cstring>
 
 
 #include "LocalRest.h"
@@ -104,10 +106,10 @@ int main (int argc, char ** argv)
    atexit (exitCleanup);
 
    // handle debug request
-	if(mkfifo(NAMEPIPE, 0644) == 0)
+	if(mkfifo(NAMEPIPE, 0644) != 0)
 	{
-			std::cerr << "Error when creating debug pipe\n";
-			exit(EXIT_FAILURE);
+			std::cerr << "Error when creating debug pipe: " << strerror(errno) << std::endl;
+			return EXIT_FAILURE;
 	}
 
    signal (SIGUSR1, sigHandler);
