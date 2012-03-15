@@ -51,11 +51,16 @@ AdaptiveDecisions::AdaptiveDecisions (CoresInfo * coresInfo) :
    }
 
    // initialize internal structures
+   this->maxBoundness = new float [coresInfo->numCores];
    this->formerPerfIdx = new float [coresInfo->numCores];
    this->formerBoundness = new float [coresInfo->numCores];
    for (unsigned int i = 0; i < coresInfo->numCores; i++)
    {
-      this->formerPerfIdx [i] = -1;  // < 0 to ignore this initialization value later
+      // default maximal value for boundness
+      this->maxBoundness [i] = 0.0f;
+
+      // < 0 to ignore this initialization value later
+      this->formerPerfIdx [i] = -1;
       this->formerBoundness [i] = -1;
    }
 }
@@ -69,12 +74,13 @@ AdaptiveDecisions::~AdaptiveDecisions (void)
 
    delete [] this->decTable;
 
+   delete [] this->maxBoundness;
    delete [] this->formerPerfIdx;
    delete [] this->formerBoundness;
 }
 
 Decision AdaptiveDecisions::takeDecision (unsigned int core,
-      const unsigned long long * HWCounters) const
+      const unsigned long long * HWCounters)
 {
    Decision res;
 
@@ -90,21 +96,44 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    float oldBoundness = this->formerBoundness [core];
    unsigned int oldFreqId = this->decisions [core].freqId;
    unsigned int oldSleepWin = this->decisions [core].sleepWin;
+   float locMaxBoundness = this->maxBoundness [core];
 
-   // compute boundness (our boundness is the invert of the actual boundness:
-   // 1 = CPU bound, 0 = memory bound
-   float boundness = 1 - this->computeBoundness (sqFull, cycles, L2Misses);
+   // compute boundness and put it into our internal form:
+   // between 0 and 1, where 1 = CPU bound, 0 = mem bound
+   float boundness = this->computeBoundness (sqFull, cycles, L2Misses);
+   
+   if (locMaxBoundness < boundness)
+   {
+      locMaxBoundness = boundness;
+      this->maxBoundness [core] = boundness;
+   }
+
+   boundness = 1 - (boundness / locMaxBoundness);
+
+   if (core == 0)
+      std::cout << "boundness " << boundness << " maxBoundness " << locMaxBoundness << std::endl;
+
 
    // retired ins / sec
-   float perfIdx = retiredIns / oldSleepWin * 1000000 / oldSleepWin;
+   float perfIdx = retiredIns / cycles;
+
+   // handle this special case
+   if (cycles == 0)
+   {
+      perfIdx = oldPerfIdx;
+      boundness = oldBoundness;
+   }
+
    float perfEvo = (perfIdx - oldPerfIdx) / oldPerfIdx;
 
+#if FALSE
    // update the decision table by evaluating the relevance of the last decision
    if (oldPerfIdx >= 0)
    {
 
       // >10% of performance degradation -> next time, be a bit more gentle
-      if (perfEvo <= -0.1 && oldFreqId < this->nbFreqs - 1)
+      if (perfEvo <= -0.10 && oldFreqId < this->nbFreqs - 1
+          && oldBoundness < this->decTable [core][oldFreqId + 1])
       {
          this->decTable [core][oldFreqId + 1] = oldBoundness;
 
@@ -128,7 +157,8 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
       else
       {
          // <2% of perf degradation -> be more aggressive next time
-         if (perfEvo >= -0.02 && oldFreqId > 0)
+         if (perfEvo >= -0.02 && oldFreqId > 0
+             && oldBoundness + 0.001 > this->decTable [core][oldFreqId])
          {
             this->decTable [core][oldFreqId] = oldBoundness + 0.001;
 
@@ -155,6 +185,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
          }
       }
    }
+#endif
 
    // chose a frequency and a sleep window
    for (int i = this->nbFreqs - 1; i >= 0; i--)
@@ -167,7 +198,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    }
 
    // only increase frequency when big hops are required for stability reasons
-   if ((int) res.freqId - (int) oldFreqId == 1)
+   if ((int) res.freqId - (int) oldFreqId == 1 && oldFreqId > 0)
    {
       res.freqId = oldFreqId;
    }
@@ -183,7 +214,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    }
    else
    {
-      res.sleepWin *= 2;
+      res.sleepWin = 2 * oldSleepWin;
       if (res.sleepWin > LONGEST_SLEEP_WIN)
       {
          res.sleepWin = LONGEST_SLEEP_WIN;

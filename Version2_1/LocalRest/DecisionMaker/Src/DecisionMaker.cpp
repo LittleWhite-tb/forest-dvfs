@@ -29,6 +29,12 @@ DecisionMaker::DecisionMaker (CoresInfo * coresInfo)
 {
    this->coresInfo = coresInfo;
    this->decisions = new Decision [coresInfo->numCores];
+
+   for (unsigned int i = 0; i < coresInfo->numCores; i++)
+   {
+      this->decisions[i].sleepWin = INIT_SLEEP_WIN;
+      this->decisions[i].freqId = 0;
+   }
 }
 
 DecisionMaker::~DecisionMaker (void)
@@ -46,8 +52,7 @@ float DecisionMaker::computeBoundness (unsigned long long sqFullStall,
       return 0.5;
    }
 
-   res = (4. * 16 * sqFullStall * l2Miss) / (unhaltedCore * unhaltedCore);
-   res = res > 1 ? 1 : res;
+   res = (sqFullStall * l2Miss * 1.0) / (unhaltedCore * unhaltedCore);
 
    return res;
 }

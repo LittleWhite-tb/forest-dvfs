@@ -53,7 +53,7 @@ class AdaptiveDecisions : public DecisionMaker
        * window is given.
        */
       Decision takeDecision (unsigned int core,
-                             const unsigned long long * HWCounters) const;
+                             const unsigned long long * HWCounters);
 
    private:
 
@@ -74,7 +74,7 @@ class AdaptiveDecisions : public DecisionMaker
 
       /**
        * @brief The last performance index per core (instructions retired per
-       * second).
+       * cycle).
        */
       float * formerPerfIdx;
 
@@ -82,6 +82,11 @@ class AdaptiveDecisions : public DecisionMaker
        * @brief The last boundness computed for each core.
        */
       float * formerBoundness;
+
+      /**
+       * Maximal boundness we have seen so far. Per core.
+       */
+      float * maxBoundness;
 
 };
 

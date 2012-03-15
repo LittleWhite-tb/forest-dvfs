@@ -127,7 +127,7 @@ static void * thProf (void * arg)
 {
    thOptions * opt = (thOptions *) arg;
    unsigned int sleepWin = INIT_SLEEP_WIN;
-   unsigned long long int counters [3];    // sq_full_cycles, unhalted_core_cycles, l2_misses
+   unsigned long long int counters [4];    // sq_full_cycles, unhalted_core_cycles, l2_misses
 
    // only the main thread receives signals
    if (!opt->main)
@@ -156,6 +156,11 @@ static void * thProf (void * arg)
 
       freq->changeFreq (opt->cpu, resDec.freqId);
       sleepWin = resDec.sleepWin;
+
+      if (opt->cpu == 0)
+      {
+         std::cout << "--- SLEEP " << sleepWin << std::endl;
+      }
    }
 
    // pacify compiler but we never get out of while loop

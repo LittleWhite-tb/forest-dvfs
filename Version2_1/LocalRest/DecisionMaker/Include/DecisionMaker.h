@@ -27,10 +27,10 @@
 #include "CoresInfo.h"
 
 /** @brief Initial sleep window (in usec) */
-#define INIT_SLEEP_WIN 600
+#define INIT_SLEEP_WIN 100
 
 /** @brief Maximal sleep window (usec) */
-#define LONGEST_SLEEP_WIN 153600
+#define LONGEST_SLEEP_WIN 200000
 
 /**
  * @brief Decision taken by the decision maker.
@@ -68,12 +68,12 @@ class DecisionMaker
        * window is given.
        */
       virtual Decision takeDecision (unsigned int core,
-                                     const unsigned long long * HWCounters) const = 0;
+                                     const unsigned long long * HWCounters) = 0;
 
       /**
        * @brief compute the boundness of a program at a certain time, values shall
        * be given by the profiler. Boundness of 0 means totally CPU bound,
-       * 1 = memory bound.
+       * > 0 = memory bound. The result is > 0 (but not necessarily < 1)
        *
        * @param sqFullStall Counts cycles the Super Queue is full.
        * Neither of the threads on this core will be able to access the uncore
