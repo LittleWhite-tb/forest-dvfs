@@ -21,6 +21,8 @@
  @brief The AdaptiveDecisions class is in this file
  */
 
+#include <iostream>
+
 #include "AdaptiveDecisions.h"
 
 AdaptiveDecisions::AdaptiveDecisions (CoresInfo * coresInfo) :
@@ -89,8 +91,9 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    unsigned int oldFreqId = this->decisions [core].freqId;
    unsigned int oldSleepWin = this->decisions [core].sleepWin;
 
-   // compute boundness
-   float boundness = this->computeBoundness (sqFull, cycles, L2Misses);
+   // compute boundness (our boundness is the invert of the actual boundness:
+   // 1 = CPU bound, 0 = memory bound
+   float boundness = 1 - this->computeBoundness (sqFull, cycles, L2Misses);
 
    // retired ins / sec
    float perfIdx = retiredIns / oldSleepWin * 1000000 / oldSleepWin;
@@ -111,11 +114,14 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
             if (this->decTable [core][i] >= this->decTable [core][i + 1])
             {
                this->decTable [core][i] = this->decTable [core][i + 1] - 0.001;
+            }
+         }
 
-               if (this->decTable [core][i] < 0)
-               {
-                  this->decTable [core][i] = 0;
-               }
+         for (int i = oldFreqId; i >= 0; i--)
+         {
+            if (this->decTable [core][i] < 0)
+            {
+               this->decTable [core][i] = 0;
             }
          }
       }
@@ -128,17 +134,22 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
 
             // ensure consistency of the table
             for (unsigned int i = oldFreqId + 1;
-                  i < this->coresInfo->numCores;
+                  i < this->nbFreqs;
                   i++)
             {
                if (this->decTable [core][i] <= this->decTable [core][i - 1])
                {
                   this->decTable [core][i] = this->decTable [core][i - 1] + 0.001;
+               }
+            }
 
-                  if (this->decTable [core][i] > 1)
-                  {
-                     this->decTable [core][i] = 1;
-                  }
+            for (unsigned int i = oldFreqId;
+                 i < this->nbFreqs;
+                 i++)
+            {
+               if (this->decTable [core][i] > 1)
+               {
+                  this->decTable [core][i] = 1;
                }
             }
          }
@@ -155,8 +166,19 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
       }
    }
 
+   // only increase frequency when big hops are required for stability reasons
+   if ((int) res.freqId - (int) oldFreqId == 1)
+   {
+      res.freqId = oldFreqId;
+   }
+
    if (res.freqId != oldFreqId)
    {
+      if (core == 0)
+      {
+         std::cout << "*** Switching to freq " << res.freqId << std::endl;
+      }
+
       res.sleepWin = INIT_SLEEP_WIN;
    }
    else
@@ -166,6 +188,16 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
       {
          res.sleepWin = LONGEST_SLEEP_WIN;
       }
+   }
+
+   if (core == 0)
+   {
+      std::cout << "Bnd: " << boundness << " Freq: " << res.freqId << " PerfIdx: " << perfIdx << std::endl;
+      for (unsigned int i = 0; i < this->nbFreqs; i++)
+      {
+         std::cout << this->decTable[core][i] << " ";
+      }
+      std::cout << std::endl;
    }
 
    // remember some stuff to take better decisions afterwards

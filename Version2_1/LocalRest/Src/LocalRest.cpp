@@ -29,6 +29,8 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <string.h>
 
 
 #include "LocalRest.h"
@@ -102,9 +104,9 @@ int main (int argc, char ** argv)
    atexit (exitCleanup);
 
    // handle debug request
-   if (mkfifo (NAMEPIPE, 0644) == 0)
+   if (mkfifo (NAMEPIPE, 0644) != 0)
    {
-      std::cerr << "Error when creating debug pipe\n";
+      std::cerr << "Error when creating debug pipe: " << strerror(errno) << std::endl;
       exit (EXIT_FAILURE);
    }
 
