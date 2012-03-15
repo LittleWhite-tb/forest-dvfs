@@ -101,7 +101,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    // compute boundness and put it into our internal form:
    // between 0 and 1, where 1 = CPU bound, 0 = mem bound
    float boundness = this->computeBoundness (sqFull, cycles, L2Misses);
-   
+
    if (locMaxBoundness < boundness)
    {
       locMaxBoundness = boundness;
@@ -111,7 +111,9 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
    boundness = 1 - (boundness / locMaxBoundness);
 
    if (core == 0)
+   {
       std::cout << "boundness " << boundness << " maxBoundness " << locMaxBoundness << std::endl;
+   }
 
 
    // retired ins / sec
@@ -133,7 +135,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
 
       // >10% of performance degradation -> next time, be a bit more gentle
       if (perfEvo <= -0.10 && oldFreqId < this->nbFreqs - 1
-          && oldBoundness < this->decTable [core][oldFreqId + 1])
+            && oldBoundness < this->decTable [core][oldFreqId + 1])
       {
          this->decTable [core][oldFreqId + 1] = oldBoundness;
 
@@ -158,7 +160,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
       {
          // <2% of perf degradation -> be more aggressive next time
          if (perfEvo >= -0.02 && oldFreqId > 0
-             && oldBoundness + 0.001 > this->decTable [core][oldFreqId])
+               && oldBoundness + 0.001 > this->decTable [core][oldFreqId])
          {
             this->decTable [core][oldFreqId] = oldBoundness + 0.001;
 

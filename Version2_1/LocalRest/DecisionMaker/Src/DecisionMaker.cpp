@@ -32,8 +32,8 @@ DecisionMaker::DecisionMaker (CoresInfo * coresInfo)
 
    for (unsigned int i = 0; i < coresInfo->numCores; i++)
    {
-      this->decisions[i].sleepWin = INIT_SLEEP_WIN;
-      this->decisions[i].freqId = 0;
+      this->decisions [i].sleepWin = INIT_SLEEP_WIN;
+      this->decisions [i].freqId = 0;
    }
 }
 
