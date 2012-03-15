@@ -106,7 +106,7 @@ int main (int argc, char ** argv)
    // handle debug request
    if (mkfifo (NAMEPIPE, 0644) != 0)
    {
-      std::cerr << "Error when creating debug pipe: " << strerror(errno) << std::endl;
+      std::cerr << "Error when creating debug pipe: " << strerror (errno) << std::endl;
       exit (EXIT_FAILURE);
    }
 

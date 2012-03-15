@@ -144,8 +144,8 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
             }
 
             for (unsigned int i = oldFreqId;
-                 i < this->nbFreqs;
-                 i++)
+                  i < this->nbFreqs;
+                  i++)
             {
                if (this->decTable [core][i] > 1)
                {
@@ -195,7 +195,7 @@ Decision AdaptiveDecisions::takeDecision (unsigned int core,
       std::cout << "Bnd: " << boundness << " Freq: " << res.freqId << " PerfIdx: " << perfIdx << std::endl;
       for (unsigned int i = 0; i < this->nbFreqs; i++)
       {
-         std::cout << this->decTable[core][i] << " ";
+         std::cout << this->decTable [core][i] << " ";
       }
       std::cout << std::endl;
    }
