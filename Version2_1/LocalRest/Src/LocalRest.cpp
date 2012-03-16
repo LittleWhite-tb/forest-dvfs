@@ -184,11 +184,10 @@ static void sigHandler (int nsig)
    {
       exit (EXIT_FAILURE);
    }
-   else
-      if (nsig == SIGUSR1)
-      {
-         pipeDebug ();
-      }
+   else if (nsig == SIGUSR1)
+   {
+      pipeDebug ();
+   }
 }
 
 static void pipeDebug ()
