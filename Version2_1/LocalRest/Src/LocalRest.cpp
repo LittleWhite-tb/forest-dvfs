@@ -139,6 +139,7 @@ static void * thProf (void * arg)
 
       sigemptyset (&set);
       sigaddset (&set, SIGINT);
+      sigaddset (&set, SIGUSR1);
       pthread_sigmask (SIG_BLOCK, &set, NULL);
    }
 
@@ -184,7 +185,6 @@ static void sigHandler (int nsig)
       exit (EXIT_FAILURE);
    }
    else
-      // SIGUSER1
       if (nsig == SIGUSR1)
       {
          pipeDebug ();
@@ -220,7 +220,11 @@ static void exitCleanup ()
       pthread_join (thIds [i], NULL);
    }
 
-   close (pipeFD);
+   if (pipeFD != -1)
+   {
+      close (pipeFD);
+   }
+
    unlink (NAMEPIPE);
 
    // free all memory
