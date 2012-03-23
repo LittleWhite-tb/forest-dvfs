@@ -16,20 +16,30 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+
 /**
- @file DecisionMaker.cpp
- @brief The  DecisionMaker class is in this file
+ * @file Common.h
+ * Shared functions and properties.
  */
 
-#include "DecisionMaker.h"
+#ifndef H_COMMON
+#define H_COMMON
 
-DecisionMaker::DecisionMaker (DVFSUnit & unit)
+#include <stdint.h>
+
+/**
+ * Value of the watched hardware counters.
+ */
+typedef struct
 {
-   this->unit = unit;
-}
+   uint64_t l2miss;  // # of data L2 cache misses
+   uint64_t cycles;  // cycles elapsed, considering the current freq
+   uint64_t refCycles;  // cycles elapsed at a reference frequency
+} HWCounters;
 
-DecisionMaker::~DecisionMaker (void)
-{
+// a few utility functions which may be usefull at some point
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define abs(a) ((a) < 0 ? -(a) : (a))
 
-}
-
+#endif

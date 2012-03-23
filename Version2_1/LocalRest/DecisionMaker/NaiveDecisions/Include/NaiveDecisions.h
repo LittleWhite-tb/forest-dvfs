@@ -17,8 +17,8 @@
  */
 
 /**
- @file NaiveDecisions.h
- @brief The NaiveDecisions class header is in this file
+ * @file NaiveDecisions.h
+ * The NaiveDecisions class header is in this file
  */
 
 #ifndef H_NAIVEDECISIONS
@@ -28,23 +28,24 @@
 
 /**
  * @class NaiveDecisions
- * @brief This class is an algorithm made for saving energy depending on on formations given by the
- * profiler via the decision server. It just change the frequency depending on the program's behavior
- * in term of CPU boudness. It's the concrete implementation of the DecsionMaker
+ *
+ * Simple decision making algorithm which directly selects the frequency to use
+ * according to a memory boundness ratio deduced from the hardware counters.
  */
-class NaiveDecisions : public DecisionMaker
+class __attribute__ ((deprecated)) NaiveDecisions : public DecisionMaker
 {
    public:
       /**
        * @brief Constructor
        */
-      NaiveDecisions (CoresInfo * coresInfo);
+      NaiveDecisions (DVFSUnit & unit);
 
       /**
        * @brief Destructor
        */
-      ~NaiveDecisions (void);
+      ~NaiveDecisions ();
 
+#if FALSE
       /**
        * @brief Gives a core number and the new frequency to set
        * @param core the core ID
@@ -53,6 +54,8 @@ class NaiveDecisions : public DecisionMaker
        * @return the frequency to move to
        */
       int giveReport (unsigned int core, const unsigned long long HWCounters [3]) const;
+#endif
+
 };
 
 #endif

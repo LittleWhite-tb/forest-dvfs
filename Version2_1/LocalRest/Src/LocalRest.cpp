@@ -80,7 +80,7 @@ int main (int argc, char ** argv)
    prof = new PfmProfiler ();
 
    // # of processors
-   unsigned int numCores = sysconf (_SC_NPROCESSORS_ONLN);
+   unsigned int numCores = cnfo->numCores;
    thopts = new thOptions [numCores];
    thIds = new pthread_t [numCores];
 
@@ -127,7 +127,8 @@ static void * thProf (void * arg)
 {
    thOptions * opt = (thOptions *) arg;
    unsigned int sleepWin = INIT_SLEEP_WIN;
-   unsigned long long int counters [4];    // sq_full_cycles, unhalted_core_cycles, l2_misses
+   unsigned long long int counters [6];    // sq_full_cycles, unhalted_core_cycles, l2_misses
+   unsigned int curFreqId = (unsigned int) -1;
 
    // only the main thread receives signals
    if (!opt->main)
@@ -154,13 +155,12 @@ static void * thProf (void * arg)
       prof->read (opt->cpu, counters);
       resDec = dec->takeDecision (opt->cpu, counters);
 
+//      if (curFreqId != resDec.freqId) {
       freq->changeFreq (opt->cpu, resDec.freqId);
-      sleepWin = resDec.sleepWin;
+//         curFreqId = resDec.freqId;
+//      }
 
-      if (opt->cpu == 0)
-      {
-         std::cout << "--- SLEEP " << sleepWin << std::endl;
-      }
+      sleepWin = resDec.sleepWin;
    }
 
    // pacify compiler but we never get out of while loop

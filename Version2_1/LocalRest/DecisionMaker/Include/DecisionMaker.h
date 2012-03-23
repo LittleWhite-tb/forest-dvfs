@@ -17,23 +17,18 @@
  */
 
 /**
- @file DecisionMaker.h
- @brief The DecisionMaker class header is in this file
+ * @file DecisionMaker.h
+ * The DecisionMaker class header is in this file
  */
 
 #ifndef H_DECISIONMAKER
 #define H_DECISIONMAKER
 
-#include "CoresInfo.h"
-
-/** @brief Initial sleep window (in usec) */
-#define INIT_SLEEP_WIN 100
-
-/** @brief Maximal sleep window (usec) */
-#define LONGEST_SLEEP_WIN 200000
+#include "Common.h"
+#include "DVFSUnit.h"
 
 /**
- * @brief Decision taken by the decision maker.
+ * Decision taken by the decision maker.
  */
 typedef struct
 {
@@ -43,54 +38,46 @@ typedef struct
 
 /**
  * @class DecisionMaker
- * @brief This object take rights decision were ever it is pinned (on a CPU, on a server etc...)
- * in the way to save energy. This is an abstract class see Decision algorithms as NaiveDecisions,
- * PredictiveDecisions, and Markovs for implementations.
+ * Generic decision maker to decide the next frequency and sleep window to use.
+ * There is one decision maker instancer per DVFS unit.
  */
 class DecisionMaker
 {
    public:
-      /**
-       * @brief Constructor
-       */
-      DecisionMaker (CoresInfo * coresInfo);
 
       /**
-       * @brief Destructor
+       * Constructor
        */
-      virtual ~DecisionMaker (void);
+      DecisionMaker (DVFSUnit & unit);
 
       /**
-       * @brief Decides what to do for the given processor core.
-       * @param core the core ID
-       * @param HWCounters integer array the three hardware counters given by the profiler
+       * Destructor
+       */
+      virtual ~DecisionMaker ();
+
+      /**
+       * Decides what to do considering the last measurements.
+       *
+       * @param hwc The hardware counters values measured
+       *
        * @return A decision object where a new core frequency and sleeping
        * window is given.
        */
-      virtual Decision takeDecision (unsigned int core,
-                                     const unsigned long long * HWCounters) = 0;
+      virtual Decision takeDecision (const HWCounters & hwc) = 0;
 
       /**
-       * @brief compute the boundness of a program at a certain time, values shall
-       * be given by the profiler. Boundness of 0 means totally CPU bound,
-       * > 0 = memory bound. The result is > 0 (but not necessarily < 1)
+       * Gives an initialization decision which defines a default sleep window
+       * and frequency to use.
        *
-       * @param sqFullStall Counts cycles the Super Queue is full.
-       * Neither of the threads on this core will be able to access the uncore
-       * @param unhaltedCore elapsed cycles, correlation to time not maintained with
-       * time when frequency scaling operates
-       * @param l2Miss L2 cache misses
-       * @return the boundness of the sample
+       * @return A default decision object.
        */
-      float computeBoundness (unsigned long long sqFullStall,
-                              unsigned long long unhaltedCore, unsigned long long l2Miss) const;
+      virtual Decision defaultDecision () = 0;
 
    protected:
 
-      // CPUs related information
-      CoresInfo * coresInfo;
-
-      // previously taken decisions
-      Decision * decisions;
+      /**
+       * Which DVFS unit we are handling.
+       */
+      DVFSUnit & unit;
 };
 #endif

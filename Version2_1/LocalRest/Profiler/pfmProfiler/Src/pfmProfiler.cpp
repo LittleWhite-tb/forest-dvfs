@@ -37,10 +37,10 @@ PfmProfiler::PfmProfiler (void)
    int res;
 #ifdef ARCH_SNB
    const char * counters [] =
-   { "OFFCORE_REQUESTS_BUFFER:SQ_FULL", "UNHALTED_CORE_CYCLES", "LAST_LEVEL_CACHE_REFERENCES", "INSTRUCTION_RETIRED" };
+   { "OFFCORE_REQUESTS_BUFFER:SQ_FULL", "UNHALTED_CORE_CYCLES", "LAST_LEVEL_CACHE_REFERENCES", "CPU_CLK_UNHALTED:REF_P" };
 #else
    const char * counters [] =
-   { "SQ_FULL_STALL_CYCLES", "UNHALTED_CORE_CYCLES", "L2_RQSTS:MISS", "INSTRUCTION_RETIRED" };
+   { "SQ_FULL_STALL_CYCLES", "UNHALTED_CORE_CYCLES", "L2_RQSTS:MISS", "CPU_CLK_UNHALTED:REF_P" };
 #endif
    const unsigned int nbCounters = sizeof (counters) / sizeof (*counters);
 

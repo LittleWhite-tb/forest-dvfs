@@ -17,8 +17,8 @@
  */
 
 /**
- @file AdaptiveDecisions.h
- @brief The AdaptiveDecisions class header is in this file
+ * @file AdaptiveDecisions.h
+ * The AdaptiveDecisions class header is in this file
  */
 
 #ifndef H_ADAPTIVEDECISIONS
@@ -28,65 +28,106 @@
 
 /**
  * @class AdaptiveDecisions
- * @brief The decision is taken adaptively here, according to the performance
- * degradation that occurs when switching the frequency. It tries to enforce a
- * maximal performance degradation.
+ *
+ * The decision is taken adaptively here, trying to maximize the ressource usage
+ * and exploiting the memory boundness ratio as a hint.
  */
 class AdaptiveDecisions : public DecisionMaker
 {
    public:
-      /**
-       * @brief Constructor
-       */
-      AdaptiveDecisions (CoresInfo * coresInfo);
 
       /**
-       * @brief Destructor
+       * Constructor
        */
-      ~AdaptiveDecisions (void);
+      AdaptiveDecisions (DVFSUnit & unit);
 
       /**
-       * @brief Decides what to do for the given processor core.
-       * @param core the core ID
-       * @param HWCounters integer array the three hardware counters given by the profiler
+       * Destructor
+       */
+      ~AdaptiveDecisions ();
+
+      /**
+       * Decides what to do considering the last measurements.
+       *
+       * @param hwc The hardware counters values measured
+       *
        * @return A decision object where a new core frequency and sleeping
        * window is given.
        */
-      Decision takeDecision (unsigned int core,
-                             const unsigned long long * HWCounters);
+      Decision takeDecision (const HWCounters & hwc);
+
+      /**
+       * Gives an initialization decision which defines a default sleep window
+       * and frequency to use.
+       *
+       * @return A default decision object.
+       */
+      Decision defaultDecision ();
 
    private:
 
       /**
-       * @brief The decision table maps each frequency to a range of boundness
-       * values. nbFreqs entries per core.
+       * Computes the memory boundness ratio from the hardware counters.
        *
-       * [[0.0, 0.7]] means that the first frequency is selected when
-       * 0 <= boudness < 0.7 and the second one when 0.7 <= boundness < 1.0
-       * for core 0
+       * @param hwc The hardware counter values.
+       *
+       * @return A number > 0 which express memory boundness with large values
+       * and cpu boundness when approaching zero.
        */
-      float ** decTable;
+      inline float getBoundnessRatio (HWCounters & hwc) const
+      {
+         if (hwc.cycles == 0)
+         {
+            return 0;
+         }
+
+         return hwc.l2miss / (1. * hwc.cycles);
+      }
 
       /**
-       * @brief Number of frequencies in the table.
+       * Computes the hardware exploitation ratio from the hardware counters.
+       *
+       * @param hwc The hardware counter values.
+       *
+       * @return A number which evaluates how much the cpu is used compared to
+       * the memory. Zero means that the memory is not at all the bottleneck,
+       * whereas large values means that the cpu is often paused and waits for
+       * the memory.
        */
-      unsigned int nbFreqs;
+      inline float getHWExploitationRatio (HWCounters & hwc) const
+      {
+         if (hwc.refCycles == 0)
+         {
+            return 0;
+         }
+
+         return hwc.l2miss / (1. * hwc.refCycles);
+      }
 
       /**
-       * @brief The last performance index per core (instructions retired per
-       * cycle).
+       * The last execution sleep window we have decided.
        */
-      float * formerPerfIdx;
+      unsigned int formerSleepWin;
 
       /**
-       * @brief The last boundness computed for each core.
+       * Previously chosen frequency.
        */
-      float * formerBoundness;
+      unsigned int formerFreqId;
 
       /**
-       * Maximal boundness we have seen so far. Per core.
+       * Maximal boundness we have seen so far.
        */
-      float * maxBoundness;
+      float maxBoundness;
+
+      /**
+       * Maximal HW exploitation ratio we have seen so far.
+       */
+      float maxHWExploitation;
+
+      /**
+       * Current offset to the boundness prediction we use.
+       */
+      int freqOffset;
 
 };
 
