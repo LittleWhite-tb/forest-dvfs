@@ -23,56 +23,97 @@
 #ifndef H_PFMPROFILER
 #define H_PFMPROFILER
 
-#include <stdint.h>
+#include <iostream>
+#include <pthread.h>
+#include "perfmon/pfmlib.h"
 
 #include "Profiler.h"
 
 /**
  * @class PfmProfiler
- * @brief Profiler implementation based on libpfm.
+ * Profiler implementation based on libpfm.
  */
 class PfmProfiler : public Profiler
 {
 
    public:
       /**
-       * @brief Constructor
+       * Constructor
+       *
+       * @param unit The DVFS unit we are profiling.
        */
-      PfmProfiler (void);
+      PfmProfiler (DVFSUnit & unit);
 
       /**
-       * @brief Destructor
+       * Destructor
        */
-      virtual ~PfmProfiler (void);
+      virtual ~PfmProfiler ();
 
       /**
-       * @brief Reads the counter values and "resets" them.
-       * @param coreId The involved processor core's number.
-       * @param values Where to write the differences of counter values compared
-       * to the last measurement.
+       * Reads the counter values and "resets" them.
+       *
+       * @param hwc The hardware counter structure to fill with the results.
        */
-      void read (unsigned int coreId, unsigned long long * values);
+      void read (HWCounters & hwc);
 
    private:
 
-      unsigned int nbCores;   /**< @brief Number of cpus */
+      /**
+       * Pfm initialization routine.
+       */
+      static void pfmInit ()
+      {
+         int res;
+
+         pthread_mutex_lock(&PfmProfiler::pfmInitMtx);
+
+         if (PfmProfiler::nbPfmInit == 0)
+         {
+            if ((res = pfm_initialize ()) != PFM_SUCCESS)
+            {
+               std::cerr << "Failed to initialize libpfm: " << pfm_strerror (res) << std::endl;
+            }
+         }
+
+         PfmProfiler::nbPfmInit++;
+
+         pthread_mutex_unlock(&PfmProfiler::pfmInitMtx);
+      }
 
       /**
-       * @brief List of fds for counters per cpu. Access with
-       * pfmFds [cpu_num][counter_num]
+       * Pfm closing routine.
        */
-      int ** pfmFds;
+      static void pfmTerminate ()
+      {
+         pthread_mutex_lock(&PfmProfiler::pfmInitMtx);
+
+         if (PfmProfiler::nbPfmInit-- == 0)
+         {
+            pfm_terminate ();
+         }
+
+         pthread_mutex_unlock(&PfmProfiler::pfmInitMtx);
+      }
 
       /**
-       * @brief List of number of fds per cpu. Related to pfmFds.
+       * Mutex to access the pfm initialization variables.
        */
-      unsigned int nbFds;
+      static pthread_mutex_t pfmInitMtx;
 
       /**
-       * @brief Former measurement to allow difference computations.
-       * One per counter for each cpu.
+       * How many threads have initialized the library?
        */
-      uint64_t ** oldValues;
+      static unsigned int nbPfmInit;
+
+      /**
+       * List of fds opened to read the HW counters.
+       */
+      int pfmFds [NB_HW_COUNTERS];
+
+      /**
+       * Former result to allow difference computations.
+       */
+      HWCounters formerMeasurement;
 };
 
 #endif

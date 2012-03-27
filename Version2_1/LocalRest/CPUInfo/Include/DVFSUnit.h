@@ -50,14 +50,25 @@ class DVFSUnit
       /**
        * Destructor
        */
-      ~DVFSUnit (void);
+      ~DVFSUnit ();
+      
+      /**
+       * Returns the unit identifier (name) for the OS. This is typically a 
+       * logical processor number.
+       *
+       * @return The unit number defined by the underlying OS.
+       */
+      inline unsigned int getOSId() const
+      {
+         return this->procId;
+      }
 
       /**
        * Returns the number of available frequencies.
        *
        * @return How many different frequencies can be set for this unit.
        */
-      inline unsigned int getNbFreqs() const
+      inline unsigned int getNbFreqs () const
       {
          return this->nbFreqs;
       }
@@ -69,11 +80,11 @@ class DVFSUnit
        * uniquely identifies the frequency. It is guaranteed that a lower id
        * corresponds to a lower frequency.
        */
-      inline unsigned int getFrequency(unsigned int freqId) const
+      inline unsigned int getFrequency (unsigned int freqId) const
       {
          assert (freqId < this->nbFreqs);
 
-         return this->freqs[id];
+         return this->freqs [freqId];
       }
 
       /**
@@ -81,7 +92,7 @@ class DVFSUnit
        *
        * @return The id of the last required frequency.
        */
-      inline unsigned int getFrequency() const
+      inline unsigned int getFrequency () const
       {
          return this->curFreqId;
       }
@@ -91,7 +102,7 @@ class DVFSUnit
        *
        * @param freqId The frequency to use.
        */
-      void setFrequency(unsigned int freqId);
+      void setFrequency (unsigned int freqId);
 
       /**
        * Returns the number of switch to the given frequency.
@@ -101,17 +112,17 @@ class DVFSUnit
        *
        * @return The number of times this frequency has been used.
        */
-      inline unsigned long int getNbSwitch(unsigned int freqId) const
+      inline unsigned long int getNbSwitch (unsigned int freqId) const
       {
-         assert(freqId < this->nbFreqs);
+         assert (freqId < this->nbFreqs);
 
-         return this->freqSwitch[id];
+         return this->freqSwitch [freqId];
       }
 
    private:
 
       /**
-       * The processor id we are handling.
+       * The id of the processor we are handling.
        */
       unsigned int procId;
 
@@ -121,7 +132,7 @@ class DVFSUnit
       unsigned int nbFreqs;
 
       /**
-       * All the possible frequencies this thread can use. Array of size 
+       * All the possible frequencies this thread can use. Array of size
        * nbFreqs, sorted in increasing order.
        */
       unsigned int * freqs;
@@ -142,7 +153,7 @@ class DVFSUnit
       std::ofstream freqFs;
 
       /**
-       * Tracker of the number of frequency switches. Aligned at the 64 bits 
+       * Tracker of the number of frequency switches. Aligned at the 64 bits
        * boundary to ensure atomicity of memory accesses.
        */
       uint64_t * freqSwitch;

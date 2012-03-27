@@ -21,6 +21,8 @@
  * The CPUInfo class is in this file
  */
 
+#include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <unistd.h>
@@ -28,7 +30,7 @@
 
 #include "CPUInfo.h"
 
-CPUInfo::CPUInfo (void)
+CPUInfo::CPUInfo ()
 {
    std::ostringstream oss;
    std::ifstream ifs;
@@ -43,45 +45,45 @@ CPUInfo::CPUInfo (void)
    for (unsigned int i = 0; i < nbCores; i++)
    {
       // a dvfs unit already handle this processor?
-      if (treatedCores.find(i) != std::set::end)
+      if (treatedCores.find (i) != treatedCores.end ())
       {
          continue;
       }
 
       // create the dvfs unit
-      this->DVFSUnits.push_back(new DVFSUnit(i), false);
+      this->DVFSUnits.push_back (new DVFSUnit (i));
 
       // remember the processor numbers which are handled
       oss << "/sys/devices/system/cpu/cpu" << i << "/cpufreq/affected_cpus";
-      ifs.open(oss.str().c_str());
+      ifs.open (oss.str ().c_str ());
 
       if (!ifs)
       {
          std::cerr << "Failed to open topology information for cpu " << i << std::endl;
-         exit(-1);
+         exit (-1);
       }
 
-      while (ifs.good())
+      while (ifs.good ())
       {
          unsigned int cpuId;
 
          ifs >> cpuId;
-         treatedCores.insert(cpuId);
+         treatedCores.insert (cpuId);
       }
 
-      ifs.close();
+      ifs.close ();
 
       // early exit if we have handled all the cores
-      if (treatedCores.size() == nbCores)
+      if (treatedCores.size () == nbCores)
       {
          break;
       }
    }
 
-   this->nbDVFSUnits = this->DVFSUnits.size();
+   this->nbDVFSUnits = this->DVFSUnits.size ();
 }
 
-CoresInfo::~CoresInfo (void)
+CPUInfo::~CPUInfo ()
 {
    for (unsigned int i = 0; i < this->nbDVFSUnits; i++)
    {

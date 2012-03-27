@@ -74,7 +74,7 @@ class AdaptiveDecisions : public DecisionMaker
        * @return A number > 0 which express memory boundness with large values
        * and cpu boundness when approaching zero.
        */
-      inline float getBoundnessRatio (HWCounters & hwc) const
+      inline float getBoundnessRatio (const HWCounters & hwc) const
       {
          if (hwc.cycles == 0)
          {
@@ -94,7 +94,7 @@ class AdaptiveDecisions : public DecisionMaker
        * whereas large values means that the cpu is often paused and waits for
        * the memory.
        */
-      inline float getHWExploitationRatio (HWCounters & hwc) const
+      inline float getHWExploitationRatio (const HWCounters & hwc) const
       {
          if (hwc.refCycles == 0)
          {

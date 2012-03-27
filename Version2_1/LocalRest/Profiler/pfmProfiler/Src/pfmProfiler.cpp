@@ -17,54 +17,46 @@
  */
 
 /**
-  @file PfmProfiler.cpp
-  @brief The PfmProfiler class is in this file
+ * @file PfmProfiler.cpp
+ * The PfmProfiler class is in this file
  */
 
 #include <unistd.h>
 #include <iostream>
 #include <sys/ioctl.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "pfmProfiler.h"
-#include "perfmon/pfmlib.h"
 #include "perfmon/perf_event.h"
 #include "perfmon/pfmlib_perf_event.h"
 
+// definition of the static fields
+pthread_mutex_t PfmProfiler::pfmInitMtx = PTHREAD_MUTEX_INITIALIZER;
+unsigned int PfmProfiler::nbPfmInit = 0;
 
-PfmProfiler::PfmProfiler (void)
+PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler(unit)
 {
-   int res;
 #ifdef ARCH_SNB
-   const char * counters [] =
-   { "OFFCORE_REQUESTS_BUFFER:SQ_FULL", "UNHALTED_CORE_CYCLES", "LAST_LEVEL_CACHE_REFERENCES", "CPU_CLK_UNHALTED:REF_P" };
+   const char * counters [] = {
+      "LAST_LEVEL_CACHE_REFERENCES",
+      "UNHALTED_CORE_CYCLES",
+      "CPU_CLK_UNHALTED:REF_P"
+   };
 #else
-   const char * counters [] =
-   { "SQ_FULL_STALL_CYCLES", "UNHALTED_CORE_CYCLES", "L2_RQSTS:MISS", "CPU_CLK_UNHALTED:REF_P" };
+   const char * counters [] = {
+      "L2_RQSTS:MISS",
+      "UNHALTED_CORE_CYCLES",
+      "CPU_CLK_UNHALTED:REF_P"
+   };
 #endif
-   const unsigned int nbCounters = sizeof (counters) / sizeof (*counters);
+   int res;
 
    // libpfm init
-   if ((res = pfm_initialize ()) != PFM_SUCCESS)
-   {
-      std::cerr << "Failed to initialize libpfm: " << pfm_strerror (res) << std::endl;
-   }
-
-   // fetch number of processors and initialize a few things
-   this->nbCores = sysconf (_SC_NPROCESSORS_ONLN);
-   this->nbFds = nbCounters;
-
-   this->pfmFds = new int *[this->nbCores];
-   this->oldValues = new uint64_t *[this->nbCores];
-   for (unsigned int i = 0; i < this->nbCores; i++)
-   {
-      this->pfmFds [i] = new int [nbCounters];
-      this->oldValues [i] = new uint64_t [nbCounters];
-   }
-
+   PfmProfiler::pfmInit();
 
    // initialize counters
-   for (unsigned int i = 0; i < nbCounters; i++)
+   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
    {
       pfm_perf_encode_arg_t arg;
 
@@ -74,89 +66,76 @@ PfmProfiler::PfmProfiler (void)
       arg.size = sizeof (arg);
 
       // encode the counter
-      res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3,
-      PFM_OS_PERF_EVENT_EXT, &arg);
+      res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
       if (res != PFM_SUCCESS)
       {
          std::cerr << "Failed to get counter " << counters [i] << std::endl;
       }
 
       // request scaling in case of shared counters
-      arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED
-      | PERF_FORMAT_TOTAL_TIME_RUNNING;
+      arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
-      // convert that into a fd for every cpu
-      for (unsigned int cpu = 0; cpu < this->nbCores; cpu++)
+      // open the corresponding file on the system
+      this->pfmFds [i] = perf_event_open (arg.attr, -1, this->unit.getOSId(), -1, 0);
+      if (this->pfmFds [i] == -1)
       {
-         // open the file descriptor
-         this->pfmFds [cpu][i] = perf_event_open (arg.attr, -1, cpu, -1, 0);
-         if (this->pfmFds [cpu][i] == -1)
-         {
-            std::cerr << "Cannot open counter " << counters [i] << " on cpu " << cpu << std::endl;
-         }
-
-         // Activate the counter
-         if (ioctl (this->pfmFds [cpu][i], PERF_EVENT_IOC_ENABLE, 0))
-         {
-            std::cerr << "Cannot enable event " << counters [i] << " on cpu " << cpu << std::endl;
-         }
-
-         // initially, old values are 0
-         this->oldValues [cpu][i] = 0;
+         std::cerr << "Cannot open counter " << counters [i] << " on cpu " << this->unit.getOSId() << std::endl;
       }
+
+      // Activate the counter
+      if (ioctl (this->pfmFds [i], PERF_EVENT_IOC_ENABLE, 0))
+      {
+         std::cerr << "Cannot enable event " << counters [i] << " on cpu " << this->unit.getOSId() << std::endl;
+      }
+
+      // initially, old values are 0
+      memset(&this->formerMeasurement, 0, sizeof(this->formerMeasurement));
 
       // free some mem
       delete arg.attr;
    }
 }
 
-PfmProfiler::~PfmProfiler (void)
+PfmProfiler::~PfmProfiler ()
 {
    // free memory
-   for (unsigned int cpu = 0; cpu < this->nbCores; cpu++)
+   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
    {
-      for (unsigned int i = 0; i < this->nbFds; i++)
-      {
-         close (this->pfmFds [cpu][i]);
-      }
-
-      delete [] this->pfmFds [cpu];
-      delete [] this->oldValues [cpu];
+      close (this->pfmFds [i]);
    }
 
-   delete [] this->oldValues;
-   delete [] this->pfmFds;
-
    // close pfm
-   pfm_terminate ();
+   PfmProfiler::pfmTerminate();
 }
 
-void PfmProfiler::read (unsigned int coreId, unsigned long long * values)
+void PfmProfiler::read (HWCounters & hwc)
 {
    int res;
 
-   for (unsigned int i = 0; i < this->nbFds; i++)
+   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
    {
       uint64_t buf [3];
       uint64_t value;
 
-      res = ::read (this->pfmFds [coreId][i], buf, sizeof (buf));
+      res = ::read (this->pfmFds [i], buf, sizeof (buf));
       if (res != sizeof (buf))
       {
-         std::cerr << "Failed to read counter #" << i << " on cpu " << coreId << std::endl;
+         std::cerr << "Failed to read counter #" << i << std::endl;
       }
 
       // handle scaling to allow PMU sharing
       value = (uint64_t)( (double) buf [0] * buf [1] / buf [2]);
-      if (oldValues [coreId][i] <= value)
+      if (this->formerMeasurement.values [i] <= value)
       {
-         values [i] = value - oldValues [coreId][i];
+         hwc.values [i] = value - this->formerMeasurement.values [i];
       }
       else  // overflow
       {
-         values [i] = 0xFFFFFFFFFFFFFFFFUL - oldValues [coreId][i] + value;
+         hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - this->formerMeasurement.values [i] + value;
       }
-      oldValues [coreId][i] = value;
+      
+      // remember this value
+      this->formerMeasurement.values [i] = hwc.values[i];
    }
 }
 

@@ -48,7 +48,7 @@ class DecisionMaker
       /**
        * Constructor
        */
-      DecisionMaker (DVFSUnit & unit);
+      DecisionMaker (DVFSUnit & dvfsUnit);
 
       /**
        * Destructor

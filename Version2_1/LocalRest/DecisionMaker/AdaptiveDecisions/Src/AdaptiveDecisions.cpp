@@ -31,7 +31,7 @@
 AdaptiveDecisions::AdaptiveDecisions (DVFSUnit & unit) :
    DecisionMaker (unit)
 {
-   defDec = this->defaultDecision ();
+   Decision defDec = this->defaultDecision ();
 
    // initialize internal data
    this->formerSleepWin = defDec.sleepWin;
@@ -56,102 +56,44 @@ Decision AdaptiveDecisions::defaultDecision ()
    return res;
 }
 
-Decision AdaptiveDecisions::takeDecision (HWCounters & hwc)
+Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
 {
    Decision res;
 
-   float sqFull = HWCounters [0];
-   float cycles = HWCounters [1];
-   float L2Misses = HWCounters [2];
-   float refCycles = HWCounters [3];
-
-   unsigned int curFreqId = this->decisions [core].freqId;
-   unsigned int curSleepWin = this->decisions [core].sleepWin;
-
-   float locMaxBoundness = this->maxBoundness [core];
+   unsigned int curSleepWin = this->formerSleepWin;
+   unsigned int curFreqId = this->formerFreqId;
 
    // compute boundness and put it into our internal form:
    // between 0 and 1, where 1 = CPU bound, 0 = mem bound
-   float boundness = this->computeBoundness (sqFull, cycles, L2Misses);
+   float boundness = this->getBoundnessRatio (hwc);   
+   this->maxBoundness =  rest_max (this->maxBoundness, boundness);
+   boundness = 1 - (boundness / this->maxBoundness);
 
-   locMaxBoundness = max (locMaxBoundness, boundness);
-   this->maxBoundness [core] = locMaxBoundness;
+   float HWexp = this->getHWExploitationRatio (hwc);
+   this->maxHWExploitation = rest_max (this->maxHWExploitation, HWexp);
+   HWexp = 1 - (HWexp / this->maxHWExploitation);
 
-   boundness = 1 - (boundness / locMaxBoundness);
-
-   // handle this special case
-   if (cycles == 0)
+   // scan frequencies periodically (DEBUG decision)
+   if (curFreqId == this->unit.getNbFreqs() - 1)
    {
-      boundness = 0;
-   }
-
-   if (core == 0)
-   {
-      std::cout << "sqFull " << sqFull << " refCycles " << refCycles << " L2Misses " << L2Misses << std::endl;
-   }
-
-   float perfIdx = 1 - (this->computeBoundness (sqFull, refCycles, L2Misses) / locMaxBoundness);
-
-   //
-   // decision algo starts here
-   //
-
-   unsigned int boundFreqPrediction = min (boundness * this->nbFreqs, this->nbFreqs - 1);
-
-   // default: do not do anything
-   res.freqId = curFreqId;
-
-   // large freq change requested by boundness prediction
-   if (boundFreqPrediction < min (curFreqId, curFreqId - this->freqOffset [core])
-         || boundFreqPrediction > max (curFreqId + 1, curFreqId + 1 - this->freqOffset [core]))
-   {
-      res.freqId = boundFreqPrediction;
-      this->freqOffset [core] = 0;
+      res.freqId = 0;
+      res.sleepWin = MAX_SLEEP_WIN;
    }
    else
    {
-      // intense use of the resources, try to increase the frequency a bit
-      if (perfIdx > 0.9 && curFreqId < this->nbFreqs - 1 && this->freqOffset [core] >= 0)
-      {
-         unsigned int off = min (2, this->nbFreqs - 1 - curFreqId);
-
-         res.freqId += off;
-         this->freqOffset [core] += off;
-      }
-      else
-      {
-         // resources poorly exploited, decrease the frequency a bit
-         if (perfIdx < 0.8 && curFreqId > 0 && this->freqOffset [core] <= 0)
-         {
-            unsigned int off = min (2, curFreqId);
-
-            res.freqId -= off;
-            this->freqOffset [core] -= off;
-         }
-      }
-   }
-
-   // adapt the sleep window to stable phases
-   if (res.freqId != curFreqId)
-   {
+      res.freqId = curFreqId + 1;
       res.sleepWin = MIN_SLEEP_WIN;
    }
-   else
-   {
-      res.sleepWin = min (MAX_SLEEP_WIN, curSleepWin * 2);
-   }
 
-   //
-   // end of decision algo
-   //
-
-   if (core == 0)
+   if (this->unit.getOSId () == 0)
    {
-      std::cout << "Bnd: " << boundness << " Freq: " << curFreqId << " Pfx: " << perfIdx << std::endl;
+      std::cout << " Freq: " << curFreqId << "Bnd: " << boundness << " HWe: " << HWexp << std::endl;
    }
 
    // remember some stuff to take better decisions afterwards
-   this->decisions [core] = res;
+   this->formerFreqId = res.freqId;
+   this->formerSleepWin = res.sleepWin;
 
    return res;
 }
+

@@ -22,13 +22,16 @@
  */
 
 #include <cassert>
+#include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "DVFSUnit.h"
 
-DVFSUnit::DVFSUnit (unsigned int id, bool useTB = false)
+DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
 {
    std::ostringstream oss;
    std::ifstream ifs;
@@ -41,22 +44,22 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB = false)
 
    // retrieve the current governor
    oss << "/sys/devices/system/cpu/cpu" << id << "/cpufreq/scaling_governor";
-   ifs.open(oss.string().c_str());
+   ifs.open (oss.str ().c_str ());
 
    if (!ifs)
    {
       std::cerr << "Failed to retrieve current governor for cpu " << id << std::endl;
-      exit(-1);
+      exit (-1);
    }
 
    ifs >> this->formerGov;
-   ifs.close();
+   ifs.close ();
 
    // set the userspace governor
-   ofs.open(oss.string().c_str());
+   ofs.open (oss.str ().c_str ());
    ofs << "userspace";
-   ofs.flush();
-   ofs.close();
+   ofs.flush ();
+   ofs.close ();
 
    // detect turboboost availability
    if (system ("[ `cat /proc/cpuinfo | grep ida | wc -l` -eq 0 ]") == 0)
@@ -69,23 +72,23 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB = false)
    }
 
    // retrieve the available frequencies
-   oss.str(std::string(""));
+   oss.str (std::string (""));
    oss << "/sys/devices/system/cpu/cpu" << id << "/cpufreq/scaling_available_frequencies";
-   ifs.open (oss.str().c_str());
-   if (!fp)
+   ifs.open (oss.str ().c_str ());
+   if (!ifs)
    {
       std::cerr << "Failed to fetch the available frequencies for cpu " << id << std::endl;
-      exit(-1);
-   } 
+      exit (-1);
+   }
 
    while (ifs >> tmp)
    {
-      tmpAllFreqs.insert (tmpAllFreqs.begin (), curFreq); //Saving the freq
+      tmpAllFreqs.insert (tmpAllFreqs.begin (), tmp); //Saving the freq
    }
    ifs.close ();
-   
+
    // transfert the frequencies into the array
-   this->nbFreqs = tmpAllFreqs.size();
+   this->nbFreqs = tmpAllFreqs.size ();
 
    if (hasTB && !useTB)
    {
@@ -95,45 +98,45 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB = false)
    this->freqs = new unsigned int [this->nbFreqs];
    for (unsigned int i = 0; i < this->nbFreqs; i++)
    {
-      this->freqs[i] = tmpAllFreqs[i];
+      this->freqs [i] = tmpAllFreqs [i];
    }
 
    // initialize the frequency tracking
    this->freqSwitch = new unsigned long int [this->nbFreqs];
 
    // open the file in wich we have to write to set a frequency
-   oss.str(std::string(""));
+   oss.str (std::string (""));
    oss << "/sys/devices/system/cpu/cpu" << id << "/cpufreq/scaling_setspeed";
-   this->freqFs.open(oss.string().c_str());
+   this->freqFs.open (oss.str ().c_str ());
 
    // initialize the frequency to the minimal freq
-   this->curFreq = 1;   // hack to ensure that the frequency will be set
-   this->setFrequency(0);
+   this->curFreqId = 1;   // hack to ensure that the frequency will be set
+   this->setFrequency (0);
 }
 
-DVFSUnit::~DVFSUnit()
+DVFSUnit::~DVFSUnit ()
 {
    std::ostringstream oss;
    std::ofstream ofs;
 
    // restore the former governor
    oss << "/sys/devices/system/cpu/cpu" << this->procId << "/cpufreq/scaling_governor";
-   ofs.open(oss.str().c_str());
+   ofs.open (oss.str ().c_str ());
    ofs << this->formerGov;
-   ofs.flush();
-   ofs.close();
+   ofs.flush ();
+   ofs.close ();
 
    // close the frequency file
-   this->freqFs.close();
+   this->freqFs.close ();
 
    // cleanup memory
    delete [] this->freqs;
    delete [] this->freqSwitch;
 }
 
-void DVFSUnit::setFrequency(unsigned int freqId)
+void DVFSUnit::setFrequency (unsigned int freqId)
 {
-   assert(freqId < this->nbFreqs);
+   assert (freqId < this->nbFreqs);
 
    // nothing to do?
    if (freqId != this->curFreqId)
@@ -142,9 +145,9 @@ void DVFSUnit::setFrequency(unsigned int freqId)
    }
 
    // write the correct frequency in the file
-   this->seekp (0, std::ios::beg);
-   this->freqFs << this->freqs[freqId];
-   this->freqFs.flush();
+   this->freqFs.seekp (0, std::ios::beg);
+   this->freqFs << this->freqs [freqId];
+   this->freqFs.flush ();
 
    this->curFreqId = freqId;
 

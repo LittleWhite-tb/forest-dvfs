@@ -23,9 +23,9 @@
 
 #include "DecisionMaker.h"
 
-DecisionMaker::DecisionMaker (DVFSUnit & unit)
+DecisionMaker::DecisionMaker (DVFSUnit & dvfsUnit) : unit(dvfsUnit)
 {
-   this->unit = unit;
+
 }
 
 DecisionMaker::~DecisionMaker (void)

@@ -39,17 +39,17 @@ class CPUInfo
       /**
        * Constructor
        */
-      CPUInfo (void);
+      CPUInfo ();
 
       /**
        * Destructor
        */
-      ~CPUInfo (void);
+      ~CPUInfo ();
 
       /**
        * Get the number of DVFS units available.
        */
-      inline unsigned int getNbDVFSUnits() const
+      inline unsigned int getNbDVFSUnits () const
       {
          return this->nbDVFSUnits;
       }
@@ -61,17 +61,17 @@ class CPUInfo
        *
        * @return The DVFS unit with the given id.
        */
-      inline DVFSUnit *getDVFSUnit(unsigned int id) const
+      inline DVFSUnit & getDVFSUnit (unsigned int id) const
       {
-         assert(id < this->nbDVFSUnits);
+         assert (id < this->nbDVFSUnits);
 
-         return this->DVFSUnits[id];
+         return *this->DVFSUnits [id];
       }
 
    private:
 
       /**
-       * Number of independant frequency-scalable computing units (thread or 
+       * Number of independant frequency-scalable computing units (thread or
        * core with independant DVFS capacity)
        */
       unsigned int nbDVFSUnits;

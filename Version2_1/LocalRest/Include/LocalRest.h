@@ -24,6 +24,5 @@
 #ifndef LOCALREST_H
 #define LOCALREST_H
 
-const static char NAMEPIPE [] = "debug";
 
 #endif

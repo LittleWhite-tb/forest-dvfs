@@ -30,16 +30,25 @@
 /**
  * Value of the watched hardware counters.
  */
-typedef struct
-{
-   uint64_t l2miss;  // # of data L2 cache misses
-   uint64_t cycles;  // cycles elapsed, considering the current freq
-   uint64_t refCycles;  // cycles elapsed at a reference frequency
+typedef union {
+   struct __attribute__((packed))
+   {
+      uint64_t l2miss;  // # of data L2 cache misses
+      uint64_t cycles;  // cycles elapsed, considering the current freq
+      uint64_t refCycles;  // cycles elapsed at a reference frequency
+   };
+
+   uint64_t values[3];
 } HWCounters;
 
+/**
+ * How many counters have to be profiled.
+ */
+#define NB_HW_COUNTERS (sizeof(HWCounters) / sizeof(uint64_t))
+
 // a few utility functions which may be usefull at some point
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define abs(a) ((a) < 0 ? -(a) : (a))
+#define rest_max(a, b) ((a) > (b) ? (a) : (b))
+#define rest_min(a, b) ((a) < (b) ? (a) : (b))
+#define rest_abs(a) ((a) < 0 ? -(a) : (a))
 
 #endif

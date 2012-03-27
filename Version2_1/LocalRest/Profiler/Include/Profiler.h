@@ -17,37 +17,48 @@
  */
 
 /**
-  @file Profiler.h
-  @brief The Profiler class header is here.
+ * @fileProfiler.h
+ * The Profiler class header is here.
  */
 #ifndef H_PROFILER
 #define H_PROFILER
 
+#include "Common.h"
+#include "DVFSUnit.h"
+
 /**
  * @class Profiler
- * @brief The root of all profiling implementations.
+ * The root of all profiler implementations.
  */
 class Profiler
 {
 
    public:
       /**
-       * @brief Constructor
+       * Constructor
+       *
+       * @param unit The DVFS unit we are profiling.
        */
-      Profiler (void);
+      Profiler (DVFSUnit & dvfsUnit);
 
       /**
-       * @brief Destructor
+       * Destructor
        */
       virtual ~Profiler (void);
 
       /**
-       * @brief Reads the counter values and "resets" them.
-       * @param coreId The involved processor core's id.
-       * @param values Where to write the differences of counter values compared
-       * to the last measurement.
+       * Reads the counter values and "resets" them.
+       *
+       * @param hwc The hardware counter structure to fill with the results.
        */
-      virtual void read (unsigned int coreId, unsigned long long * values) = 0;
+      virtual void read (HWCounters & hwc) = 0;
+
+   protected:
+
+      /**
+       * A copy of the DVFS unit we are profiling.
+       */
+      DVFSUnit & unit;
 };
 
 #endif
