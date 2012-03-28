@@ -25,6 +25,7 @@
 #define H_ADAPTIVEDECISIONS
 
 #include "DecisionMaker.h"
+#include "FreqSelector.h"
 
 /**
  * @class AdaptiveDecisions
@@ -39,7 +40,7 @@ class AdaptiveDecisions : public DecisionMaker
       /**
        * Constructor
        */
-      AdaptiveDecisions (DVFSUnit & unit);
+      AdaptiveDecisions (DVFSUnit & dvfsUnit);
 
       /**
        * Destructor
@@ -67,22 +68,20 @@ class AdaptiveDecisions : public DecisionMaker
    private:
 
       /**
-       * Computes the memory boundness ratio from the hardware counters.
-       *
-       * @param hwc The hardware counter values.
-       *
-       * @return A number > 0 which express memory boundness with large values
-       * and cpu boundness when approaching zero.
+       * Time required to evaluate the IPC for one frequency (us).
        */
-      inline float getBoundnessRatio (const HWCounters & hwc) const
-      {
-         if (hwc.cycles == 0)
-         {
-            return 0;
-         }
+      static const unsigned int IPC_EVAL_TIME = 20;
 
-         return hwc.l2miss / (1. * hwc.cycles);
-      }
+      /**
+       * Minimal execution time once a frequency is chosen (us).
+       */
+      static const unsigned int MIN_SLEEP_WIN = 500;
+
+      /**
+       * Maximal execution time before re-evaluating which frequency to use
+       * (us).
+       */
+      static const unsigned int MAX_SLEEP_WIN = 150000;
 
       /**
        * Computes the hardware exploitation ratio from the hardware counters.
@@ -96,16 +95,23 @@ class AdaptiveDecisions : public DecisionMaker
        */
       inline float getHWExploitationRatio (const HWCounters & hwc) const
       {
-         if (hwc.refCycles == 0)
-         {
-            return 0;
-         }
+         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency(0) / this->unit.getFrequency(this->unit.getFrequency()));
 
-         return hwc.l2miss / (1. * hwc.refCycles);
+         return hwc.retired / (1. * swRefCycles);
       }
 
       /**
-       * The last execution sleep window we have decided.
+       * Helper to maintain the evaluation results.
+       */
+      FreqSelector * freqSel;
+
+      /**
+       * IPC evaluation result.
+       */
+      float * ipcEval;
+
+      /**
+       * The last sleep window we have used.
        */
       unsigned int formerSleepWin;
 
@@ -115,20 +121,14 @@ class AdaptiveDecisions : public DecisionMaker
       unsigned int formerFreqId;
 
       /**
-       * Maximal boundness we have seen so far.
+       * The frequency we have used for execution (excluding freq evaluation).
        */
-      float maxBoundness;
+      unsigned int formerExecFreqId;
 
       /**
-       * Maximal HW exploitation ratio we have seen so far.
+       * The last sleep window we have used for execution.
        */
-      float maxHWExploitation;
-
-      /**
-       * Current offset to the boundness prediction we use.
-       */
-      int freqOffset;
-
+      unsigned int formerExecSleepWin;
 };
 
 #endif

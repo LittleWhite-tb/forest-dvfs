@@ -30,15 +30,17 @@
 /**
  * Value of the watched hardware counters.
  */
-typedef union {
-   struct __attribute__((packed))
+typedef union
+{
+   struct __attribute__ ((packed))
    {
       uint64_t l2miss;  // # of data L2 cache misses
+      uint64_t retired; // # of retired instructions
       uint64_t cycles;  // cycles elapsed, considering the current freq
       uint64_t refCycles;  // cycles elapsed at a reference frequency
    };
 
-   uint64_t values[3];
+   uint64_t values [4];
 } HWCounters;
 
 /**

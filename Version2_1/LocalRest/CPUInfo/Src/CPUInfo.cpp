@@ -54,6 +54,7 @@ CPUInfo::CPUInfo ()
       this->DVFSUnits.push_back (new DVFSUnit (i));
 
       // remember the processor numbers which are handled
+      oss.str("");
       oss << "/sys/devices/system/cpu/cpu" << i << "/cpufreq/affected_cpus";
       ifs.open (oss.str ().c_str ());
 

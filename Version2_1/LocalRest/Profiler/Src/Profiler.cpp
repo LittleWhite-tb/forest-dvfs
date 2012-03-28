@@ -23,7 +23,7 @@
 
 #include "Profiler.h"
 
-Profiler::Profiler (DVFSUnit & dvfsUnit) : unit(dvfsUnit)
+Profiler::Profiler (DVFSUnit & dvfsUnit) : unit (dvfsUnit)
 {
 
 }

@@ -24,9 +24,7 @@
 #include <iostream>
 
 #include "AdaptiveDecisions.h"
-
-#define MIN_SLEEP_WIN 500
-#define MAX_SLEEP_WIN 150000
+#include "Common.h"
 
 AdaptiveDecisions::AdaptiveDecisions (DVFSUnit & unit) :
    DecisionMaker (unit)
@@ -34,23 +32,26 @@ AdaptiveDecisions::AdaptiveDecisions (DVFSUnit & unit) :
    Decision defDec = this->defaultDecision ();
 
    // initialize internal data
+   this->freqSel = new FreqSelector(unit.getNbFreqs ());
+   this->ipcEval = new float [this->unit.getNbFreqs ()];
+
    this->formerSleepWin = defDec.sleepWin;
    this->formerFreqId = defDec.freqId;
-   this->maxBoundness = 0;
-   this->maxHWExploitation = 0;
-   this->freqOffset = 0;
+   this->formerExecSleepWin = defDec.sleepWin;
+   this->formerExecFreqId = defDec.freqId;
 }
 
 AdaptiveDecisions::~AdaptiveDecisions (void)
 {
-
+   delete this->freqSel;
+   delete [] this->ipcEval;
 }
 
 Decision AdaptiveDecisions::defaultDecision ()
 {
    Decision res;
 
-   res.sleepWin = MIN_SLEEP_WIN;
+   res.sleepWin = AdaptiveDecisions::MIN_SLEEP_WIN;
    res.freqId = 0;
 
    return res;
@@ -63,36 +64,71 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    unsigned int curSleepWin = this->formerSleepWin;
    unsigned int curFreqId = this->formerFreqId;
 
-   // compute boundness and put it into our internal form:
-   // between 0 and 1, where 1 = CPU bound, 0 = mem bound
-   float boundness = this->getBoundnessRatio (hwc);   
-   this->maxBoundness =  rest_max (this->maxBoundness, boundness);
-   boundness = 1 - (boundness / this->maxBoundness);
-
    float HWexp = this->getHWExploitationRatio (hwc);
-   this->maxHWExploitation = rest_max (this->maxHWExploitation, HWexp);
-   HWexp = 1 - (HWexp / this->maxHWExploitation);
+   bool inEvalStep;
 
-   // scan frequencies periodically (DEBUG decision)
-   if (curFreqId == this->unit.getNbFreqs() - 1)
+   // were we in the evaluation step
+   inEvalStep = curSleepWin == AdaptiveDecisions::IPC_EVAL_TIME;
+
+   if (inEvalStep)
    {
-      res.freqId = 0;
-      res.sleepWin = MAX_SLEEP_WIN;
+      // remember the IPC for this frequency
+      this->ipcEval [curFreqId] = HWexp;
+
+      // we have other frequencies to evaluate
+      if (curFreqId != this->unit.getNbFreqs() - 1)
+      {
+         res.freqId = curFreqId + 1;
+         res.sleepWin = AdaptiveDecisions::IPC_EVAL_TIME;
+      }
+      // this was the last evaluation
+      else
+      {
+         // promote all frequencies at 10% of the top IPC
+         float maxIPC = 0;
+         for (unsigned int i = 0; i < this->unit.getNbFreqs(); i++)
+         {
+            maxIPC = rest_max (maxIPC, this->ipcEval [i]);
+         }
+
+         for (int i = this->unit.getNbFreqs() - 1; i >= 0; i--)
+         {
+            if (this->ipcEval [i] > 0.9 * maxIPC)
+            {
+               this->freqSel->promoteFrequency (i);
+            }
+         }
+
+         // select the frequency and run it for a while
+         res.freqId = this->freqSel->getBestFrequency ();
+
+         // increase the sleeping window if we were previously using this freq
+         if (this->formerExecFreqId == res.freqId)
+         {
+            res.sleepWin = rest_max (AdaptiveDecisions::MAX_SLEEP_WIN, this->formerExecSleepWin * 2);
+         }
+         else
+         {
+            res.sleepWin = AdaptiveDecisions::MIN_SLEEP_WIN;
+         }
+      }
    }
+   // enterring the evaluation step
    else
    {
-      res.freqId = curFreqId + 1;
-      res.sleepWin = MIN_SLEEP_WIN;
-   }
-
-   if (this->unit.getOSId () == 0)
-   {
-      std::cout << " Freq: " << curFreqId << "Bnd: " << boundness << " HWe: " << HWexp << std::endl;
-   }
+      res.freqId = 0;
+      res.sleepWin = AdaptiveDecisions::IPC_EVAL_TIME;
+   }                        
 
    // remember some stuff to take better decisions afterwards
    this->formerFreqId = res.freqId;
    this->formerSleepWin = res.sleepWin;
+
+   if (res.sleepWin != AdaptiveDecisions::IPC_EVAL_TIME)
+   {
+      this->formerExecFreqId = res.freqId;
+      this->formerSleepWin = res.sleepWin;
+   }
 
    return res;
 }

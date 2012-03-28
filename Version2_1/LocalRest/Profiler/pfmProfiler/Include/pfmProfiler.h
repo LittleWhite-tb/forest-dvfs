@@ -65,7 +65,7 @@ class PfmProfiler : public Profiler
       {
          int res;
 
-         pthread_mutex_lock(&PfmProfiler::pfmInitMtx);
+         pthread_mutex_lock (&PfmProfiler::pfmInitMtx);
 
          if (PfmProfiler::nbPfmInit == 0)
          {
@@ -77,7 +77,7 @@ class PfmProfiler : public Profiler
 
          PfmProfiler::nbPfmInit++;
 
-         pthread_mutex_unlock(&PfmProfiler::pfmInitMtx);
+         pthread_mutex_unlock (&PfmProfiler::pfmInitMtx);
       }
 
       /**
@@ -85,14 +85,14 @@ class PfmProfiler : public Profiler
        */
       static void pfmTerminate ()
       {
-         pthread_mutex_lock(&PfmProfiler::pfmInitMtx);
+         pthread_mutex_lock (&PfmProfiler::pfmInitMtx);
 
          if (PfmProfiler::nbPfmInit-- == 0)
          {
             pfm_terminate ();
          }
 
-         pthread_mutex_unlock(&PfmProfiler::pfmInitMtx);
+         pthread_mutex_unlock (&PfmProfiler::pfmInitMtx);
       }
 
       /**

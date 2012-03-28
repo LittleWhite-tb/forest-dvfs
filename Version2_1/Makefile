@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-O3 -msse3 -g -Wall -Wextra -DARCH_SNB
+CXXFLAGS=-O3 -msse3 -g -Wall -Wextra #-DARCH_SNB
 LD=$(CXX)
 LD_FLAGS=
 LIBS=-lpthread -lm
@@ -28,6 +28,8 @@ $(LIBPFM_BIN):
 
 clean:
 	@rm -rf obj localRest
+
+mrproper: clean
 	@$(MAKE) -C libpfm-$(LIBPFM_VER) clean
 
 install: localRest

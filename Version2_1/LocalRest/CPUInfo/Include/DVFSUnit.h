@@ -51,14 +51,14 @@ class DVFSUnit
        * Destructor
        */
       ~DVFSUnit ();
-      
+
       /**
-       * Returns the unit identifier (name) for the OS. This is typically a 
+       * Returns the unit identifier (name) for the OS. This is typically a
        * logical processor number.
        *
        * @return The unit number defined by the underlying OS.
        */
-      inline unsigned int getOSId() const
+      inline unsigned int getOSId () const
       {
          return this->procId;
       }

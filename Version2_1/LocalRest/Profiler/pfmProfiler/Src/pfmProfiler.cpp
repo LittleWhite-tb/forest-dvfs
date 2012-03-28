@@ -21,6 +21,7 @@
  * The PfmProfiler class is in this file
  */
 
+#include <cstdlib>
 #include <unistd.h>
 #include <iostream>
 #include <sys/ioctl.h>
@@ -35,25 +36,29 @@
 pthread_mutex_t PfmProfiler::pfmInitMtx = PTHREAD_MUTEX_INITIALIZER;
 unsigned int PfmProfiler::nbPfmInit = 0;
 
-PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler(unit)
+PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 {
 #ifdef ARCH_SNB
-   const char * counters [] = {
+   const char * counters [] =
+   {
       "LAST_LEVEL_CACHE_REFERENCES",
+      "INST_RETIRED:ANY_P",
       "UNHALTED_CORE_CYCLES",
       "CPU_CLK_UNHALTED:REF_P"
    };
 #else
-   const char * counters [] = {
+   const char * counters [] =
+   {
       "L2_RQSTS:MISS",
-      "UNHALTED_CORE_CYCLES",
+      "INST_RETIRED:ANY_P",
+      "CPU_CLK_UNHALTED:THREAD_P",
       "CPU_CLK_UNHALTED:REF_P"
    };
 #endif
    int res;
 
    // libpfm init
-   PfmProfiler::pfmInit();
+   PfmProfiler::pfmInit ();
 
    // initialize counters
    for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
@@ -70,26 +75,29 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler(unit)
       if (res != PFM_SUCCESS)
       {
          std::cerr << "Failed to get counter " << counters [i] << std::endl;
+         exit(EXIT_FAILURE);
       }
 
       // request scaling in case of shared counters
       arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
       // open the corresponding file on the system
-      this->pfmFds [i] = perf_event_open (arg.attr, -1, this->unit.getOSId(), -1, 0);
+      this->pfmFds [i] = perf_event_open (arg.attr, -1, this->unit.getOSId (), -1, 0);
       if (this->pfmFds [i] == -1)
       {
-         std::cerr << "Cannot open counter " << counters [i] << " on cpu " << this->unit.getOSId() << std::endl;
+         std::cerr << "Cannot open counter " << counters [i] << " on cpu " << this->unit.getOSId () << std::endl;
+         exit(EXIT_FAILURE);
       }
 
       // Activate the counter
       if (ioctl (this->pfmFds [i], PERF_EVENT_IOC_ENABLE, 0))
       {
-         std::cerr << "Cannot enable event " << counters [i] << " on cpu " << this->unit.getOSId() << std::endl;
+         std::cerr << "Cannot enable event " << counters [i] << " on cpu " << this->unit.getOSId () << std::endl;
+         exit(EXIT_FAILURE);
       }
 
       // initially, old values are 0
-      memset(&this->formerMeasurement, 0, sizeof(this->formerMeasurement));
+      memset (&this->formerMeasurement, 0, sizeof (this->formerMeasurement));
 
       // free some mem
       delete arg.attr;
@@ -105,7 +113,7 @@ PfmProfiler::~PfmProfiler ()
    }
 
    // close pfm
-   PfmProfiler::pfmTerminate();
+   PfmProfiler::pfmTerminate ();
 }
 
 void PfmProfiler::read (HWCounters & hwc)
@@ -124,7 +132,7 @@ void PfmProfiler::read (HWCounters & hwc)
       }
 
       // handle scaling to allow PMU sharing
-      value = (uint64_t)( (double) buf [0] * buf [1] / buf [2]);
+      value = (uint64_t)((double) buf [0] * buf [1] / buf [2]);
       if (this->formerMeasurement.values [i] <= value)
       {
          hwc.values [i] = value - this->formerMeasurement.values [i];
@@ -133,9 +141,9 @@ void PfmProfiler::read (HWCounters & hwc)
       {
          hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - this->formerMeasurement.values [i] + value;
       }
-      
+
       // remember this value
-      this->formerMeasurement.values [i] = hwc.values[i];
+      this->formerMeasurement.values [i] = value;
    }
 }
 

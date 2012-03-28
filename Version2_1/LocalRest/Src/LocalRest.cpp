@@ -47,7 +47,8 @@ static void pipeDebug ();
 
 
 // options used to create the threads
-typedef struct {
+typedef struct
+{
    unsigned int id;
    DecisionMaker * dec;
    Profiler * prof;
@@ -55,7 +56,8 @@ typedef struct {
 } thOpts;
 
 // variables shared among the threads
-typedef struct {
+typedef struct
+{
    CPUInfo * cnfo;
    int pipeFD;
 
@@ -78,10 +80,10 @@ int main (int argc, char ** argv)
    (void)(argv);
 
    // initialize the general context
-   restCtx.cnfo = new CPUInfo();
+   restCtx.cnfo = new CPUInfo ();
    restCtx.pipeFD = -1;
 
-   unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits();
+   unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
 
@@ -91,13 +93,13 @@ int main (int argc, char ** argv)
       DVFSUnit & unit = restCtx.cnfo->getDVFSUnit (i);
 
       // initialize options
-      restCtx.allOpts [i] = new thOpts();
+      restCtx.allOpts [i] = new thOpts ();
       thOpts * opts = restCtx.allOpts [i];
       opts->id = i;
       opts->dec = new AdaptiveDecisions (unit);
       opts->prof = new PfmProfiler (unit);
       opts->unit = &unit;
-      
+
       // run thread
       if (pthread_create (&restCtx.thIds [i], NULL, thProf, opts) != 0)
       {
@@ -106,10 +108,16 @@ int main (int argc, char ** argv)
       }
    }
 
-   // cleanup stuff when exiting
-   signal (SIGINT, sigHandler);
-   atexit (exitCleanup);
+   // the main process is the main profiler
+   DVFSUnit & unit0 = restCtx.cnfo->getDVFSUnit (0);
 
+   restCtx.allOpts [0] = new thOpts ();
+   thOpts * opts = restCtx.allOpts [0];
+   opts->id = 0;
+   opts->dec = new AdaptiveDecisions (unit0);
+   opts->prof = new PfmProfiler (unit0);
+   opts->unit = &unit0;
+   
    // handle debug request
    if (mkfifo (PIPENAME, 0644) != 0)
    {
@@ -117,17 +125,10 @@ int main (int argc, char ** argv)
       return EXIT_FAILURE;
    }
 
+   // cleanup stuff when exiting
    signal (SIGUSR1, sigHandler);
-
-   // the main process is the main profiler
-   DVFSUnit & unit0 = restCtx.cnfo->getDVFSUnit (0);
-
-   restCtx.allOpts [0] = new thOpts();
-   thOpts * opts = restCtx.allOpts [0];
-   opts->id = 0;
-   opts->dec = new AdaptiveDecisions (unit0);
-   opts->prof = new PfmProfiler (unit0);
-   opts->unit = &unit0;
+   signal (SIGINT, sigHandler);
+   atexit (exitCleanup);
 
    thProf (opts);
 
@@ -194,7 +195,8 @@ static void sigHandler (int nsig)
 static void exitCleanup ()
 {
    unsigned int i;
-   unsigned int nbUnits = restCtx.cnfo->getNbDVFSUnits();
+   unsigned int nbUnits = restCtx.cnfo->getNbDVFSUnits ();
+   struct stat buf;
 
    // cancel all threads (0 = main process, not a thread)
    for (i = 1; i < nbUnits; i++)
@@ -218,6 +220,10 @@ static void exitCleanup ()
    if (restCtx.pipeFD > 0)
    {
       close (restCtx.pipeFD);
+   }
+
+   if (!stat(PIPENAME, &buf))
+   {
       unlink (PIPENAME);
    }
 }

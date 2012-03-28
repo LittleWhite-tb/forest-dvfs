@@ -139,7 +139,7 @@ void DVFSUnit::setFrequency (unsigned int freqId)
    assert (freqId < this->nbFreqs);
 
    // nothing to do?
-   if (freqId != this->curFreqId)
+   if (freqId == this->curFreqId)
    {
       return;
    }
