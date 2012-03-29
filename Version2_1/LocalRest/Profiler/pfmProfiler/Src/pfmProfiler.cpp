@@ -75,7 +75,7 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
       if (res != PFM_SUCCESS)
       {
          std::cerr << "Failed to get counter " << counters [i] << std::endl;
-         exit(EXIT_FAILURE);
+         exit (EXIT_FAILURE);
       }
 
       // request scaling in case of shared counters
@@ -86,14 +86,14 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
       if (this->pfmFds [i] == -1)
       {
          std::cerr << "Cannot open counter " << counters [i] << " on cpu " << this->unit.getOSId () << std::endl;
-         exit(EXIT_FAILURE);
+         exit (EXIT_FAILURE);
       }
 
       // Activate the counter
       if (ioctl (this->pfmFds [i], PERF_EVENT_IOC_ENABLE, 0))
       {
          std::cerr << "Cannot enable event " << counters [i] << " on cpu " << this->unit.getOSId () << std::endl;
-         exit(EXIT_FAILURE);
+         exit (EXIT_FAILURE);
       }
 
       // initially, old values are 0
@@ -132,7 +132,7 @@ void PfmProfiler::read (HWCounters & hwc)
       }
 
       // handle scaling to allow PMU sharing
-      value = (uint64_t)((double) buf [0] * buf [1] / buf [2]);
+      value = (uint64_t)( (double) buf [0] * buf [1] / buf [2]);
       if (this->formerMeasurement.values [i] <= value)
       {
          hwc.values [i] = value - this->formerMeasurement.values [i];

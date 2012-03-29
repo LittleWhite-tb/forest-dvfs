@@ -32,7 +32,7 @@ AdaptiveDecisions::AdaptiveDecisions (DVFSUnit & unit) :
    Decision defDec = this->defaultDecision ();
 
    // initialize internal data
-   this->freqSel = new FreqSelector(unit.getNbFreqs ());
+   this->freqSel = new FreqSelector (unit.getNbFreqs ());
    this->ipcEval = new float [this->unit.getNbFreqs ()];
 
    this->formerSleepWin = defDec.sleepWin;
@@ -76,7 +76,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
       this->ipcEval [curFreqId] = HWexp;
 
       // we have other frequencies to evaluate
-      if (curFreqId != this->unit.getNbFreqs() - 1)
+      if (curFreqId != this->unit.getNbFreqs () - 1)
       {
          res.freqId = curFreqId + 1;
          res.sleepWin = AdaptiveDecisions::IPC_EVAL_TIME;
@@ -84,14 +84,25 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
       // this was the last evaluation
       else
       {
+         // DEBUG
+         if (this->unit.getOSId () == 0)
+         {
+            std::cout << "Evaluation result: ";
+            for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
+            {
+               std::cout << this->ipcEval [i] << " ";
+            }
+            std::cout << std::endl;
+         }
+
          // promote all frequencies at 10% of the top IPC
          float maxIPC = 0;
-         for (unsigned int i = 0; i < this->unit.getNbFreqs(); i++)
+         for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
          {
             maxIPC = rest_max (maxIPC, this->ipcEval [i]);
          }
 
-         for (int i = this->unit.getNbFreqs() - 1; i >= 0; i--)
+         for (int i = this->unit.getNbFreqs () - 1; i >= 0; i--)
          {
             if (this->ipcEval [i] > 0.9 * maxIPC)
             {
@@ -102,10 +113,15 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
          // select the frequency and run it for a while
          res.freqId = this->freqSel->getBestFrequency ();
 
+         if (this->unit.getOSId () == 0)
+         {
+            std::cout << "Elected freq: " << res.freqId << std::endl;
+         }
+
          // increase the sleeping window if we were previously using this freq
          if (this->formerExecFreqId == res.freqId)
          {
-            res.sleepWin = rest_max (AdaptiveDecisions::MAX_SLEEP_WIN, this->formerExecSleepWin * 2);
+            res.sleepWin = rest_min (AdaptiveDecisions::MAX_SLEEP_WIN, this->formerExecSleepWin * 2);
          }
          else
          {
@@ -118,7 +134,12 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    {
       res.freqId = 0;
       res.sleepWin = AdaptiveDecisions::IPC_EVAL_TIME;
-   }                        
+
+      if (this->unit.getOSId () == 0)
+      {
+         std::cout << "boundness: " << (hwc.l2miss * 1.) / hwc.cycles << std::endl;
+      }
+   }
 
    // remember some stuff to take better decisions afterwards
    this->formerFreqId = res.freqId;
@@ -127,7 +148,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    if (res.sleepWin != AdaptiveDecisions::IPC_EVAL_TIME)
    {
       this->formerExecFreqId = res.freqId;
-      this->formerSleepWin = res.sleepWin;
+      this->formerExecSleepWin = res.sleepWin;
    }
 
    return res;

@@ -25,6 +25,7 @@
 #define H_FREQSELECTOR
 
 #include <cassert>
+#include <iostream>
 
 #include "Common.h"
 
@@ -64,7 +65,7 @@ class FreqSelector
          {
             for (unsigned int i = 0; i < this->nbFreqs; i++)
             {
-               if (i != freqId)
+               if (i != freqId && this->coeffs [i] != 0)
                {
                   this->coeffs [i]--;
                }
@@ -72,7 +73,7 @@ class FreqSelector
          }
          else
          {
-           this->coeffs [freqId]++;
+            this->coeffs [freqId]++;
          }
       }
 
@@ -105,7 +106,7 @@ class FreqSelector
    private:
 
       /**
-       * Maximal number of successive promotions that a frequency has to have 
+       * Maximal number of successive promotions that a frequency has to have
        * before being selected.
        */
       static const unsigned int MAX_PROMS = 2;

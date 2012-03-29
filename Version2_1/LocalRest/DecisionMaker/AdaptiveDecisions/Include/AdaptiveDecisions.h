@@ -95,7 +95,7 @@ class AdaptiveDecisions : public DecisionMaker
        */
       inline float getHWExploitationRatio (const HWCounters & hwc) const
       {
-         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency(0) / this->unit.getFrequency(this->unit.getFrequency()));
+         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getFrequency (this->unit.getFrequency ()));
 
          return hwc.retired / (1. * swRefCycles);
       }

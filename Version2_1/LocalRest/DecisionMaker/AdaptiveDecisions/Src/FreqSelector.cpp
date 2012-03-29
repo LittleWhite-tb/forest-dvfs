@@ -27,6 +27,11 @@ FreqSelector::FreqSelector (unsigned int nbFreqs)
 {
    this->nbFreqs = nbFreqs;
    this->coeffs = new unsigned int [nbFreqs];
+
+   for (unsigned int i = 0; i < nbFreqs; i++)
+   {
+      this->coeffs [i] = 0;
+   }
 }
 
 FreqSelector::~FreqSelector ()

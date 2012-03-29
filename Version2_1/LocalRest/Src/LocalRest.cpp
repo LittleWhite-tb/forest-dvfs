@@ -117,7 +117,7 @@ int main (int argc, char ** argv)
    opts->dec = new AdaptiveDecisions (unit0);
    opts->prof = new PfmProfiler (unit0);
    opts->unit = &unit0;
-   
+
    // handle debug request
    if (mkfifo (PIPENAME, 0644) != 0)
    {
@@ -222,7 +222,7 @@ static void exitCleanup ()
       close (restCtx.pipeFD);
    }
 
-   if (!stat(PIPENAME, &buf))
+   if (!stat (PIPENAME, &buf))
    {
       unlink (PIPENAME);
    }
