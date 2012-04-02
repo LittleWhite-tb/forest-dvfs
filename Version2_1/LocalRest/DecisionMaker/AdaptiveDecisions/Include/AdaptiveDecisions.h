@@ -81,7 +81,7 @@ class AdaptiveDecisions : public DecisionMaker
        * Maximal execution time before re-evaluating which frequency to use
        * (us).
        */
-      static const unsigned int MAX_SLEEP_WIN = 150000;
+      static const unsigned int MAX_SLEEP_WIN = 200000;
 
       /**
        * Computes the hardware exploitation ratio from the hardware counters.

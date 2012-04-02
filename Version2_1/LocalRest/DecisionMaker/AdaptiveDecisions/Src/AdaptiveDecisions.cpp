@@ -17,8 +17,8 @@
  */
 
 /**
- @file AdaptiveDecisions.cpp
- @brief The AdaptiveDecisions class is in this file
+ * @file AdaptiveDecisions.cpp
+ * The AdaptiveDecisions class is in this file
  */
 
 #include <iostream>
@@ -85,7 +85,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
       else
       {
          // DEBUG
-         if (this->unit.getOSId () == 0)
+         /*if (this->unit.getOSId () == 0)
          {
             std::cout << "Evaluation result: ";
             for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
@@ -93,7 +93,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
                std::cout << this->ipcEval [i] << " ";
             }
             std::cout << std::endl;
-         }
+         }*/
 
          // promote all frequencies at 10% of the top IPC
          float maxIPC = 0;
@@ -113,10 +113,10 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
          // select the frequency and run it for a while
          res.freqId = this->freqSel->getBestFrequency ();
 
-         if (this->unit.getOSId () == 0)
+         /*if (this->unit.getOSId () == 0)
          {
             std::cout << "Elected freq: " << res.freqId << std::endl;
-         }
+         }*/
 
          // increase the sleeping window if we were previously using this freq
          if (this->formerExecFreqId == res.freqId)
@@ -135,10 +135,10 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
       res.freqId = 0;
       res.sleepWin = AdaptiveDecisions::IPC_EVAL_TIME;
 
-      if (this->unit.getOSId () == 0)
+      /*if (this->unit.getOSId () == 0)
       {
          std::cout << "boundness: " << (hwc.l2miss * 1.) / hwc.cycles << std::endl;
-      }
+      }*/
    }
 
    // remember some stuff to take better decisions afterwards
