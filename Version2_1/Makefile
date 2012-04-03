@@ -1,8 +1,8 @@
 CXX=g++
-CXXFLAGS=-O3 -msse3 -g -Wall -Wextra -DARCH_SNB
+CXXFLAGS=-O3 -msse3 -g -Wall -Wextra -DARCH_SNB -DREST_EXTRA_LOG
 LD=$(CXX)
 LD_FLAGS=
-LIBS=-lpthread -lm
+LIBS=-lpthread -lrt
 
 LIBPFM_VER=4.2.0
 LIBPFM_BIN=libpfm-$(LIBPFM_VER)/lib/libpfm.a

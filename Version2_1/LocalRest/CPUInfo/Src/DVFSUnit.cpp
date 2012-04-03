@@ -96,17 +96,28 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
       this->freqs [i] = tmpAllFreqs [i];
    }
 
-   // initialize the frequency tracking
-   this->freqSwitch = new unsigned long int [this->nbFreqs];
-
    // open the file in wich we have to write to set a frequency
    oss.str (std::string (""));
    oss << "/sys/devices/system/cpu/cpu" << id << "/cpufreq/scaling_setspeed";
    this->freqFs.open (oss.str ().c_str ());
+   if (!this->freqFs)
+   {
+      std::cerr << "Failed to open frequency setter for DVFS unit " << id << std::endl;
+   }
 
    // initialize the frequency to the minimal freq
    this->curFreqId = 1;   // hack to ensure that the frequency will really be set
    this->setFrequency (0);
+
+#ifdef REST_EXTRA_LOG
+   oss.str (std::string (""));
+   oss << "RESTlog" << id;
+   this->switchOFS.open (oss.str ().c_str (), std::ofstream::out | std::ofstream::trunc);
+   if (!this->switchOFS)
+   {
+      std::cerr << "Failed to open the log file for DVFS unit " << id << std::endl;
+   }
+#endif
 }
 
 DVFSUnit::~DVFSUnit ()
@@ -126,7 +137,12 @@ DVFSUnit::~DVFSUnit ()
 
    // cleanup memory
    delete [] this->freqs;
-   delete [] this->freqSwitch;
+
+#ifdef REST_EXTRA_LOG
+   this->switchOFS.flush ();
+   this->switchOFS.close ();
+#endif
+
 }
 
 void DVFSUnit::setFrequency (unsigned int freqId)
@@ -146,12 +162,10 @@ void DVFSUnit::setFrequency (unsigned int freqId)
 
    this->curFreqId = freqId;
 
-   // track the frequency switch
-   // this is performed without any synchronization, assuming that the elements
-   // of the array are aligned at a 8 bytes boundary which is always the case
-   // considering the data type and the memory allocation requirements.
-   // We exploit here the fact that x86(_64) cpus provide atomic operations on
-   // memory under this constraint.
-   this->freqSwitch [freqId] ++;
+#ifdef REST_EXTRA_LOG
+   struct timespec ts;
+   clock_gettime (CLOCK_MONOTONIC, &ts);
+   this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " " << freqId << std::endl;
+#endif
 }
 

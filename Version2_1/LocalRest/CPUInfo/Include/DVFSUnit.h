@@ -29,6 +29,10 @@
 #include <fstream>
 #include <stdint.h>
 
+#ifdef REST_EXTRA_LOG
+#include <time.h>
+#endif
+
 #include "Common.h"
 
 /**
@@ -104,20 +108,17 @@ class DVFSUnit
        */
       void setFrequency (unsigned int freqId);
 
+#ifdef REST_EXTRA_LOG
       /**
-       * Returns the number of switch to the given frequency.
-       *
-       * @param freqId The id of the frequency whose number of switches
-       * is required.
-       *
-       * @return The number of times this frequency has been used.
+       * Print a marker in the log file.
        */
-      inline unsigned long int getNbSwitch (unsigned int freqId) const
+      inline void logMarker ()
       {
-         assert (freqId < this->nbFreqs);
-
-         return this->freqSwitch [freqId];
+         struct timespec ts;
+         clock_gettime (CLOCK_MONOTONIC, &ts);
+         this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " #" << std::endl;
       }
+#endif
 
    private:
 
@@ -152,11 +153,12 @@ class DVFSUnit
        */
       std::ofstream freqFs;
 
+#ifdef REST_EXTRA_LOG
       /**
-       * Tracker of the number of frequency switches. Aligned at the 64 bits
-       * boundary to ensure atomicity of memory accesses.
+       * File where to output the frequency switches.
        */
-      uint64_t * freqSwitch;
+      std::ofstream switchOFS;
+#endif
 
 };
 

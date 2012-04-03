@@ -38,14 +38,10 @@
 #include "pfmProfiler.h"
 
 
-const static char PIPENAME [] = "REST2Switches";
-
-
 // local functions
 static void * thProf (void * arg);
 static void exitCleanup ();
 static void sigHandler (int nsig);
-static void pipeDebug ();
 
 // options used to create the threads
 typedef struct
@@ -60,12 +56,9 @@ typedef struct
 typedef struct
 {
    CPUInfo * cnfo;
-   int pipeFD;
-
    pthread_t * thIds;
    thOpts ** allOpts;
 } RESTContext;
-
 
 
 // the context
@@ -82,7 +75,6 @@ int main (int argc, char ** argv)
 
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
-   restCtx.pipeFD = -1;
 
    unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
    restCtx.thIds = new pthread_t [nbDVFSUnits];
@@ -119,15 +111,10 @@ int main (int argc, char ** argv)
    opts->prof = new PfmProfiler (unit0);
    opts->unit = &unit0;
 
-   // handle debug request
-   if (mkfifo (PIPENAME, 0644) != 0)
-   {
-      std::cerr << "Error when creating debug pipe: " << strerror (errno) << std::endl;
-      return EXIT_FAILURE;
-   }
-
    // cleanup stuff when exiting
+#ifdef REST_EXTRA_LOG
    signal (SIGUSR1, sigHandler);
+#endif
    signal (SIGINT, sigHandler);
    atexit (exitCleanup);
 
@@ -188,7 +175,14 @@ static void sigHandler (int nsig)
       // SIGUSER1
       if (nsig == SIGUSR1)
       {
-         pipeDebug ();
+#ifdef REST_EXTRA_LOG
+         // log a marker in all the logs
+         for (unsigned int i = 0; i < restCtx.cnfo->getNbDVFSUnits (); i++)
+         {
+            DVFSUnit & unit = restCtx.cnfo->getDVFSUnit (i);
+            unit.logMarker ();
+         }
+#endif
       }
    }
 }
@@ -197,7 +191,6 @@ static void exitCleanup ()
 {
    unsigned int i;
    unsigned int nbUnits = restCtx.cnfo->getNbDVFSUnits ();
-   struct stat buf;
 
    // cancel all threads (0 = main process, not a thread)
    for (i = 1; i < nbUnits; i++)
@@ -216,37 +209,5 @@ static void exitCleanup ()
    delete restCtx.cnfo;
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
-
-   // close the debug pipe if any open
-   if (restCtx.pipeFD > 0)
-   {
-      close (restCtx.pipeFD);
-   }
-
-   if (!stat (PIPENAME, &buf))
-   {
-      unlink (PIPENAME);
-   }
 }
-
-static void pipeDebug ()
-{
-   // DEPRECATED
-
-   /*
-   std::string stats = freq->debug ().c_str ();
-   size_t size = stats.size ();
-
-   if (pipeFD == -1)
-   {
-      pipeFD = open (PIPENAME, O_WRONLY);
-   }
-
-   if (write (pipeFD, stats.c_str (), size) == -1)
-   {
-      std::cerr << "Debug Failed" << std::endl;
-   }
-   */
-}
-
 
