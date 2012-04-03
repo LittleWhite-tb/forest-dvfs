@@ -17,17 +17,19 @@
  */
 
 /**
-  @file Profiler.cpp
-  @brief The Profiler class is in this file.
+  * @file Profiler.cpp
+  * The Profiler class is in this file.
  */
 
 #include "Profiler.h"
 
-Profiler::Profiler ()
+Profiler::Profiler (DVFSUnit & dvfsUnit) : unit (dvfsUnit)
 {
+
 }
 
 Profiler::~Profiler ()
 {
+
 }
 

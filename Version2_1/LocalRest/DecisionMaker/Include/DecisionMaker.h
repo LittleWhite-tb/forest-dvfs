@@ -17,61 +17,67 @@
  */
 
 /**
- @file DecisionMaker.h
- @brief The DecisionMaker class header is in this file
+ * @file DecisionMaker.h
+ * The DecisionMaker class header is in this file
  */
 
 #ifndef H_DECISIONMAKER
 #define H_DECISIONMAKER
 
-#include "CoresInfo.h"
+#include "Common.h"
+#include "DVFSUnit.h"
+
+/**
+ * Decision taken by the decision maker.
+ */
+typedef struct
+{
+   unsigned int freqId;    // new frequency to use
+   unsigned int sleepWin;  // new sleep window to use (usec)
+} Decision;
 
 /**
  * @class DecisionMaker
- * @brief This object take rights decision were ever it is pinned (on a CPU, on a server etc...)
- * in the way to save energy. This is an abstract class see Decision algorithms as NaiveDecisions,
- * PredictiveDecisions, and Markovs for implementations.
+ * Generic decision maker to decide the next frequency and sleep window to use.
+ * There is one decision maker instancer per DVFS unit.
  */
 class DecisionMaker
 {
    public:
-      /**
-       * @brief Constructor
-       */
-      DecisionMaker (CoresInfo * coresInfo);
 
       /**
-       * @brief Destructor
+       * Constructor
        */
-      virtual ~DecisionMaker (void);
+      DecisionMaker (DVFSUnit & dvfsUnit);
 
       /**
-       * @brief Gives a core number and the new frequency to set
-       * @param core the core ID
-       * @param HWCounters integer array the three hardware counters given by the profiler
-       * @return the frequency to move to
+       * Destructor
        */
-      virtual int giveReport (unsigned int core,
-                              const unsigned long long HWCounters [3]) const = 0;
+      virtual ~DecisionMaker ();
 
       /**
-       * @brief compute the boundness of a program at a certain time, values shall
-       * be given by the profiler. Boundness of 0 means totally CPU bound,
-       * 1 = memory bound.
+       * Decides what to do considering the last measurements.
        *
-       * @param sqFullStall Counts cycles the Super Queue is full.
-       * Neither of the threads on this core will be able to access the uncore
-       * @param unhaltedCore elapsed cycles, correlation to time not maintained with
-       * time when frequency scaling operates
-       * @param l2Miss L2 cache misses
-       * @return the boundness of the sample
+       * @param hwc The hardware counters values measured
+       *
+       * @return A decision object where a new core frequency and sleeping
+       * window is given.
        */
-      float computeBoundness (unsigned long long sqFullStall,
-                              unsigned long long unhaltedCore, unsigned long long l2Miss) const;
+      virtual Decision takeDecision (const HWCounters & hwc) = 0;
+
+      /**
+       * Gives an initialization decision which defines a default sleep window
+       * and frequency to use.
+       *
+       * @return A default decision object.
+       */
+      virtual Decision defaultDecision () = 0;
 
    protected:
 
-      //Variables
-      CoresInfo * coresInfo;
+      /**
+       * Which DVFS unit we are handling.
+       */
+      DVFSUnit & unit;
 };
 #endif

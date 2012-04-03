@@ -27,8 +27,8 @@
 
 #include "NaiveDecisions.h"
 
-NaiveDecisions::NaiveDecisions (CoresInfo * coresInfo) :
-   DecisionMaker (coresInfo)
+NaiveDecisions::NaiveDecisions (DVFSUnit & unit) :
+   DecisionMaker (unit)
 {
 
 }
@@ -38,12 +38,12 @@ NaiveDecisions::~NaiveDecisions (void)
 
 }
 
+#if FALSE
 int NaiveDecisions::giveReport (unsigned int core,
-                                const unsigned long long HWCounters [3])
+                                const unsigned long long * HWCounters)
 const
 {
-   float boundness = computeBoundness (HWCounters [0], HWCounters [1],
-                                       HWCounters [2]);
+   float boundness = computeBoundness (HWCounters [0], HWCounters [1], HWCounters [2]);
 
    unsigned int newFrequency = round ((unsigned int)
                                        ((1 - boundness) * (coresInfo->numFreqs - 1)));
@@ -69,3 +69,4 @@ const
       return -1;
    }
 }
+#endif

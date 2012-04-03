@@ -18,108 +18,120 @@
 
 /**
  * @file LocalRest.cpp
- * @brief The LocalRest class is in this file. This is the main file for the
- * local rest server.
+ * The LocalRest class is in this file. This is the main file for the local rest
+ * server.
  */
 
 #include <cstdlib>
-#include <pthread.h>
-#include <unistd.h>
-#include <iostream>
+#include <cerrno>
+#include <cstring>
 #include <signal.h>
-#include <fcntl.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <cstring>
 
-
+#include "Common.h"
 #include "LocalRest.h"
-#include "CoresInfo.h"
-#include "DecisionMaker.h"
-#include "NaiveDecisions.h"
-#include "Profiler.h"
+#include "CPUInfo.h"
+#include "AdaptiveDecisions.h"
 #include "pfmProfiler.h"
-#include "FreqChanger.h"
 
 
-// Options for threads
-typedef struct
-{
-   unsigned int cpu;    // which cpu they watch
-   bool main;           // main thread
-} thOptions;
+const static char PIPENAME [] = "REST2Switches";
 
 
 // local functions
-static void * thProf (void * opts);
+static void * thProf (void * arg);
 static void exitCleanup ();
 static void sigHandler (int nsig);
 static void pipeDebug ();
 
+// options used to create the threads
+typedef struct
+{
+   unsigned int id;
+   DecisionMaker * dec;
+   Profiler * prof;
+   DVFSUnit * unit;
+} thOpts;
 
 // variables shared among the threads
-static pthread_t * thIds;
-static CoresInfo * cnfo;
-static DecisionMaker * dec;
-static FreqChanger * freq;
-static Profiler * prof;
-static thOptions * thopts;
-static int pipeFD = -1;
+typedef struct
+{
+   CPUInfo * cnfo;
+   int pipeFD;
+
+   pthread_t * thIds;
+   thOpts ** allOpts;
+} RESTContext;
+
+
+
+// the context
+static RESTContext restCtx;
+
 
 /**
- * @brief Rest entry point.
- *
+ * Rest entry point.
  */
 int main (int argc, char ** argv)
 {
    (void)(argc);
    (void)(argv);
 
-   // initialize helpers
-   cnfo = new CoresInfo ();
-   dec = new NaiveDecisions (cnfo);
-   freq = new FreqChanger (cnfo);
-   prof = new PfmProfiler ();
+   // initialize the general context
+   restCtx.cnfo = new CPUInfo ();
+   restCtx.pipeFD = -1;
 
-   // # of processors
-   unsigned int numCores = sysconf (_SC_NPROCESSORS_ONLN);
-   thopts = new thOptions [numCores];
-   thIds = new pthread_t [numCores];
+   unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
+   restCtx.thIds = new pthread_t [nbDVFSUnits];
+   restCtx.allOpts = new thOpts * [nbDVFSUnits];
 
    // launch threads
-   for (unsigned int i = 1; i < numCores; i++)
+   for (unsigned int i = 1; i < nbDVFSUnits; i++)
    {
+      DVFSUnit & unit = restCtx.cnfo->getDVFSUnit (i);
+
       // initialize options
-      thopts [i].cpu = i;
-      thopts [i].main = false;
+      restCtx.allOpts [i] = new thOpts ();
+      thOpts * opts = restCtx.allOpts [i];
+      opts->id = i;
+      opts->dec = new AdaptiveDecisions (unit);
+      opts->prof = new PfmProfiler (unit);
+      opts->unit = &unit;
 
       // run thread
-      if (pthread_create (&thIds [i], NULL, thProf, &thopts [i]) != 0)
+      if (pthread_create (&restCtx.thIds [i], NULL, thProf, opts) != 0)
       {
          std::cerr << "Failed to create profiler thread" << std::endl;
          return EXIT_FAILURE;
       }
    }
 
-   // cleanup stuff when exiting
-   signal (SIGINT, sigHandler);
-   atexit (exitCleanup);
+   // the main process is the main profiler
+   DVFSUnit & unit0 = restCtx.cnfo->getDVFSUnit (0);
+
+   restCtx.allOpts [0] = new thOpts ();
+   thOpts * opts = restCtx.allOpts [0];
+   opts->id = 0;
+   opts->dec = new AdaptiveDecisions (unit0);
+   opts->prof = new PfmProfiler (unit0);
+   opts->unit = &unit0;
 
    // handle debug request
-   if (mkfifo (NAMEPIPE, 0644) != 0)
+   if (mkfifo (PIPENAME, 0644) != 0)
    {
       std::cerr << "Error when creating debug pipe: " << strerror (errno) << std::endl;
       return EXIT_FAILURE;
    }
 
+   // cleanup stuff when exiting
    signal (SIGUSR1, sigHandler);
+   signal (SIGINT, sigHandler);
+   atexit (exitCleanup);
 
-
-   // the main process is the main profiler
-   thopts [0].cpu = 0;
-   thopts [0].main = true;
-
-   thProf (&thopts [0]);
+   thProf (opts);
 
    // never reached
    return EXIT_SUCCESS;
@@ -127,13 +139,12 @@ int main (int argc, char ** argv)
 
 static void * thProf (void * arg)
 {
-   thOptions * opt = (thOptions *) arg;
-   unsigned int sleepWin = INIT_SLEEP_WIN;
-   unsigned long long int counters [3];    // sq_full_cycles, unhalted_core_cycles, l2_misses
-   int nfreq;
+   HWCounters hwc;
+   thOpts * opts = (thOpts *) arg;
+   Decision lastDec;
 
    // only the main thread receives signals
-   if (!opt->main)
+   if (opts->id != 0)
    {
       sigset_t set;
 
@@ -143,34 +154,22 @@ static void * thProf (void * arg)
       pthread_sigmask (SIG_BLOCK, &set, NULL);
    }
 
-   // reset counters
-   prof->read (opt->cpu, counters);
+   // reset counters and get initialization data
+   opts->prof->read (hwc);
+   lastDec = opts->dec->defaultDecision ();
 
    // do it as long as we are not getting killed by a signal
    while (true)
    {
       // wait for a while
-      usleep (sleepWin);
+      usleep (lastDec.sleepWin);
 
-      // adapt to what's happening
-      prof->read (opt->cpu, counters);
-      nfreq = dec->giveReport (opt->cpu, counters);
+      // check what's going on
+      opts->prof->read (hwc);
+      lastDec = opts->dec->takeDecision (hwc);
 
-      // frequency change requested
-      if (nfreq != -1)
-      {
-         // reset sleep window size
-         sleepWin = INIT_SLEEP_WIN;
-
-         // change frequency
-         freq->changeFreq (opt->cpu, nfreq);
-      }
-      else  // no frequency modification requested
-      {
-         // increase sleep window size
-         sleepWin *= 2;
-         sleepWin = sleepWin > LONGEST_SLEEP_WIN ? LONGEST_SLEEP_WIN : sleepWin;
-      }
+      // switch frequency
+      opts->unit->setFrequency (lastDec.freqId);
    }
 
    // pacify compiler but we never get out of while loop
@@ -184,55 +183,70 @@ static void sigHandler (int nsig)
    {
       exit (EXIT_FAILURE);
    }
-   else if (nsig == SIGUSR1)
+   else
    {
-      pipeDebug ();
+      // SIGUSER1
+      if (nsig == SIGUSR1)
+      {
+         pipeDebug ();
+      }
+   }
+}
+
+static void exitCleanup ()
+{
+   unsigned int i;
+   unsigned int nbUnits = restCtx.cnfo->getNbDVFSUnits ();
+   struct stat buf;
+
+   // cancel all threads (0 = main process, not a thread)
+   for (i = 1; i < nbUnits; i++)
+   {
+      pthread_cancel (restCtx.thIds [i]);
+      pthread_join (restCtx.thIds [i], NULL);
+   }
+
+   // clean the memory used by all the threads
+   for (i = 0; i < nbUnits; i++)
+   {
+      delete restCtx.allOpts [i]->prof;
+      delete restCtx.allOpts [i]->dec;
+      delete restCtx.allOpts [i];
+   }
+   delete restCtx.cnfo;
+   delete [] restCtx.thIds;
+   delete [] restCtx.allOpts;
+
+   // close the debug pipe if any open
+   if (restCtx.pipeFD > 0)
+   {
+      close (restCtx.pipeFD);
+   }
+
+   if (!stat (PIPENAME, &buf))
+   {
+      unlink (PIPENAME);
    }
 }
 
 static void pipeDebug ()
 {
+   // DEPRECATED
+
+   /*
    std::string stats = freq->debug ().c_str ();
    size_t size = stats.size ();
 
    if (pipeFD == -1)
    {
-      pipeFD = open (NAMEPIPE, O_WRONLY);
+      pipeFD = open (PIPENAME, O_WRONLY);
    }
 
    if (write (pipeFD, stats.c_str (), size) == -1)
    {
       std::cerr << "Debug Failed" << std::endl;
    }
+   */
 }
 
-
-static void exitCleanup ()
-{
-   unsigned int i;
-   unsigned int numCores = sysconf (_SC_NPROCESSORS_ONLN);
-
-   // cancel all threads (0 = main process, not a thread)
-   for (i = 1; i < numCores; i++)
-   {
-      pthread_cancel (thIds [i]);
-      pthread_join (thIds [i], NULL);
-   }
-
-   if (pipeFD != -1)
-   {
-      close (pipeFD);
-   }
-
-   unlink (NAMEPIPE);
-
-   // free all memory
-   delete prof;
-   delete freq;
-   delete dec;
-   delete cnfo;
-
-   delete [] thopts;
-   delete [] thIds;
-}
 
