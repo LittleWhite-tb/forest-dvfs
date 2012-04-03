@@ -67,6 +67,11 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    float HWexp = this->getHWExploitationRatio (hwc);
    bool inEvalStep;
 
+   unsigned int minEvalFreqId = rest_max (0, 
+         (int) this->formerExecFreqId - (int) AdaptiveDecisions::NB_EVAL_NEAR_FREQS);
+   unsigned int maxEvalFreqId = rest_min (this->unit.getNbFreqs() - 1,
+         this->formerExecFreqId + AdaptiveDecisions::NB_EVAL_NEAR_FREQS);
+   
    // were we in the evaluation step
    inEvalStep = curSleepWin == AdaptiveDecisions::IPC_EVAL_TIME;
 
@@ -76,7 +81,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
       this->ipcEval [curFreqId] = HWexp;
 
       // we have other frequencies to evaluate
-      if (curFreqId != this->unit.getNbFreqs () - 1)
+      if (curFreqId != maxEvalFreqId)
       {
          res.freqId = curFreqId + 1;
          res.sleepWin = AdaptiveDecisions::IPC_EVAL_TIME;
@@ -85,24 +90,24 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
       else
       {
          // DEBUG
-         /*if (this->unit.getOSId () == 0)
+         if (AdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0)
          {
-            std::cout << "Evaluation result: ";
-            for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
+            std::cout << "Evaluation result [" << minEvalFreqId << '-' << maxEvalFreqId << "]: ";
+            for (unsigned int i = minEvalFreqId; i <= maxEvalFreqId; i++)
             {
                std::cout << this->ipcEval [i] << " ";
             }
             std::cout << std::endl;
-         }*/
+         }
 
          // promote all frequencies at 10% of the top IPC
          float maxIPC = 0;
-         for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
+         for (unsigned int i = minEvalFreqId; i <= maxEvalFreqId; i++)
          {
             maxIPC = rest_max (maxIPC, this->ipcEval [i]);
          }
 
-         for (int i = this->unit.getNbFreqs () - 1; i >= 0; i--)
+         for (unsigned int i = minEvalFreqId; i <= maxEvalFreqId; i++)
          {
             if (this->ipcEval [i] > 0.9 * maxIPC)
             {
@@ -113,10 +118,10 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
          // select the frequency and run it for a while
          res.freqId = this->freqSel->getBestFrequency ();
 
-         /*if (this->unit.getOSId () == 0)
+         if (AdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0)
          {
             std::cout << "Elected freq: " << res.freqId << std::endl;
-         }*/
+         }
 
          // increase the sleeping window if we were previously using this freq
          if (this->formerExecFreqId == res.freqId)
@@ -132,13 +137,13 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    // enterring the evaluation step
    else
    {
-      res.freqId = 0;
+      res.freqId = minEvalFreqId;
       res.sleepWin = AdaptiveDecisions::IPC_EVAL_TIME;
 
-      /*if (this->unit.getOSId () == 0)
+      if (AdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0)
       {
          std::cout << "boundness: " << (hwc.l2miss * 1.) / hwc.cycles << std::endl;
-      }*/
+      }
    }
 
    // remember some stuff to take better decisions afterwards

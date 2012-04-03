@@ -23,7 +23,6 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cmath>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -40,11 +39,6 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
    bool hasTB;    // has TurboBoost?
    unsigned int tmp;  // multi-purpose int
    std::vector<int> tmpAllFreqs; // to temporarily store frequencies
-   unsigned int nbAvailFreqs;	      // # of frequencies exposed by the hardware
-   unsigned int nbAvailNoTBFreqs;   // # of frequencies exposed except TB
-   unsigned int nbRegHanFreqs;	   // # of regular frequencies we can handle (no TB)
-   unsigned int nbHanFreqs;	      // # of frequencies we handle (including turboboost)
-   float tmpf;	// temporary float
 
    this->procId = id;
 
@@ -93,40 +87,13 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
    }
    ifs.close ();
 
-   // bound the number of frequencies
-   nbAvailFreqs = tmpAllFreqs.size ();
+   // transfert the frequencies into an array
+   this->nbFreqs = tmpAllFreqs.size() - ((hasTB && !useTB) ? 1 : 0);
+   this->freqs = new unsigned int [this->nbFreqs];
 
-   if (hasTB)
+   for (unsigned int i = 0; i < this->nbFreqs; i++)
    {
-      nbAvailNoTBFreqs = nbAvailFreqs - 1;
-      nbRegHanFreqs = rest_min (nbAvailFreqs - 1, DVFSUnit::MAX_NB_FREQS);
-      nbHanFreqs = nbRegHanFreqs + (useTB ? 1 : 0);
-   }
-   else
-   {
-      nbAvailNoTBFreqs = nbAvailFreqs;
-      nbRegHanFreqs = rest_min (nbAvailFreqs, DVFSUnit::MAX_NB_FREQS);
-      nbHanFreqs = nbRegHanFreqs;
-   }
-
-   // transfert the required amount of frequencies into an array
-   this->nbFreqs = nbHanFreqs;
-   this->freqs = new unsigned int [nbHanFreqs];
-
-   tmpf = 0;
-   for (unsigned int i = 0;
-         i < nbRegHanFreqs;
-         i++)
-   {
-      this->freqs [i] = tmpAllFreqs[(unsigned int) roundf(tmpf)];
-
-      tmpf += (float) nbAvailNoTBFreqs / DVFSUnit::MAX_NB_FREQS;
-   }
-
-   // always consider the specific turboboost frequency
-   if (hasTB && useTB)
-   {
-      this->freqs [this->nbFreqs - 1] = tmpAllFreqs [nbAvailFreqs - 1];
+      this->freqs [i] = tmpAllFreqs [i];
    }
 
    // initialize the frequency tracking
@@ -138,7 +105,7 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
    this->freqFs.open (oss.str ().c_str ());
 
    // initialize the frequency to the minimal freq
-   this->curFreqId = 1;   // hack to ensure that the frequency will be set
+   this->curFreqId = 1;   // hack to ensure that the frequency will really be set
    this->setFrequency (0);
 }
 

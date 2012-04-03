@@ -45,7 +45,7 @@ class DVFSUnit
        * @param id The id of the processor for the OS
        * @param useTB Do we consider the TurboBoost frequency or ignore it.
        */
-      DVFSUnit (unsigned int id, bool useTB = true);
+      DVFSUnit (unsigned int id, bool useTB);
 
       /**
        * Destructor
@@ -120,12 +120,6 @@ class DVFSUnit
       }
 
    private:
-
-      /**
-       * Maximal number of different frequencies we want to handle. This does
-       * not include a possible turbo boost frequency.
-       */
-      static const unsigned int MAX_NB_FREQS = 5;
 
       /**
        * The id of the processor we are handling.

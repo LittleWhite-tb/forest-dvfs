@@ -68,6 +68,11 @@ class AdaptiveDecisions : public DecisionMaker
    private:
 
       /**
+       * Debug flag.
+       */
+      static const bool VERBOSE = false;
+
+      /**
        * Time required to evaluate the IPC for one frequency (us).
        */
       static const unsigned int IPC_EVAL_TIME = 20;
@@ -82,6 +87,14 @@ class AdaptiveDecisions : public DecisionMaker
        * (us).
        */
       static const unsigned int MAX_SLEEP_WIN = 200000;
+
+      /**
+       * Number of frequencies we consider bellow and above the current
+       * frequency during the evaluation of frequencies. 2 here means that
+       * at most four frequencies will be evaluated: two just bellow the current
+       * one and two just above.
+       */
+      static const unsigned int NB_EVAL_NEAR_FREQS = 2;
 
       /**
        * Computes the hardware exploitation ratio from the hardware counters.

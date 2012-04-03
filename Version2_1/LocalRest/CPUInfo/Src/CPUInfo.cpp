@@ -51,7 +51,7 @@ CPUInfo::CPUInfo ()
       }
 
       // create the dvfs unit
-      this->DVFSUnits.push_back (new DVFSUnit (i));
+      this->DVFSUnits.push_back (new DVFSUnit (i, false));
 
       // remember the processor numbers which are handled
       oss.str ("");
