@@ -67,11 +67,11 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    float HWexp = this->getHWExploitationRatio (hwc);
    bool inEvalStep;
 
-   unsigned int minEvalFreqId = rest_max (0, 
-         (int) this->formerExecFreqId - (int) AdaptiveDecisions::NB_EVAL_NEAR_FREQS);
-   unsigned int maxEvalFreqId = rest_min (this->unit.getNbFreqs() - 1,
-         this->formerExecFreqId + AdaptiveDecisions::NB_EVAL_NEAR_FREQS);
-   
+   unsigned int minEvalFreqId = rest_max (0,
+                                          (int) this->formerExecFreqId - (int) AdaptiveDecisions::NB_EVAL_NEAR_FREQS);
+   unsigned int maxEvalFreqId = rest_min (this->unit.getNbFreqs () - 1,
+                                          this->formerExecFreqId + AdaptiveDecisions::NB_EVAL_NEAR_FREQS);
+
    // were we in the evaluation step
    inEvalStep = curSleepWin == AdaptiveDecisions::IPC_EVAL_TIME;
 

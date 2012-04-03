@@ -88,7 +88,7 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
    ifs.close ();
 
    // transfert the frequencies into an array
-   this->nbFreqs = tmpAllFreqs.size() - ((hasTB && !useTB) ? 1 : 0);
+   this->nbFreqs = tmpAllFreqs.size () - ((hasTB && !useTB) ? 1 : 0);
    this->freqs = new unsigned int [this->nbFreqs];
 
    for (unsigned int i = 0; i < this->nbFreqs; i++)
