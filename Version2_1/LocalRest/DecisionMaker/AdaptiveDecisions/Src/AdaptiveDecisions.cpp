@@ -152,6 +152,15 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
 
    if (res.sleepWin != AdaptiveDecisions::IPC_EVAL_TIME)
    {
+#ifdef REST_EXTRA_LOG
+      if (res.freqId != this->formerExecFreqId)
+      {
+         struct timespec ts;
+         clock_gettime (CLOCK_MONOTONIC, &ts);
+         this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " " << res.freqId << std::endl;
+      }
+#endif
+
       this->formerExecFreqId = res.freqId;
       this->formerExecSleepWin = res.sleepWin;
    }

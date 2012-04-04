@@ -24,6 +24,12 @@
 #ifndef H_DECISIONMAKER
 #define H_DECISIONMAKER
 
+#ifdef REST_EXTRA_LOG
+#include <iostream>
+#include <fstream>
+#include <time.h>
+#endif
+
 #include "Common.h"
 #include "DVFSUnit.h"
 
@@ -73,11 +79,31 @@ class DecisionMaker
        */
       virtual Decision defaultDecision () = 0;
 
+#ifdef REST_EXTRA_LOG
+      /**
+       * Print a marker in the log file.
+       */
+      inline void logMarker ()
+      {
+         struct timespec ts;
+         clock_gettime (CLOCK_MONOTONIC, &ts);
+         this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " #" << std::endl;
+      }
+#endif
+
    protected:
 
       /**
        * Which DVFS unit we are handling.
        */
       DVFSUnit & unit;
+
+#ifdef REST_EXTRA_LOG
+      /**
+       * File where to output the frequency switches.
+       */
+      std::ofstream switchOFS;
+#endif
+
 };
 #endif

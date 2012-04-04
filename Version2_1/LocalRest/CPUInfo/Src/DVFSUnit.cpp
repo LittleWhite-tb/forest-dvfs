@@ -108,16 +108,6 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
    // initialize the frequency to the minimal freq
    this->curFreqId = 1;   // hack to ensure that the frequency will really be set
    this->setFrequency (0);
-
-#ifdef REST_EXTRA_LOG
-   oss.str (std::string (""));
-   oss << "RESTlog" << id;
-   this->switchOFS.open (oss.str ().c_str (), std::ofstream::out | std::ofstream::trunc);
-   if (!this->switchOFS)
-   {
-      std::cerr << "Failed to open the log file for DVFS unit " << id << std::endl;
-   }
-#endif
 }
 
 DVFSUnit::~DVFSUnit ()
@@ -137,12 +127,6 @@ DVFSUnit::~DVFSUnit ()
 
    // cleanup memory
    delete [] this->freqs;
-
-#ifdef REST_EXTRA_LOG
-   this->switchOFS.flush ();
-   this->switchOFS.close ();
-#endif
-
 }
 
 void DVFSUnit::setFrequency (unsigned int freqId)
@@ -161,11 +145,5 @@ void DVFSUnit::setFrequency (unsigned int freqId)
    this->freqFs.flush ();
 
    this->curFreqId = freqId;
-
-#ifdef REST_EXTRA_LOG
-   struct timespec ts;
-   clock_gettime (CLOCK_MONOTONIC, &ts);
-   this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " " << freqId << std::endl;
-#endif
 }
 

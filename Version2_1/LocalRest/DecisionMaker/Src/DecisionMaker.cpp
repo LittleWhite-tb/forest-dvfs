@@ -17,19 +17,36 @@
  */
 
 /**
- @file DecisionMaker.cpp
- @brief The  DecisionMaker class is in this file
+ * @file DecisionMaker.cpp
+ * The  DecisionMaker class is in this file
  */
+
+#ifdef REST_EXTRA_LOG
+#include <sstream>
+#endif
 
 #include "DecisionMaker.h"
 
 DecisionMaker::DecisionMaker (DVFSUnit & dvfsUnit) : unit (dvfsUnit)
 {
+#ifdef REST_EXTRA_LOG
+   std::ostringstream oss;
 
+   oss.str (std::string (""));
+   oss << "RESTlog" << dvfsUnit.getOSId();
+   this->switchOFS.open (oss.str ().c_str (), std::ofstream::out | std::ofstream::trunc);
+   if (!this->switchOFS)
+   {
+      std::cerr << "Failed to open the log file for DVFS unit " << dvfsUnit.getOSId() << std::endl;
+   }
+#endif
 }
 
 DecisionMaker::~DecisionMaker (void)
 {
-
+#ifdef REST_EXTRA_LOG
+   this->switchOFS.flush ();
+   this->switchOFS.close ();
+#endif
 }
 

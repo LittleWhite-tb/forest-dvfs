@@ -179,8 +179,7 @@ static void sigHandler (int nsig)
          // log a marker in all the logs
          for (unsigned int i = 0; i < restCtx.cnfo->getNbDVFSUnits (); i++)
          {
-            DVFSUnit & unit = restCtx.cnfo->getDVFSUnit (i);
-            unit.logMarker ();
+            restCtx.allOpts [i]->dec->logMarker ();
          }
 #endif
       }

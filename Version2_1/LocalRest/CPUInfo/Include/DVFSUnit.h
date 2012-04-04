@@ -29,10 +29,6 @@
 #include <fstream>
 #include <stdint.h>
 
-#ifdef REST_EXTRA_LOG
-#include <time.h>
-#endif
-
 #include "Common.h"
 
 /**
@@ -108,18 +104,6 @@ class DVFSUnit
        */
       void setFrequency (unsigned int freqId);
 
-#ifdef REST_EXTRA_LOG
-      /**
-       * Print a marker in the log file.
-       */
-      inline void logMarker ()
-      {
-         struct timespec ts;
-         clock_gettime (CLOCK_MONOTONIC, &ts);
-         this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " #" << std::endl;
-      }
-#endif
-
    private:
 
       /**
@@ -152,14 +136,6 @@ class DVFSUnit
        * File where to write to set the frequency.
        */
       std::ofstream freqFs;
-
-#ifdef REST_EXTRA_LOG
-      /**
-       * File where to output the frequency switches.
-       */
-      std::ofstream switchOFS;
-#endif
-
 };
 
 
