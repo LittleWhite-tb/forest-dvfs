@@ -33,11 +33,11 @@ DecisionMaker::DecisionMaker (DVFSUnit & dvfsUnit) : unit (dvfsUnit)
    std::ostringstream oss;
 
    oss.str (std::string (""));
-   oss << "RESTlog" << dvfsUnit.getOSId();
+   oss << "RESTlog" << dvfsUnit.getOSId ();
    this->switchOFS.open (oss.str ().c_str (), std::ofstream::out | std::ofstream::trunc);
    if (!this->switchOFS)
    {
-      std::cerr << "Failed to open the log file for DVFS unit " << dvfsUnit.getOSId() << std::endl;
+      std::cerr << "Failed to open the log file for DVFS unit " << dvfsUnit.getOSId () << std::endl;
    }
 #endif
 }

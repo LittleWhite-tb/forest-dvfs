@@ -157,6 +157,15 @@ static void * thProf (void * arg)
 
       // switch frequency
       opts->unit->setFrequency (lastDec.freqId);
+
+      // if needed, wait a bit for the freq to be applied
+      if (lastDec.preCntResetPause != 0)
+      {
+         usleep (lastDec.preCntResetPause);
+
+         // reset the counters
+         opts->prof->read (hwc);
+      }
    }
 
    // pacify compiler but we never get out of while loop

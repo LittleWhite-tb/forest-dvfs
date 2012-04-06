@@ -40,6 +40,7 @@ typedef struct
 {
    unsigned int freqId;    // new frequency to use
    unsigned int sleepWin;  // new sleep window to use (usec)
+   unsigned int preCntResetPause;   // amount of time to wait before reseting the counters (in usec)
 } Decision;
 
 /**

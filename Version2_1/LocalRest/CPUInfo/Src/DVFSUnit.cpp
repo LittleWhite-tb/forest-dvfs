@@ -71,6 +71,19 @@ DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
       hasTB = true;
    }
 
+   // get the latency of this unit
+   oss.str (std::string (""));
+   oss << "/sys/devices/system/cpu/cpu" << id << "/cpufreq/cpuinfo_transition_latency";
+   ifs.open (oss.str ().c_str ());
+   if (!ifs)
+   {
+      std::cerr << "Failed to fetch the latency for cpu " << id << std::endl;
+      // default under linux, if it may help
+      this->latency = 10000;
+   }
+   ifs >> this->latency;
+   ifs.close ();
+
    // retrieve the available frequencies
    oss.str (std::string (""));
    oss << "/sys/devices/system/cpu/cpu" << id << "/cpufreq/scaling_available_frequencies";

@@ -104,6 +104,17 @@ class DVFSUnit
        */
       void setFrequency (unsigned int freqId);
 
+      /**
+       * Returns the latency required to switch the frequency.
+       *
+       * @return The latency (in ns) required by the unit to actually
+       * change its frequency.
+       */
+      inline unsigned int getSwitchLatency ()
+      {
+         return this->latency;
+      }
+
    private:
 
       /**
@@ -136,6 +147,11 @@ class DVFSUnit
        * File where to write to set the frequency.
        */
       std::ofstream freqFs;
+
+      /**
+       * Latency imposed to switch the frequency (nanoseconds).
+       */
+      unsigned int latency;
 };
 
 

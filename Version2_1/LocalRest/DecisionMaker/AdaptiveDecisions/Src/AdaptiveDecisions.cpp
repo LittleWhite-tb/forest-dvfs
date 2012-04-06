@@ -53,6 +53,7 @@ Decision AdaptiveDecisions::defaultDecision ()
 
    res.sleepWin = AdaptiveDecisions::MIN_SLEEP_WIN;
    res.freqId = 0;
+   res.preCntResetPause = 0;
 
    return res;
 }
@@ -161,8 +162,18 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
       }
 #endif
 
+      // we don't care about when the frequency will be set
+      res.preCntResetPause = 0;
+
+      // remember what we have decided
       this->formerExecFreqId = res.freqId;
       this->formerExecSleepWin = res.sleepWin;
+   }
+   else
+   {
+      // we are in an evaluation step, wait before reseting the counters: the
+      // latency has to be actually set before we can measure anything relevant
+      res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
    }
 
    return res;
