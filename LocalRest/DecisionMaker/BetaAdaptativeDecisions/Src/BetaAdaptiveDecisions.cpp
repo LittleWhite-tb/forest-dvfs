@@ -145,10 +145,22 @@ Decision BetaAdaptiveDecisions::takeDecision (const HWCounters & hwc)
 			}
 			int betaCoef = tmpNumerator / tmpDenominator;
 
+			// DEBUG
+			if (BetaAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0)
+			{
+				std::cout << "Numerator : " << tmpNumerator << " Denominator : " << tmpDenominator << " betaCoef : " << betaCoef << std::endl;
+			}
+
 			//Find the virtual freq
 			unsigned int minVirtFreq = this->unit.getFrequency(0);
 			unsigned int maxVirtFreq = (this->unit.getFrequency(this->unit.getNbFreqs()-1))/(1+(0.05/betaCoef));
 			unsigned int virualFreq = rest_max(minVirtFreq,maxVirtFreq);
+
+			// DEBUG
+			if (BetaAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0)
+			{
+				std::cout << "minVirtFreq : " << minVirtFreq << " maxVirtFreq : " << maxVirtFreq << " virualFreq : " << virualFreq << std::endl;
+			}
 
 			//select the real adjacent freq of the virutal one
 			int adjacentHighFreqId = -1,adjacentLowFreqId = -1;
@@ -161,6 +173,11 @@ Decision BetaAdaptiveDecisions::takeDecision (const HWCounters & hwc)
 			}
 			adjacentLowFreqId = adjacentHighFreqId - 1;
 
+			// DEBUG
+			if (BetaAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0)
+			{
+				std::cout << "adjacentHighFreqId : " << adjacentHighFreqId << " adjacentLowFreqId : " << adjacentLowFreqId << std::endl;
+			}
 			//compute the runing time for each
 			int rFactor = ((1+(0.05/betaCoef))/(this->unit.getFrequency(this->unit.getNbFreqs()-1))) - (1/this->unit.getFrequency(adjacentHighFreqId));
 			rFactor /= ((1/this->unit.getFrequency(adjacentLowFreqId))-(1/this->unit.getFrequency(adjacentHighFreqId)));

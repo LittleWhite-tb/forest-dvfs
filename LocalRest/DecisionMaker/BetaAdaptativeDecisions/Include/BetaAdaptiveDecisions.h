@@ -70,7 +70,7 @@ class BetaAdaptiveDecisions : public DecisionMaker
       /**
        * Debug flag.
        */
-      static const bool VERBOSE = false;
+      static const bool VERBOSE = true;
 
       /**
 		* The fixed time for evaluation.
