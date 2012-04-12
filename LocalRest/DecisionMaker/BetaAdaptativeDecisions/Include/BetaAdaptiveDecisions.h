@@ -40,7 +40,7 @@ class BetaAdaptiveDecisions : public DecisionMaker
       /**
        * Constructor
        */
-	BetaAdaptiveDecisions (DVFSUnit & dvfsUnit);
+		BetaAdaptiveDecisions (DVFSUnit & dvfsUnit);
 
       /**
        * Destructor
