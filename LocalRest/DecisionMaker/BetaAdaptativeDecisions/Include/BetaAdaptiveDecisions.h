@@ -26,6 +26,7 @@
 
 #include "DecisionMaker.h"
 #include "FreqSelector.h"
+#include <iostream>
 #include <stack>
 /**
  * @class AdaptiveDecisions
@@ -56,7 +57,7 @@ class BetaAdaptiveDecisions : public DecisionMaker
        * window is given.
        */
       Decision takeDecision (const HWCounters & hwc);
-
+      Decision takeDecision (const HWCounters & hwc, bool delayedStart);
       /**
        * Gives an initialization decision which defines a default sleep window
        * and frequency to use.
@@ -66,6 +67,11 @@ class BetaAdaptiveDecisions : public DecisionMaker
       Decision defaultDecision ();
 
    private:
+
+	bool inEvalStep;
+	bool lastFreqEval;
+	bool jumpToNextBetaComputation;
+	bool updateMips;
 
       /**
        * Debug flag.
@@ -128,7 +134,7 @@ class BetaAdaptiveDecisions : public DecisionMaker
 		*/
 		inline float getMipsRatio (const HWCounters & hwc) const
 		{
-			return (( hwc.retired / 1. * hwc.cycles )  * this->unit.getFrequency (this->unit.getFrequency ()));
+			return ((( hwc.retired /(1.0 * hwc.cycles) ) * this->unit.getFrequency (this->unit.getFrequency ()))/1000000);
 		}
 
 
@@ -157,6 +163,10 @@ class BetaAdaptiveDecisions : public DecisionMaker
        * Previously chosen frequency.
        */
       unsigned int formerFreqId;
+
+
+      unsigned int nextVirtualFreqId;
+      unsigned int nextVirtualSleepWin;
 
       /**
        * The frequency we have used for execution (excluding freq evaluation).

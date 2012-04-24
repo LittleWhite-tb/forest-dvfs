@@ -28,6 +28,7 @@
 #include <string>
 #include <fstream>
 #include <stdint.h>
+#include <iostream>
 
 #include "Common.h"
 
@@ -82,6 +83,7 @@ class DVFSUnit
        */
       inline unsigned int getFrequency (unsigned int freqId) const
       {
+ 	// std::cerr <<"["<< this->getOSId()<<"]" <<  "From DVFS freId : "<< freqId << " nbfreq : " << this->nbFreqs <<std::endl;
          assert (freqId < this->nbFreqs);
 
          return this->freqs [freqId];

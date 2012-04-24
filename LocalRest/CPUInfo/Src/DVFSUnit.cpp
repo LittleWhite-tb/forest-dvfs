@@ -151,7 +151,7 @@ void DVFSUnit::setFrequency (unsigned int freqId)
    {
       return;
    }
-
+   std::cerr << "FREQ ID : "<<freqId << std::endl;
    // write the correct frequency in the file
    this->freqFs.seekp (0, std::ios::beg);
    this->freqFs << this->freqs [freqId];

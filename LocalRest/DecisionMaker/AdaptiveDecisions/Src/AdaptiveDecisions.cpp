@@ -60,8 +60,18 @@ Decision AdaptiveDecisions::defaultDecision ()
 
 Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
 {
-   Decision res;
+	Decision dec = this->takeDecision (hwc, false);
+	return dec;
+}
 
+Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delayedStart)
+{
+   Decision res;
+   if(delayedStart == true)
+   {
+      res = this->defaultDecision();
+      return res;
+   }
    unsigned int curSleepWin = this->formerSleepWin;
    unsigned int curFreqId = this->formerFreqId;
 

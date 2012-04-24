@@ -65,7 +65,7 @@ typedef struct
 // the context
 static RESTContext restCtx;
 
-
+bool delayedStartRest = true; 
 /**
  * Rest entry point.
  */
@@ -116,6 +116,7 @@ int main (int argc, char ** argv)
 #ifdef REST_EXTRA_LOG
    signal (SIGUSR1, sigHandler);
 #endif
+   signal (SIGUSR2, sigHandler); 
    signal (SIGINT, sigHandler);
    atexit (exitCleanup);
 
@@ -139,6 +140,7 @@ static void * thProf (void * arg)
       sigemptyset (&set);
       sigaddset (&set, SIGINT);
       sigaddset (&set, SIGUSR1);
+      sigaddset (&set, SIGUSR2);
       pthread_sigmask (SIG_BLOCK, &set, NULL);
    }
 
@@ -154,8 +156,10 @@ static void * thProf (void * arg)
 
       // check what's going on
       opts->prof->read (hwc);
-      lastDec = opts->dec->takeDecision (hwc);
-
+      lastDec = opts->dec->takeDecision (hwc,delayedStartRest);
+      #ifdef REST_EXTRA_LOG
+	opts->dec->log(lastDec.freqId,lastDec.sleepWin);
+      #endif
       // switch frequency
       opts->unit->setFrequency (lastDec.freqId);
 
@@ -167,6 +171,7 @@ static void * thProf (void * arg)
          // reset the counters
          opts->prof->read (hwc);
       }
+
    }
 
    // pacify compiler but we never get out of while loop
@@ -192,6 +197,10 @@ static void sigHandler (int nsig)
             restCtx.allOpts [i]->dec->logMarker ();
          }
 #endif
+      }
+      if(nsig == SIGUSR2)
+      {
+	 delayedStartRest = false;
       }
    }
 }

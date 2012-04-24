@@ -56,6 +56,7 @@ class AdaptiveDecisions : public DecisionMaker
        * window is given.
        */
       Decision takeDecision (const HWCounters & hwc);
+      Decision takeDecision (const HWCounters & hwc, bool delayedStart);
 
       /**
        * Gives an initialization decision which defines a default sleep window

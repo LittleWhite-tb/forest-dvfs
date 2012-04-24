@@ -71,6 +71,7 @@ class DecisionMaker
        * window is given.
        */
       virtual Decision takeDecision (const HWCounters & hwc) = 0;
+      virtual Decision takeDecision (const HWCounters & hwc, bool delayedStart) = 0;
 
       /**
        * Gives an initialization decision which defines a default sleep window
@@ -89,6 +90,10 @@ class DecisionMaker
          struct timespec ts;
          clock_gettime (CLOCK_MONOTONIC, &ts);
          this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " #" << std::endl;
+      }
+      inline void log(unsigned int freq,unsigned int window)
+      {
+	this->switchOFS << "[realy applied] Freq : "<<freq<<" sleep : "<<window <<std::endl;
       }
 #endif
 
