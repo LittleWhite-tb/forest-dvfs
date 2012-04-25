@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <cstring>
+#include <sstream>
 
 #include "Common.h"
 #include "LocalRest.h"
@@ -38,6 +39,9 @@
 #include "BetaAdaptiveDecisions.h"
 #include "pfmProfiler.h"
 
+#ifdef REST_EXTRA_LOG
+#include "Logger.h"
+#endif
 
 // local functions
 static void * thProf (void * arg);
@@ -73,6 +77,10 @@ int main (int argc, char ** argv)
 {
    (void)(argc);
    (void)(argv);
+   
+   #ifdef REST_EXTRA_LOG
+	Logger::initLog(sysconf (_SC_NPROCESSORS_ONLN));
+   #endif
 
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
@@ -81,12 +89,12 @@ int main (int argc, char ** argv)
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
 
+   
    // launch threads
    for (unsigned int i = 1; i < nbDVFSUnits; i++)
    {
       DVFSUnit & unit = restCtx.cnfo->getDVFSUnit (i);
-
-      // initialize options
+            // initialize options
       restCtx.allOpts [i] = new thOpts ();
       thOpts * opts = restCtx.allOpts [i];
       opts->id = i;
@@ -157,12 +165,14 @@ static void * thProf (void * arg)
       // check what's going on
       opts->prof->read (hwc);
       lastDec = opts->dec->takeDecision (hwc,delayedStartRest);
-      #ifdef REST_EXTRA_LOG
-	opts->dec->log(lastDec.freqId,lastDec.sleepWin);
-      #endif
       // switch frequency
       opts->unit->setFrequency (lastDec.freqId);
-
+      #ifdef REST_EXTRA_LOG
+	Logger & log = Logger::getLog(opts->id);
+	std::stringstream ss (std::stringstream::out);
+	ss << "[LocalRest::thProf] FreqID : "<<lastDec.freqId<<" SleepWin : "<<lastDec.sleepWin;
+	log.logOut(ss);
+      #endif
       // if needed, wait a bit for the freq to be applied
       if (lastDec.preCntResetPause != 0)
       {
@@ -227,5 +237,9 @@ static void exitCleanup ()
    delete restCtx.cnfo;
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
+   
+   #ifdef REST_EXTRA_LOG
+	Logger::destroyLog();
+   #endif 
 }
 
