@@ -69,7 +69,8 @@ typedef struct
 // the context
 static RESTContext restCtx;
 
-bool delayedStartRest = true; 
+static volatile bool delayedStartRest = true;
+
 /**
  * Rest entry point.
  */
@@ -77,10 +78,10 @@ int main (int argc, char ** argv)
 {
    (void)(argc);
    (void)(argv);
-   
-   #ifdef REST_EXTRA_LOG
-	Logger::initLog(sysconf (_SC_NPROCESSORS_ONLN));
-   #endif
+
+#ifdef REST_EXTRA_LOG
+   Logger::initLog (sysconf (_SC_NPROCESSORS_ONLN));
+#endif
 
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
@@ -89,12 +90,12 @@ int main (int argc, char ** argv)
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
 
-   
+
    // launch threads
    for (unsigned int i = 1; i < nbDVFSUnits; i++)
    {
       DVFSUnit & unit = restCtx.cnfo->getDVFSUnit (i);
-            // initialize options
+      // initialize options
       restCtx.allOpts [i] = new thOpts ();
       thOpts * opts = restCtx.allOpts [i];
       opts->id = i;
@@ -124,7 +125,7 @@ int main (int argc, char ** argv)
 #ifdef REST_EXTRA_LOG
    signal (SIGUSR1, sigHandler);
 #endif
-   signal (SIGUSR2, sigHandler); 
+   signal (SIGUSR2, sigHandler);
    signal (SIGINT, sigHandler);
    atexit (exitCleanup);
 
@@ -164,15 +165,18 @@ static void * thProf (void * arg)
 
       // check what's going on
       opts->prof->read (hwc);
-      lastDec = opts->dec->takeDecision (hwc,delayedStartRest);
+      lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
+
       // switch frequency
       opts->unit->setFrequency (lastDec.freqId);
-      #ifdef REST_EXTRA_LOG
-	Logger & log = Logger::getLog(opts->id);
-	std::stringstream ss (std::stringstream::out);
-	ss << "[LocalRest::thProf] FreqID : "<<lastDec.freqId<<" SleepWin : "<<lastDec.sleepWin;
-	log.logOut(ss);
-      #endif
+
+#ifdef REST_EXTRA_LOG
+      Logger & log = Logger::getLog (opts->id);
+      std::stringstream ss (std::stringstream::out);
+      ss << "[LocalRest::thProf] FreqID : " << lastDec.freqId << " SleepWin : " << lastDec.sleepWin;
+      log.logOut (ss);
+#endif
+
       // if needed, wait a bit for the freq to be applied
       if (lastDec.preCntResetPause != 0)
       {
@@ -208,9 +212,12 @@ static void sigHandler (int nsig)
          }
 #endif
       }
-      if(nsig == SIGUSR2)
+      else
       {
-	 delayedStartRest = false;
+         if (nsig == SIGUSR2)
+         {
+            delayedStartRest = false;
+         }
       }
    }
 }
@@ -237,9 +244,9 @@ static void exitCleanup ()
    delete restCtx.cnfo;
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
-   
-   #ifdef REST_EXTRA_LOG
-	Logger::destroyLog();
-   #endif 
+
+#ifdef REST_EXTRA_LOG
+   Logger::destroyLog ();
+#endif
 }
 

@@ -37,28 +37,19 @@ BetaAdaptiveDecisions::BetaAdaptiveDecisions (DVFSUnit & unit) :
    Decision defDec = this->defaultDecision ();
 
    // initialize internal data
-   //this->freqSel = new BetaFreqSelector (unit.getNbFreqs ());
-   this->ipcEval = new float [this->unit.getNbFreqs ()];
    this->mipsEval = new float [this->unit.getNbFreqs ()];
-	for (unsigned int i = 0; i< this->unit.getNbFreqs (); i++)
-	{
-		this->mipsEval[i] = -1;
-	}
+   for (unsigned int i = 0; i< this->unit.getNbFreqs (); i++)
+   {
+      this->mipsEval [i] = -1;
+   }
 
    this->formerSleepWin = defDec.sleepWin;
    this->formerFreqId = defDec.freqId;
-   this->formerExecSleepWin = defDec.sleepWin;
-   this->formerExecFreqId = defDec.freqId;
-   this->inEvalStep = false;
-   this->lastFreqEval = false;
-   this->jumpToNextBetaComputation = false;
-   this->updateMips = false;
+   this->curState = BetaAdaptiveDecisions::WAITING_START;
 }
 
 BetaAdaptiveDecisions::~BetaAdaptiveDecisions (void)
 {
-   //delete this->freqSel;
-   delete [] this->ipcEval;
    delete [] this->mipsEval;
 }
 
@@ -75,196 +66,130 @@ Decision BetaAdaptiveDecisions::defaultDecision ()
 
 Decision BetaAdaptiveDecisions::takeDecision (const HWCounters & hwc)
 {
-	Decision dec = this->takeDecision(hwc, false);
-	return dec;
+   Decision dec = this->takeDecision (hwc, false);
+   return dec;
+}
+
+void BetaAdaptiveDecisions::resetBetaState(Decision &res)
+{
+   unsigned int minFreq = this->unit.getFrequency (0);
+   unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
+   unsigned int maxFreq = this->unit.getFrequency (maxFreqId);
+
+   //Compute Beta
+   double tmpNumerator = 0;
+   double tmpDenominator = 0;
+
+   for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
+   {
+      unsigned int iFreq = this->unit.getFrequency (i);
+      tmpNumerator += ((maxFreq / (1.0 * iFreq)) - 1) * ((this->mipsEval [maxFreqId] / (1.0 * this->mipsEval [i])) - 1);
+      tmpDenominator += ((maxFreq / (1.0 * iFreq)) - 1) * ((maxFreq / (1.0 * iFreq)) - 1);
+   }
+   double betaCoef = tmpNumerator / tmpDenominator;
+
+   //Find the virtual freq
+   unsigned int maxVirtFreq = maxFreq / (1 + (0.05 / betaCoef));
+   unsigned int virualFreq = rest_max (minFreq, maxVirtFreq);
+
+   //select the real adjacent freq of the virutal one
+   int adjacentHighFreqId = maxFreqId;
+   int adjacentLowFreqId = -1;
+   for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
+   {
+      if (this->unit.getFrequency (i) > virualFreq)
+      {
+         adjacentHighFreqId = i;
+         break;
+      }
+   }
+   adjacentLowFreqId = rest_max (0, adjacentHighFreqId - 1);
+
+   //compute the runing time for each
+   double rFactor = ((1. + (0.05 / betaCoef)) / maxFreq) - (1. / this->unit.getFrequency (adjacentHighFreqId));
+   rFactor /= (1. / this->unit.getFrequency (adjacentLowFreqId)) - (1. / this->unit.getFrequency (adjacentHighFreqId));
+   rFactor = rest_max(0, rFactor);
+   rFactor = rest_min(1, rFactor);
+
+   this->freqIdStp2 = adjacentHighFreqId;
+   this->sleepWinStp2 = (1 - rFactor) * BetaAdaptiveDecisions::STATIC_EVAL_TIME;
+
+   res.freqId = adjacentLowFreqId;
+   res.sleepWin = rFactor * BetaAdaptiveDecisions::STATIC_EVAL_TIME;
+   res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
+
+   this->curState = BetaAdaptiveDecisions::RUNNING_STP1;
 }
 
 Decision BetaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delayedStart)
 {
-   Decision res = this->defaultDecision();
-   if(delayedStart == true)
-   {	
-	
-	#ifdef REST_EXTRA_LOG
-		Logger & log = Logger::getLog(this->unit.getOSId());
-		std::stringstream ss (std::stringstream::out);
-		ss << "[BetaAdaptiveDecisions::takeDecision] delayed ...";
-		log.logOut(ss);
-	#endif
-	
-	return res;
-   }
-   unsigned int curSleepWin = this->formerSleepWin;
-   unsigned int curFreqId = this->formerFreqId;
+   Decision res = this->defaultDecision ();
 
-   float HWexp = this->getHWExploitationRatio (hwc);
+   if (delayedStart)
+   {
+
+#ifdef REST_EXTRA_LOG
+      Logger & log = Logger::getLog (this->unit.getOSId ());
+      std::stringstream ss (std::stringstream::out);
+      ss << "[BetaAdaptiveDecisions::takeDecision] delayed ...";
+      log.logOut (ss);
+#endif
+
+      return res;
+   }
+
+   unsigned int curFreqId = this->formerFreqId;
+   unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
+
    float Mips = this->getMipsRatio (hwc);
 
-   //#ifdef REST_EXTRA_LOG
-	//this->switchOFS <<"["<< this->unit.getOSId()<< "] =====> eval["<<this->unit.getFrequency()<<"/"<<(this->unit.getNbFreqs()-1)<<"]"<<std::endl;
-	//this->switchOFS <<"  hwc.retired : "<< hwc.retired <<" hwc.cycles : "<< hwc.cycles << std::endl;
-	//this->switchOFS <<"  freq unsed : " <<(this->unit.getFrequency (this->unit.getFrequency ())) <<std::endl;
-	//this->switchOFS <<"  IPC : " << ( hwc.retired /(1.0 * hwc.cycles) ) << std::endl;
-	//this->switchOFS <<"  freq * IPC : " <<(( hwc.retired /(1.0 * hwc.cycles) ) * this->unit.getFrequency (this->unit.getFrequency ())) << std::endl;
-	//this->switchOFS <<"  MIPS : "<< ((( hwc.retired /(1.0 * hwc.cycles) ) * this->unit.getFrequency (this->unit.getFrequency ()))/1000000) << std::endl << std::endl;
-   //#endif
-   
-   //define the freq to test
-   unsigned int minEvalFreqId = 0; //rest_max (0, (int) this->formerExecFreqId - (int) BetaAdaptiveDecisions::NB_EVAL_NEAR_FREQS);
-   unsigned int maxEvalFreqId = this->unit.getNbFreqs()-1; //rest_min (this->unit.getNbFreqs () - 1, this->formerExecFreqId + BetaAdaptiveDecisions::NB_EVAL_NEAR_FREQS);
+   //we are in the mips evaluation
+   if (this->curState == BetaAdaptiveDecisions::WAITING_START)
+   {
+      this->curState = BetaAdaptiveDecisions::MIPS_EVALUATION;
 
-   //determine if we are either in the mips evaluation or in the the exec of virtual freq
-   inEvalStep = curSleepWin == BetaAdaptiveDecisions::STATIC_EVAL_TIME;
-   
-    
-	//we are in the mips evaluation
-	if (this->inEvalStep && !this->lastFreqEval)
-	{
-			
-		// remember the IPC for this frequency
-		this->ipcEval [curFreqId] = HWexp;
-		this->mipsEval [curFreqId] = Mips;
+      res.freqId = 0;
+      res.sleepWin = BetaAdaptiveDecisions::STATIC_EVAL_TIME;
+      res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
+   }
+   else if (this->curState == BetaAdaptiveDecisions::MIPS_EVALUATION)
+   {
+      // remember the IPC for this frequency
+      this->mipsEval [curFreqId] = Mips;
 
-		// we have other frequencies to evaluate
-		if (curFreqId != maxEvalFreqId)
-		{
-			res.freqId = curFreqId + 1;
-			res.sleepWin = BetaAdaptiveDecisions::STATIC_EVAL_TIME;
-		}
-		else //we have the mips for all freq
-		{
-			lastFreqEval = true;
-			res.freqId = 0;
-			res.sleepWin = BetaAdaptiveDecisions::STATIC_EVAL_TIME;
-		}
-	}
-	// The evaluation of all freq is finished, we are now computing virtual frequencies
-	else
-	{
-		if(this->updateMips)
-		{
-			//#ifdef REST_EXTRA_LOG
-			//this->switchOFS << "[" << this->unit.getOSId()<< "]" << " UPDATE : previous MIPS[" << this->formerFreqId<<"] = " << this->mipsEval[this->formerFreqId]; 
-			this->mipsEval[this->formerFreqId] = Mips; 
-			//this->switchOFS << "[" << this->unit.getOSId()<< "]" << " updated MIPS[" << this->formerFreqId<<"] = " << this->mipsEval[this->formerFreqId]<<std::endl; 
-			//#endif
-		}
+      // we have other frequencies to evaluate
+      if (curFreqId != maxFreqId)
+      {
+         res.freqId = curFreqId + 1;
+         res.sleepWin = BetaAdaptiveDecisions::STATIC_EVAL_TIME;
+         res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
+      }
+      else //we have the mips for all freq
+      {
+         this->resetBetaState (res);
+      }
+   }
+   else if (this->curState == BetaAdaptiveDecisions::RUNNING_STP1)
+   {
+      this->mipsEval [this->formerFreqId] = Mips;
 
-		if(!this->jumpToNextBetaComputation)
-		{
-			this->updateMips = false;
-			//Compute Beta
-			double tmpNumerator = 0,tmpDenominator = 0;
-			for (unsigned int i = 0; i < this->unit.getNbFreqs(); i++)
-			{
-				tmpNumerator+=((this->unit.getFrequency(this->unit.getNbFreqs()-1)/(1.0 * this->unit.getFrequency(i)))-1)*(((this->mipsEval[this->unit.getNbFreqs()-1])/(1.0 * (this->mipsEval[i])))-1);
-				tmpDenominator+=((this->unit.getFrequency(this->unit.getNbFreqs()-1)/(1.0 * this->unit.getFrequency(i)))-1)*((this->unit.getFrequency(this->unit.getNbFreqs()-1)/(1.0 * this->unit.getFrequency(i)))-1);
-				
-				//#ifdef REST_EXTRA_LOG
-					//this->switchOFS <<"["<<this->unit.getOSId() <<"] " << "Fmax : "<< this->unit.getFrequency(this->unit.getNbFreqs()-1);
-					//this->switchOFS <<" | F["<<i<<"] : "<< this->unit.getFrequency(i);
-					//this->switchOFS <<" | MIPS [Fmax] : " << this->mipsEval[this->unit.getNbFreqs()-1];
-					//this->switchOFS <<" | MIPS ["<<i<<"] : " << this->mipsEval[i];
+      res.freqId = this->freqIdStp2;
+      res.sleepWin = this->sleepWinStp2;
+      res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
 
-					//this->switchOFS <<" | Numerator[" << i <<"] : "<<  tmpNumerator;
-					//this->switchOFS <<" | Denominator[" << i <<"] : "<<  tmpDenominator << std::endl;
-				//#endif
-			}
-			double betaCoef = tmpNumerator / tmpDenominator;
+      this->curState = BetaAdaptiveDecisions::RUNNING_STP2;
+   }
+   else if (this->curState == BetaAdaptiveDecisions::RUNNING_STP2)
+   {
+      this->mipsEval [this->formerFreqId] = Mips;
+      
+      this->resetBetaState (res);
+   }
 
-
-			// DEBUG
-			//#ifdef REST_EXTRA_LOG		
-				//this->switchOFS <<std::endl<<"["<<this->unit.getOSId() <<"] " << "Numerator : "<<  tmpNumerator;
-				//this->switchOFS <<" | Denominator : "<<  tmpDenominator;
-				//this->switchOFS <<" | betaCoef : "<<  betaCoef << std::endl;
-			//#endif
-
-		
-			//Find the virtual freq
-			unsigned int minVirtFreq = this->unit.getFrequency(0);
-			unsigned int maxVirtFreq = (this->unit.getFrequency(this->unit.getNbFreqs()-1))/(1+(0.05/betaCoef));
-			unsigned int virualFreq = rest_max(minVirtFreq,maxVirtFreq);
-
-			// DEBUG
-			//#ifdef REST_EXTRA_LOG
-				//this->switchOFS <<"["<<this->unit.getOSId() <<"]" << " minVirtFreq : " << minVirtFreq << " | maxVirtFreq : " << maxVirtFreq << " | virualFreq : " << virualFreq << std::endl;
-			//#endif
-
-			//select the real adjacent freq of the virutal one
-			int adjacentHighFreqId = -1,adjacentLowFreqId = -1;
-			for(unsigned int i=0; i < this->unit.getNbFreqs(); i++)
-			{
-				if(this->unit.getFrequency(i) > virualFreq)
-				{
-					adjacentHighFreqId = i;
-				}
-			}
-			if(adjacentHighFreqId == -1)
-			{
-				adjacentHighFreqId = this->unit.getNbFreqs()-1;
-			}
-			adjacentLowFreqId = adjacentHighFreqId - 1;
-
-			// DEBUG
-			//#ifdef REST_EXTRA_LOG
-				//this->switchOFS <<"["<<this->unit.getOSId()<<"]" << " adjacentHighFreqId : " << adjacentHighFreqId << " | adjacentLowFreqId : " << adjacentLowFreqId << std::endl;
-			//#endif
-
-			//compute the runing time for each
-			double rFactor = ((1+(0.05/betaCoef))/(1.0 *(this->unit.getFrequency(this->unit.getNbFreqs()-1)))) - (1/(1.0 * this->unit.getFrequency(adjacentHighFreqId)));
-			//#ifdef REST_EXTRA_LOG
-				//this->switchOFS <<"["<<this->unit.getOSId()<<"]" << " Rfactor Numerator : " << rFactor;
-			//#endif
-		
-
-			rFactor /= ((1/(1.0 * this->unit.getFrequency(adjacentLowFreqId)))-(1/(1.0 * this->unit.getFrequency(adjacentHighFreqId))));
-		 	if(rFactor < 0) { rFactor = 0; }
-			if(rFactor > 1) { rFactor = 1; }	
-			//#ifdef REST_EXTRA_LOG
-				//this->switchOFS << " | rfactor Denominator : " <<  ((1/(1.0 * this->unit.getFrequency(adjacentLowFreqId)))-(1/(1.0 * this->unit.getFrequency(adjacentHighFreqId))));
-				//this->switchOFS << " | rfactor : " <<  rFactor << std::endl;
-			//#endif
-			
-
-			this->nextVirtualFreqId = adjacentHighFreqId;
-			this->nextVirtualSleepWin = (1 - rFactor) * BetaAdaptiveDecisions::STATIC_EVAL_TIME;
-
-			res.freqId=adjacentLowFreqId;
-			res.sleepWin = rFactor * BetaAdaptiveDecisions::STATIC_EVAL_TIME;
-			res.preCntResetPause = (res.sleepWin < (this->unit.getSwitchLatency () / 1000)) ? (this->unit.getSwitchLatency()/1000) : 0;
-			
-			this->updateMips = true;
-			
-			//if(BetaAdaptiveDecisions::VERBOSE)
-			//{
-			//#ifdef REST_EXTRA_LOG
-
-				//this->switchOFS <<"["<<this->unit.getOSId()<<"]" <<" [applied]first choice => freq : " << res.freqId << " | timeslice : " << res.sleepWin << " | resetPause : " << res.preCntResetPause << std::endl;
-			//#endif
-			//}
-			
-			jumpToNextBetaComputation = true;
-
-		}
-		else
-		{
-			res.freqId = this->nextVirtualFreqId;
-			res.sleepWin = this->nextVirtualSleepWin;
-			res.preCntResetPause = (res.sleepWin < (this->unit.getSwitchLatency () / 1000)) ? (this->unit.getSwitchLatency()/1000) : 0;
-			//if(BetaAdaptiveDecisions::VERBOSE)
-			//{
-			//#ifdef REST_EXTRA_LOG
-				//this->switchOFS <<"["<<this->unit.getOSId()<<"]" << "[applied]second choice => freq : " << res.freqId << " | timeslice : " << res.sleepWin << " | resetPause : " << res.preCntResetPause << std::endl;
-			//#endif
-			//}
-			jumpToNextBetaComputation = false;
-		}
-	}
    // remember some stuff to take better decisions afterwards
    this->formerFreqId = res.freqId;
    this->formerSleepWin = res.sleepWin;
-	
+
    return res;
 }
 

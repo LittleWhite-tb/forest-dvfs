@@ -28,6 +28,7 @@
 #include "FreqSelector.h"
 #include <iostream>
 #include <stack>
+
 /**
  * @class AdaptiveDecisions
  *
@@ -41,7 +42,7 @@ class BetaAdaptiveDecisions : public DecisionMaker
       /**
        * Constructor
        */
-		BetaAdaptiveDecisions (DVFSUnit & dvfsUnit);
+      BetaAdaptiveDecisions (DVFSUnit & dvfsUnit);
 
       /**
        * Destructor
@@ -68,10 +69,13 @@ class BetaAdaptiveDecisions : public DecisionMaker
 
    private:
 
-	bool inEvalStep;
-	bool lastFreqEval;
-	bool jumpToNextBetaComputation;
-	bool updateMips;
+      typedef enum
+      {
+         WAITING_START,
+         MIPS_EVALUATION,
+         RUNNING_STP1,
+         RUNNING_STP2
+      } BetaState;
 
       /**
        * Debug flag.
@@ -79,79 +83,41 @@ class BetaAdaptiveDecisions : public DecisionMaker
       static const bool VERBOSE = true;
 
       /**
-		* The fixed time for evaluation.
-		*/
+      * The fixed time for evaluation.
+      */
       static const unsigned int STATIC_EVAL_TIME = 1000000;
 
-
       /**
-       * Time required to evaluate the IPC for one frequency (us).
-       */
-      static const unsigned int IPC_EVAL_TIME = 20;
-
-      /**
-       * Minimal execution time once a frequency is chosen (us).
-       */
-      static const unsigned int MIN_SLEEP_WIN = 500;
-
-      /**
-       * Maximal execution time before re-evaluating which frequency to use
-       * (us).
-       */
-      static const unsigned int MAX_SLEEP_WIN = 200000;
-
-      /**
-       * Number of frequencies we consider bellow and above the current
-       * frequency during the evaluation of frequencies. 2 here means that
-       * at most four frequencies will be evaluated: two just bellow the current
-       * one and two just above.
-       */
-      static const unsigned int NB_EVAL_NEAR_FREQS = 2;
-
-      /**
-       * Computes the hardware exploitation ratio from the hardware counters.
-       *
-       * @param hwc The hardware counter values.
-       *
-       * @return A number which evaluates how much the cpu is used compared to
-       * the memory. Zero means that the memory is not at all the bottleneck,
-       * whereas large values means that the cpu is often paused and waits for
-       * the memory.
-       */
-      inline float getHWExploitationRatio (const HWCounters & hwc) const
+      * Computes the hardware exploitation ratio from the hardware counters.
+      *
+      * @param hwc The hardware counter values.
+      *
+      * @return The mips ratio
+      */
+      inline float getMipsRatio (const HWCounters & hwc) const
       {
-         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getFrequency (this->unit.getFrequency ()));
-
-         return hwc.retired / (1. * swRefCycles);
+         return (( (hwc.retired / (1.0 * hwc.cycles)) * this->unit.getFrequency (this->unit.getFrequency ())) /1000000);
       }
-
-		/**
-		* Computes the hardware exploitation ratio from the hardware counters.
-		*
-		* @param hwc The hardware counter values.
-		*
-		* @return The mips ratio
-		*/
-		inline float getMipsRatio (const HWCounters & hwc) const
-		{
-			return ((( hwc.retired /(1.0 * hwc.cycles) ) * this->unit.getFrequency (this->unit.getFrequency ()))/1000000);
-		}
-
-
+      
       /**
-       * Helper to maintain the evaluation results.
+       * Compute the beta coefficient, r ratio and setup the given decision
+       * to start a new execution sequence.
+       *
+       * @param res A decision to update in order to start the new execution
+       * sequence.
        */
-      FreqSelector * freqSel;
+      void resetBetaState(Decision &res);
+
 
       /**
-       * IPC evaluation result.
+       * State in which the decision maker currently is.
        */
-      float * ipcEval;
+      BetaState curState;
 
       /**
-		* IPC evaluation result.
-		*/
-	   float * mipsEval;
+      * IPC evaluation result.
+      */
+      float * mipsEval;
 
 
       /**
@@ -164,19 +130,15 @@ class BetaAdaptiveDecisions : public DecisionMaker
        */
       unsigned int formerFreqId;
 
-
-      unsigned int nextVirtualFreqId;
-      unsigned int nextVirtualSleepWin;
+      /**
+       * Frequency selected for the second step of execution.
+       */
+      unsigned int freqIdStp2;
 
       /**
-       * The frequency we have used for execution (excluding freq evaluation).
+       * Selected sleep window for execution step 2.
        */
-      unsigned int formerExecFreqId;
-
-      /**
-       * The last sleep window we have used for execution.
-       */
-      unsigned int formerExecSleepWin;
+      unsigned int sleepWinStp2;
 };
 
 #endif
