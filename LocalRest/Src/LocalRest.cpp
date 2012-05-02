@@ -36,7 +36,8 @@
 #include "LocalRest.h"
 #include "CPUInfo.h"
 //#include "AdaptiveDecisions.h"
-#include "BetaAdaptiveDecisions.h"
+//#include "DeltaAdaptiveDecisions.h"
+#include "DeltaAdaptiveDecisions.h"
 #include "pfmProfiler.h"
 
 #ifdef REST_EXTRA_LOG
@@ -96,7 +97,7 @@ int main (int argc, char ** argv)
       restCtx.allOpts [i] = new thOpts ();
       thOpts * opts = restCtx.allOpts [i];
       opts->id = i;
-      opts->dec = new BetaAdaptiveDecisions (unit);
+      opts->dec = new DeltaAdaptiveDecisions (unit);
       opts->prof = new PfmProfiler (unit);
       opts->unit = &unit;
 
@@ -114,7 +115,7 @@ int main (int argc, char ** argv)
    restCtx.allOpts [0] = new thOpts ();
    thOpts * opts = restCtx.allOpts [0];
    opts->id = 0;
-   opts->dec = new BetaAdaptiveDecisions (unit0);
+   opts->dec = new DeltaAdaptiveDecisions (unit0);
    opts->prof = new PfmProfiler (unit0);
    opts->unit = &unit0;
 
