@@ -25,11 +25,6 @@
 #include "BetaAdaptiveDecisions.h"
 #include "Common.h"
 
-#ifdef REST_EXTRA_LOG
-#include <sstream>
-#include <vector>
-#include "Logger.h"
-#endif
 
 BetaAdaptiveDecisions::BetaAdaptiveDecisions (DVFSUnit & unit) :
    DecisionMaker (unit)
@@ -76,6 +71,9 @@ void BetaAdaptiveDecisions::resetBetaState(Decision &res)
    unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
    unsigned int maxFreq = this->unit.getFrequency (maxFreqId);
 
+   //The degradation factor
+   int deltaDegradation = 10;
+
    //Compute Beta
    double tmpNumerator = 0;
    double tmpDenominator = 0;
@@ -89,7 +87,7 @@ void BetaAdaptiveDecisions::resetBetaState(Decision &res)
    double betaCoef = tmpNumerator / tmpDenominator;
 
    //Find the virtual freq
-   unsigned int maxVirtFreq = maxFreq / (1 + (0.05 / betaCoef));
+   unsigned int maxVirtFreq = maxFreq / (1 + (deltaDegradation / betaCoef));
    unsigned int virualFreq = rest_max (minFreq, maxVirtFreq);
 
    //select the real adjacent freq of the virutal one
@@ -106,7 +104,7 @@ void BetaAdaptiveDecisions::resetBetaState(Decision &res)
    adjacentLowFreqId = rest_max (0, adjacentHighFreqId - 1);
 
    //compute the runing time for each
-   double rFactor = ((1. + (0.05 / betaCoef)) / maxFreq) - (1. / this->unit.getFrequency (adjacentHighFreqId));
+   double rFactor = ((1. + (deltaDegradation / betaCoef)) / maxFreq) - (1. / this->unit.getFrequency (adjacentHighFreqId));
    rFactor /= (1. / this->unit.getFrequency (adjacentLowFreqId)) - (1. / this->unit.getFrequency (adjacentHighFreqId));
    rFactor = rest_max(0, rFactor);
    rFactor = rest_min(1, rFactor);
@@ -127,14 +125,6 @@ Decision BetaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delay
 
    if (delayedStart)
    {
-
-#ifdef REST_EXTRA_LOG
-      Logger & log = Logger::getLog (this->unit.getOSId ());
-      std::stringstream ss (std::stringstream::out);
-      ss << "[BetaAdaptiveDecisions::takeDecision] delayed ...";
-      log.logOut (ss);
-#endif
-
       return res;
    }
 

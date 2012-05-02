@@ -79,9 +79,6 @@ int main (int argc, char ** argv)
    (void)(argc);
    (void)(argv);
 
-#ifdef REST_EXTRA_LOG
-   Logger::initLog (sysconf (_SC_NPROCESSORS_ONLN));
-#endif
 
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
@@ -124,8 +121,8 @@ int main (int argc, char ** argv)
    // cleanup stuff when exiting
 #ifdef REST_EXTRA_LOG
    signal (SIGUSR1, sigHandler);
-#endif
    signal (SIGUSR2, sigHandler);
+#endif
    signal (SIGINT, sigHandler);
    atexit (exitCleanup);
 
@@ -170,13 +167,6 @@ static void * thProf (void * arg)
       // switch frequency
       opts->unit->setFrequency (lastDec.freqId);
 
-#ifdef REST_EXTRA_LOG
-      Logger & log = Logger::getLog (opts->id);
-      std::stringstream ss (std::stringstream::out);
-      ss << "[LocalRest::thProf] FreqID : " << lastDec.freqId << " SleepWin : " << lastDec.sleepWin;
-      log.logOut (ss);
-#endif
-
       // if needed, wait a bit for the freq to be applied
       if (lastDec.preCntResetPause != 0)
       {
@@ -216,7 +206,9 @@ static void sigHandler (int nsig)
       {
          if (nsig == SIGUSR2)
          {
+#ifdef REST_EXTRA_LOG
             delayedStartRest = false;
+#endif
          }
       }
    }
@@ -244,9 +236,5 @@ static void exitCleanup ()
    delete restCtx.cnfo;
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
-
-#ifdef REST_EXTRA_LOG
-   Logger::destroyLog ();
-#endif
 }
 

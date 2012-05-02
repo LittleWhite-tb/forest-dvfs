@@ -31,9 +31,6 @@
 
 #include "DVFSUnit.h"
 
-#ifdef REST_EXTRA_LOG
-#include "Logger.h"
-#endif
 
 DVFSUnit::DVFSUnit (unsigned int id, bool useTB)
 {
@@ -155,13 +152,7 @@ void DVFSUnit::setFrequency (unsigned int freqId)
    {
       return;
    }
-   #ifdef REST_EXTRA_LOG
-   Logger & log = Logger::getLog(this->procId);
-   std::stringstream ss (std::stringstream::out);
-   ss << "[DVFSUnit::setFrequency] FreqId : "<<freqId<<" curFreqId : "<<this->curFreqId;
-   log.logOut(ss);
-   #endif
-  
+     
    // write the correct frequency in the file
    this->freqFs.seekp (0, std::ios::beg);
    this->freqFs << this->freqs [freqId];

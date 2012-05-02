@@ -79,6 +79,6 @@ void Logger::logOut (std::stringstream &logString)
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	this->switchOFS << "[" << ts.tv_nsec + ts.tv_sec << "]*["<<this->thId<<"] >> " << logString.str() <<std::endl;
+	this->switchOFS << "[" << ts.tv_nsec + ts.tv_sec * 1000000000 << "]*["<<this->thId<<"] >> " << logString.str() <<std::endl;
 }
 
