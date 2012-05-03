@@ -84,6 +84,9 @@ int main (int argc, char ** argv)
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
 
+#ifdef REST_EXTRA_LOG
+	Logger::initLog(restCtx.cnfo->getNbDVFSUnits ());
+#endif
    unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
@@ -237,5 +240,9 @@ static void exitCleanup ()
    delete restCtx.cnfo;
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
+
+#ifdef REST_EXTRA_LOG
+	Logger::destroyLog();
+#endif
 }
 

@@ -25,6 +25,11 @@
 #include "DeltaAdaptiveDecisions.h"
 #include "Common.h"
 
+#ifdef REST_EXTRA_LOG
+#include <sstream>
+#include <vector>
+#include "Logger.h"
+#endif
 
 DeltaAdaptiveDecisions::DeltaAdaptiveDecisions (DVFSUnit & unit) :
    DecisionMaker (unit)
@@ -91,7 +96,7 @@ void DeltaAdaptiveDecisions::decStrategy1 (Decision &res, int deltaDegradation)
 			adjacentLowFreqId = i;
 		}
 	}
-	float degradedIPC = ((100 - deltaDegradation)/100) * maxIPC;
+	float degradedIPC = ((100 - deltaDegradation)/100.0) * maxIPC;
 	double rFactor = (degradedIPC - maxIPC) / (minIPC - maxIPC);
 	
 	
@@ -102,6 +107,16 @@ void DeltaAdaptiveDecisions::decStrategy1 (Decision &res, int deltaDegradation)
 	res.sleepWin = rFactor * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
 	res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
 
+#ifdef REST_EXTRA_LOG
+	/*std::stringstream ss (std::stringstream::out);
+	ss << "maxIPC [" << maxIPC << "] associated freq [" << adjacentHighFreqId << "]";
+	ss << " minIPC [" << minIPC << "] associated freq [" << adjacentLowFreqId << "]";
+	ss << " degradedIPC [" << degradedIPC << "]";
+	ss << " rfactor [" << rFactor << "]";
+	ss << " adjacentHighFreqId  [" << adjacentHighFreqId << "] adjacentLowFreqId [" << adjacentLowFreqId << "]" << std::endl;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);*/
+#endif
 	this->curState = DeltaAdaptiveDecisions::RUNNING_STP1;
 	
 }
@@ -165,10 +180,11 @@ void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
    
    //the Strategy to use
    int decstrat = 2;
-   
+      
 	switch (decstrat)
 	{
-		case 1: 
+		case 1:
+			this->decStrategy1(res,deltaDegradation); 
 			break;
 		case 2: 
 			this->decStrategy2(res,deltaDegradation);
@@ -176,7 +192,7 @@ void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
 		case 3:
 			break;
 		case 4:
-			break;
+		break;
 	}
    
 }
