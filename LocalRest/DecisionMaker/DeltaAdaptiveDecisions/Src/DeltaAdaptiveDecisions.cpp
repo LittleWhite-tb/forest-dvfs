@@ -230,7 +230,7 @@ void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
    int deltaDegradation = 10;
    
    //the Strategy to use
-   int decstrat = 2;
+   int decstrat = 5;
       
 	switch (decstrat)
 	{
@@ -243,7 +243,10 @@ void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
 		case 3:
 			break;
 		case 4:
-		break;
+			break;
+		case 5:
+			this->decStrategy5(res,deltaDegradation);
+			break;
 	}
    
 }

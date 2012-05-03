@@ -149,6 +149,15 @@ class DeltaAdaptiveDecisions : public DecisionMaker
        * sequence.
        * */
 	  void decStrategy4 (Decision &res);
+
+	/**
+	   * Use the maxIPC and minIPC and their associated frequencies to emulate the virtual freq
+	   * @param res A decision to update in order to start the new execution
+       * sequence.
+       * */
+	  void decStrategy5 (Decision &res,int deltaDegradation);
+
+
       /**
        * State in which the decision maker currently is.
        */
