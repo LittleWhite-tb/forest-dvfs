@@ -100,20 +100,6 @@ class DeltaAdaptiveDecisions : public DecisionMaker
       }
       
       /**
-      * Computes the hardware exploitation ratio from the hardware counters.
-      *
-      * @param hwc The hardware counter values.
-      *
-      * @return The ipc ratio
-      */
-      inline float getHWExploitationRatio (const HWCounters & hwc) const
-      {
-         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getFrequency (this->unit.getFrequency ()));
-
-         return hwc.retired / (1. * swRefCycles);
-      }
-      
-      /**
        * Compute the beta coefficient, r ratio and setup the given decision
        * to start a new execution sequence.
        *
@@ -127,35 +113,28 @@ class DeltaAdaptiveDecisions : public DecisionMaker
 	   * @param res A decision to update in order to start the new execution
        * sequence.
        * */
-	  void decStrategy1 (Decision &res,int deltaDegradation);
+	  void freqSelStrategy1 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq);
 	  
 	  /**
-	   * Use the Beta coefficient to compute the virtual freq and using adjacent frequnecy to emulate it
+	   * Use the adjacent frequnecies to emulate it
 	   * @param res A decision to update in order to start the new execution
        * sequence.
        * */
-	  void decStrategy2 (Decision &res,int deltaDegradation);
+	  void freqSelStrategy2 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq);
 	  
 	  /**
-	   * Use the Beta coefficient to compute the virtual freq, and the maxIPC and the low adjacent frequency to emulate it
+	   * Use the maxIPC and the low adjacent frequency to emulate it
 	   * @param res A decision to update in order to start the new execution
        * sequence.
        * */
-	  void decStrategy3 (Decision &res, int deltaDegradation);
+	  void freqSelStrategy3 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq);
 	  
 	  /**
-	   * Use the Beta coefficient to compute the virtual freq, and the minIPC and the high adjacent frequency to emulate it
+	   * Use the minIPC and the high adjacent frequency to emulate it
 	   * @param res A decision to update in order to start the new execution
        * sequence.
        * */
-	  void decStrategy4 (Decision &res);
-
-	/**
-	   * Use the maxIPC and minIPC and their associated frequencies to emulate the virtual freq
-	   * @param res A decision to update in order to start the new execution
-       * sequence.
-       * */
-	  void decStrategy5 (Decision &res,int deltaDegradation);
+	  void freqSelStrategy4 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq);
 
 
       /**
@@ -167,11 +146,6 @@ class DeltaAdaptiveDecisions : public DecisionMaker
       * MIPS evaluation result.
       */
       float * mipsEval;
-
-	  /**
-      * IPC evaluation result.
-      */
-      float * ipcEval;
 
       /**
        * The last sleep window we have used.

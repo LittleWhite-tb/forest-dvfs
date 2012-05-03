@@ -38,12 +38,10 @@ DeltaAdaptiveDecisions::DeltaAdaptiveDecisions (DVFSUnit & unit) :
 
    // initialize internal data
    this->mipsEval = new float [this->unit.getNbFreqs ()];
-   this->ipcEval = new float [this->unit.getNbFreqs ()];
    
    for (unsigned int i = 0; i< this->unit.getNbFreqs (); i++)
    {
       this->mipsEval [i] = -1;
-      this->ipcEval [i] = -1;
    }
 
    this->formerSleepWin = defDec.sleepWin;
@@ -54,7 +52,6 @@ DeltaAdaptiveDecisions::DeltaAdaptiveDecisions (DVFSUnit & unit) :
 DeltaAdaptiveDecisions::~DeltaAdaptiveDecisions (void)
 {
    delete [] this->mipsEval;
-   delete [] this->ipcEval;
 }
 
 Decision DeltaAdaptiveDecisions::defaultDecision ()
@@ -74,107 +71,131 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc)
    return dec;
 }
 
-void DeltaAdaptiveDecisions::decStrategy5 (Decision &res, int deltaDegradation)
+
+void DeltaAdaptiveDecisions::freqSelStrategy1 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq)
 {
-	unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
+	int maxFreqId = this->unit.getNbFreqs ();
+	float maxMIPS = 0;
+	*adjacentHighFreqId = -1;
+	float minMIPS = 100;
+	*adjacentLowFreqId = -1;
 	
-	
-	double maxIPC = 0;
-	int adjacentHighFreqId = 0;
-	double minIPC = 100;
-	int adjacentLowFreqId = 0;
-	for (unsigned int i = 0; i < maxFreqId; i++)
+	for (int i = 0; i < maxFreqId; i++)
 	{
-		if ((maxIPC / this->unit.getFrequency (adjacentHighFreqId)) < (this->ipcEval [i] / this->unit.getFrequency (i)) )
+		if(maxMIPS < this->mipsEval [i] && this->unit.getFrequency(i) >= virtualFreq )
 		{
-			maxIPC = this->ipcEval [i];
-			adjacentHighFreqId = i;
+			maxMIPS = this->mipsEval [i];
+			*adjacentHighFreqId = i;
 		}
-		if ((minIPC / this->unit.getFrequency (adjacentLowFreqId)) > (this->ipcEval [i] / this->unit.getFrequency (i)) )
+		if(minMIPS > this->mipsEval [i] && this->unit.getFrequency(i) <= virtualFreq)
 		{
-			minIPC = this->ipcEval [i];
-			adjacentLowFreqId = i;
+			minMIPS = this->mipsEval [i];
+			*adjacentLowFreqId = i;
 		}
 	}
-	float degradedIPC = ((100 - deltaDegradation)/100.0) * maxIPC;
-	double rFactor = (degradedIPC - maxIPC) / (minIPC - maxIPC);
 	
-	
-	this->freqIdStp2 = adjacentHighFreqId;
-	this->sleepWinStp2 = (1 - rFactor) * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
-
-	res.freqId = adjacentLowFreqId;
-	res.sleepWin = rFactor * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
-	res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
-
 #ifdef REST_EXTRA_LOG
 	std::stringstream ss (std::stringstream::out);
-	ss << "maxIPC [" << maxIPC << "] associated freq [" << adjacentHighFreqId << "]";
-	ss << " minIPC [" << minIPC << "] associated freq [" << adjacentLowFreqId << "]";
-	ss << " degradedIPC [" << degradedIPC << "]";
-	ss << " rfactor [" << rFactor << "]";
-	ss << " adjacentHighFreqId  [" << adjacentHighFreqId << "] adjacentLowFreqId [" << adjacentLowFreqId << "]" << std::endl;
+	ss << "[S1] maxMIPS [" << maxMIPS << "] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " [S1] minMIPS [" << minMIPS << "] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
 	Logger &log = Logger::getLog(this->unit.getOSId ());
 	log.logOut(ss);
 #endif
-	this->curState = DeltaAdaptiveDecisions::RUNNING_STP1;
 	
 }
 
 
-
-
-
-void DeltaAdaptiveDecisions::decStrategy1 (Decision &res, int deltaDegradation)
+void DeltaAdaptiveDecisions::freqSelStrategy2 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq)
 {
-	unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
-	
-	
-	float maxIPC = 0;
-	int adjacentHighFreqId = -1;
-	float minIPC = 100;
-	int adjacentLowFreqId = -1;
-	for (unsigned int i = 0; i < maxFreqId; i++)
+	int maxFreqId = this->unit.getNbFreqs ();
+	*adjacentHighFreqId = maxFreqId - 1;
+	*adjacentLowFreqId = -1;
+	for (int i = 0; i < maxFreqId; i++)
 	{
-		if(maxIPC < this->ipcEval [i])
+		if (this->unit.getFrequency (i) > virtualFreq)
 		{
-			maxIPC = this->ipcEval [i];
-			adjacentHighFreqId = i;
-		}
-		if(minIPC > this->ipcEval [i])
-		{
-			minIPC = this->ipcEval [i];
-			adjacentLowFreqId = i;
+			*adjacentHighFreqId = i;
+			break;
 		}
 	}
-	float degradedIPC = ((100 - deltaDegradation)/100.0) * maxIPC;
-	double rFactor = (degradedIPC - maxIPC) / (minIPC - maxIPC);
+	*adjacentLowFreqId = rest_max (0, *adjacentHighFreqId - 1);
 	
-	
-	this->freqIdStp2 = adjacentHighFreqId;
-	this->sleepWinStp2 = (1 - rFactor) * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
-
-	res.freqId = adjacentLowFreqId;
-	res.sleepWin = rFactor * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
-	res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
-
 #ifdef REST_EXTRA_LOG
-	/*std::stringstream ss (std::stringstream::out);
-	ss << "maxIPC [" << maxIPC << "] associated freq [" << adjacentHighFreqId << "]";
-	ss << " minIPC [" << minIPC << "] associated freq [" << adjacentLowFreqId << "]";
-	ss << " degradedIPC [" << degradedIPC << "]";
-	ss << " rfactor [" << rFactor << "]";
-	ss << " adjacentHighFreqId  [" << adjacentHighFreqId << "] adjacentLowFreqId [" << adjacentLowFreqId << "]" << std::endl;
+	std::stringstream ss (std::stringstream::out);
+	ss << "[S2] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " [S2] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
 	Logger &log = Logger::getLog(this->unit.getOSId ());
-	log.logOut(ss);*/
+	log.logOut(ss);
 #endif
-	this->curState = DeltaAdaptiveDecisions::RUNNING_STP1;
-	
 }
 
-
-void DeltaAdaptiveDecisions::decStrategy2 (Decision &res, int deltaDegradation)
+void DeltaAdaptiveDecisions::freqSelStrategy3 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq)
 {
+	int maxFreqId = this->unit.getNbFreqs ();
+	float maxMIPS = 0;
+	*adjacentHighFreqId = maxFreqId - 1;
+	int tmpAdjacentHighFreqId = -1;
+	*adjacentLowFreqId = -1;
+	for (int i = 0; i < maxFreqId; i++)
+	{
+		if(maxMIPS < this->mipsEval [i] && this->unit.getFrequency(i) >= virtualFreq )
+		{
+			maxMIPS = this->mipsEval [i];
+			*adjacentHighFreqId = i;
+		}
+		
+		if (this->unit.getFrequency (i) > virtualFreq)
+		{
+			tmpAdjacentHighFreqId = i;
+			break;
+		}
+	}
+	*adjacentLowFreqId = rest_max (0, tmpAdjacentHighFreqId - 1);
+	
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "[S3]  maxMIPS [" << maxMIPS <<"] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " [S3] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
+}
+
+void DeltaAdaptiveDecisions::freqSelStrategy4 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq)
+{
+	int maxFreqId = this->unit.getNbFreqs ();
+	float minMIPS = 100;
+	*adjacentHighFreqId = maxFreqId - 1;
+	*adjacentLowFreqId = -1;
+	for (int i = 0; i < maxFreqId; i++)
+	{
+		if(minMIPS > this->mipsEval [i] && this->unit.getFrequency(i) <= virtualFreq)
+		{
+			minMIPS = this->mipsEval [i];
+			*adjacentLowFreqId = i;
+		}
+		
+		if (this->unit.getFrequency (i) > virtualFreq)
+		{
+			*adjacentHighFreqId = i;
+			break;
+		}
+	}
+	
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "[S4] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " [S4] minMIPS [" << minMIPS << "] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
+}
+
+void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
+{
+  //The degradation factor
+   int deltaDegradation = 10;
+   
    unsigned int minFreq = this->unit.getFrequency (0);
    unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
    unsigned int maxFreq = this->unit.getFrequency (maxFreqId);
@@ -196,17 +217,14 @@ void DeltaAdaptiveDecisions::decStrategy2 (Decision &res, int deltaDegradation)
    unsigned int virualFreq = rest_max (minFreq, maxVirtFreq);
 
    //select the real adjacent freq of the virutal one
-   int adjacentHighFreqId = maxFreqId;
+   //here modification to be donne to select freq
    int adjacentLowFreqId = -1;
-   for (unsigned int i = 0; i < this->unit.getNbFreqs (); i++)
-   {
-      if (this->unit.getFrequency (i) > virualFreq)
-      {
-         adjacentHighFreqId = i;
-         break;
-      }
-   }
-   adjacentLowFreqId = rest_max (0, adjacentHighFreqId - 1);
+   int adjacentHighFreqId = -1;
+   
+   this->freqSelStrategy1(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
+   this->freqSelStrategy2(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
+   this->freqSelStrategy3(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
+   this->freqSelStrategy4(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
 
    //compute the runing time for each
    double rFactor = ((1. + (deltaDegradation / betaCoef)) / maxFreq) - (1. / this->unit.getFrequency (adjacentHighFreqId));
@@ -222,32 +240,6 @@ void DeltaAdaptiveDecisions::decStrategy2 (Decision &res, int deltaDegradation)
    res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
 
    this->curState = DeltaAdaptiveDecisions::RUNNING_STP1;
-}
-
-void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
-{
-  //The degradation factor
-   int deltaDegradation = 10;
-   
-   //the Strategy to use
-   int decstrat = 5;
-      
-	switch (decstrat)
-	{
-		case 1:
-			this->decStrategy1(res,deltaDegradation); 
-			break;
-		case 2: 
-			this->decStrategy2(res,deltaDegradation);
-			break;
-		case 3:
-			break;
-		case 4:
-			break;
-		case 5:
-			this->decStrategy5(res,deltaDegradation);
-			break;
-	}
    
 }
 
@@ -264,7 +256,6 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool dela
    unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
 
    float Mips = this->getMipsRatio (hwc);
-   float Ipc = this->getHWExploitationRatio (hwc);
 
    //we are in the mips evaluation
    if (this->curState == DeltaAdaptiveDecisions::WAITING_START)
@@ -279,7 +270,6 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool dela
    {
       // remember the IPC and MIPS for this frequency
       this->mipsEval [curFreqId] = Mips;
-      this->ipcEval [curFreqId] = Ipc;
 
       // we have other frequencies to evaluate
       if (curFreqId != maxFreqId)
@@ -296,7 +286,6 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool dela
    else if (this->curState == DeltaAdaptiveDecisions::RUNNING_STP1)
    {
       this->mipsEval [this->formerFreqId] = Mips;
-      this->ipcEval [this->formerFreqId] = Ipc;
 
       res.freqId = this->freqIdStp2;
       res.sleepWin = this->sleepWinStp2;
@@ -307,7 +296,6 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool dela
    else if (this->curState == DeltaAdaptiveDecisions::RUNNING_STP2)
    {
       this->mipsEval [this->formerFreqId] = Mips;
-      this->ipcEval [this->formerFreqId] = Ipc;
       
       this->resetBetaState (res);
    }
