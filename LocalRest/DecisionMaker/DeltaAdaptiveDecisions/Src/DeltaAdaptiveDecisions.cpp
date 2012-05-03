@@ -74,6 +74,57 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc)
    return dec;
 }
 
+void DeltaAdaptiveDecisions::decStrategy5 (Decision &res, int deltaDegradation)
+{
+	unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
+	
+	
+	double maxIPC = 0;
+	int adjacentHighFreqId = 0;
+	double minIPC = 100;
+	int adjacentLowFreqId = 0;
+	for (unsigned int i = 0; i < maxFreqId; i++)
+	{
+		if ((maxIPC / this->unit.getFrequency (adjacentHighFreqId)) < (this->ipcEval [i] / this->unit.getFrequency (i)) )
+		{
+			maxIPC = this->ipcEval [i];
+			adjacentHighFreqId = i;
+		}
+		if ((minIPC / this->unit.getFrequency (adjacentLowFreqId)) > (this->ipcEval [i] / this->unit.getFrequency (i)) )
+		{
+			minIPC = this->ipcEval [i];
+			adjacentLowFreqId = i;
+		}
+	}
+	float degradedIPC = ((100 - deltaDegradation)/100.0) * maxIPC;
+	double rFactor = (degradedIPC - maxIPC) / (minIPC - maxIPC);
+	
+	
+	this->freqIdStp2 = adjacentHighFreqId;
+	this->sleepWinStp2 = (1 - rFactor) * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
+
+	res.freqId = adjacentLowFreqId;
+	res.sleepWin = rFactor * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
+	res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
+
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "maxIPC [" << maxIPC << "] associated freq [" << adjacentHighFreqId << "]";
+	ss << " minIPC [" << minIPC << "] associated freq [" << adjacentLowFreqId << "]";
+	ss << " degradedIPC [" << degradedIPC << "]";
+	ss << " rfactor [" << rFactor << "]";
+	ss << " adjacentHighFreqId  [" << adjacentHighFreqId << "] adjacentLowFreqId [" << adjacentLowFreqId << "]" << std::endl;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
+	this->curState = DeltaAdaptiveDecisions::RUNNING_STP1;
+	
+}
+
+
+
+
+
 void DeltaAdaptiveDecisions::decStrategy1 (Decision &res, int deltaDegradation)
 {
 	unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
@@ -81,7 +132,7 @@ void DeltaAdaptiveDecisions::decStrategy1 (Decision &res, int deltaDegradation)
 	
 	float maxIPC = 0;
 	int adjacentHighFreqId = -1;
-	float minIPC = 10;
+	float minIPC = 100;
 	int adjacentLowFreqId = -1;
 	for (unsigned int i = 0; i < maxFreqId; i++)
 	{
