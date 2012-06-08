@@ -17,8 +17,8 @@
  */
 
 /**
- * @file AdaptiveDecisions.cpp
- * The AdaptiveDecisions class is in this file
+ * @file DeltaAdaptiveDecisions.cpp
+ * The DeltaAdaptiveDecisions class is in this file
  */
 
 
@@ -74,6 +74,7 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc)
 
 void DeltaAdaptiveDecisions::freqSelStrategy1 (int *adjacentLowFreqId,int *adjacentHighFreqId, unsigned int virtualFreq)
 {
+	virtualFreq = 0;
 	int maxFreqId = this->unit.getNbFreqs ();
 	float maxMIPS = 0;
 	*adjacentHighFreqId = -1;
@@ -82,12 +83,12 @@ void DeltaAdaptiveDecisions::freqSelStrategy1 (int *adjacentLowFreqId,int *adjac
 	
 	for (int i = 0; i < maxFreqId; i++)
 	{
-		if(maxMIPS < this->mipsEval [i] && this->unit.getFrequency(i) >= virtualFreq )
+		if(maxMIPS < this->mipsEval [i])
 		{
 			maxMIPS = this->mipsEval [i];
 			*adjacentHighFreqId = i;
 		}
-		if(minMIPS > this->mipsEval [i] && this->unit.getFrequency(i) <= virtualFreq)
+		if(minMIPS > this->mipsEval [i])
 		{
 			minMIPS = this->mipsEval [i];
 			*adjacentLowFreqId = i;
@@ -95,11 +96,11 @@ void DeltaAdaptiveDecisions::freqSelStrategy1 (int *adjacentLowFreqId,int *adjac
 	}
 	
 #ifdef REST_EXTRA_LOG
-	std::stringstream ss (std::stringstream::out);
-	ss << "[S1] maxMIPS [" << maxMIPS << "] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
-	ss << " [S1] minMIPS [" << minMIPS << "] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
+	/*std::stringstream ss (std::std::stringstream::out);
+	ss << "[S1] virtualFreq ["<< virtualFreq <<"] maxMIPS [" << maxMIPS << "] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " minMIPS [" << minMIPS << "] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
 	Logger &log = Logger::getLog(this->unit.getOSId ());
-	log.logOut(ss);
+	log.logOut(ss);*/
 #endif
 	
 }
@@ -121,11 +122,11 @@ void DeltaAdaptiveDecisions::freqSelStrategy2 (int *adjacentLowFreqId,int *adjac
 	*adjacentLowFreqId = rest_max (0, *adjacentHighFreqId - 1);
 	
 #ifdef REST_EXTRA_LOG
-	std::stringstream ss (std::stringstream::out);
-	ss << "[S2] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
-	ss << " [S2] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
+	/*std::stringstream ss (std::std::stringstream::out);
+	ss << "	[S2] virtualFreq ["<< virtualFreq <<"] | adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " | adjacentLowFreqId [" << *adjacentLowFreqId << "]";
 	Logger &log = Logger::getLog(this->unit.getOSId ());
-	log.logOut(ss);
+	log.logOut(ss);*/
 #endif
 }
 
@@ -138,12 +139,15 @@ void DeltaAdaptiveDecisions::freqSelStrategy3 (int *adjacentLowFreqId,int *adjac
 	*adjacentLowFreqId = -1;
 	for (int i = 0; i < maxFreqId; i++)
 	{
-		if(maxMIPS < this->mipsEval [i] && this->unit.getFrequency(i) >= virtualFreq )
+		if(maxMIPS < this->mipsEval [i])
 		{
 			maxMIPS = this->mipsEval [i];
 			*adjacentHighFreqId = i;
 		}
 		
+	}
+	for(int i = 0; i< maxFreqId; i++)
+	{
 		if (this->unit.getFrequency (i) > virtualFreq)
 		{
 			tmpAdjacentHighFreqId = i;
@@ -153,11 +157,11 @@ void DeltaAdaptiveDecisions::freqSelStrategy3 (int *adjacentLowFreqId,int *adjac
 	*adjacentLowFreqId = rest_max (0, tmpAdjacentHighFreqId - 1);
 	
 #ifdef REST_EXTRA_LOG
-	std::stringstream ss (std::stringstream::out);
-	ss << "[S3]  maxMIPS [" << maxMIPS <<"] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
-	ss << " [S3] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
+	/*std::stringstream ss (std::std::stringstream::out);
+	ss << "[S3] virtualFreq ["<< virtualFreq <<"] maxMIPS [" << maxMIPS <<"] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " adjacentLowFreqId [" << *adjacentLowFreqId << "] maxFreqId ["<<maxFreqId<<"]" << std::endl;
 	Logger &log = Logger::getLog(this->unit.getOSId ());
-	log.logOut(ss);
+	log.logOut(ss);*/
 #endif
 }
 
@@ -169,32 +173,33 @@ void DeltaAdaptiveDecisions::freqSelStrategy4 (int *adjacentLowFreqId,int *adjac
 	*adjacentLowFreqId = -1;
 	for (int i = 0; i < maxFreqId; i++)
 	{
-		if(minMIPS > this->mipsEval [i] && this->unit.getFrequency(i) <= virtualFreq)
+		if(minMIPS > this->mipsEval [i])
 		{
 			minMIPS = this->mipsEval [i];
 			*adjacentLowFreqId = i;
-		}
-		
+		}	
+	}
+	for (int i = 0; i < maxFreqId; i++)
+	{
 		if (this->unit.getFrequency (i) > virtualFreq)
 		{
 			*adjacentHighFreqId = i;
 			break;
 		}
 	}
-	
 #ifdef REST_EXTRA_LOG
-	std::stringstream ss (std::stringstream::out);
-	ss << "[S4] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
-	ss << " [S4] minMIPS [" << minMIPS << "] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
+	/*std::stringstream ss (std::std::stringstream::out);
+	ss << "[S4] virtualFreq ["<< virtualFreq <<"] adjacentHighFreqId [" << *adjacentHighFreqId << "]";
+	ss << " minMIPS [" << minMIPS << "] adjacentLowFreqId [" << *adjacentLowFreqId << "]" << std::endl;
 	Logger &log = Logger::getLog(this->unit.getOSId ());
-	log.logOut(ss);
+	log.logOut(ss);*/
 #endif
 }
 
 void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
 {
   //The degradation factor
-   int deltaDegradation = 10;
+   double deltaDegradation = 0.05;
    
    unsigned int minFreq = this->unit.getFrequency (0);
    unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
@@ -221,10 +226,18 @@ void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
    int adjacentLowFreqId = -1;
    int adjacentHighFreqId = -1;
    
+#ifdef SEL1 
    this->freqSelStrategy1(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
+#endif
+#ifdef SEL2
    this->freqSelStrategy2(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
+#endif
+#ifdef SEL3
    this->freqSelStrategy3(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
+#endif
+#ifdef SEL4
    this->freqSelStrategy4(&adjacentLowFreqId,&adjacentHighFreqId,virualFreq);
+#endif
 
    //compute the runing time for each
    double rFactor = ((1. + (deltaDegradation / betaCoef)) / maxFreq) - (1. / this->unit.getFrequency (adjacentHighFreqId));
@@ -238,6 +251,13 @@ void DeltaAdaptiveDecisions::resetBetaState(Decision &res)
    res.freqId = adjacentLowFreqId;
    res.sleepWin = rFactor * DeltaAdaptiveDecisions::STATIC_EVAL_TIME;
    res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
+
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "freqID[1] = "<< res.freqId <<" | sleep[1] = " << res.sleepWin;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
 
    this->curState = DeltaAdaptiveDecisions::RUNNING_STP1;
    
@@ -255,6 +275,15 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool dela
    unsigned int curFreqId = this->formerFreqId;
    unsigned int maxFreqId = this->unit.getNbFreqs () - 1;
 
+   
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "currentState = "<< this->curState;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.endBlock ();
+	log.logOut(ss);
+#endif
+	
    float Mips = this->getMipsRatio (hwc);
 
    //we are in the mips evaluation
@@ -268,9 +297,8 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool dela
    }
    else if (this->curState == DeltaAdaptiveDecisions::MIPS_EVALUATION)
    {
-      // remember the IPC and MIPS for this frequency
+      // remember  MIPS for this frequency
       this->mipsEval [curFreqId] = Mips;
-
       // we have other frequencies to evaluate
       if (curFreqId != maxFreqId)
       {
@@ -285,16 +313,71 @@ Decision DeltaAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool dela
    }
    else if (this->curState == DeltaAdaptiveDecisions::RUNNING_STP1)
    {
-      this->mipsEval [this->formerFreqId] = Mips;
+      if(res.sleepWin != 0)//nothing done on the first step, so no MIPS update
+      {
+	this->mipsEval [this->formerFreqId] = Mips;
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "[OK] MIPS update : MIPS["<< this->formerFreqId <<"] = "<< Mips;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
+
+      }
+      else
+      {
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "[WARNING] nothing done, no MIPS update ";
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
+
+      }
 
       res.freqId = this->freqIdStp2;
       res.sleepWin = this->sleepWinStp2;
       res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "freqID[2] = "<< res.freqId <<" | sleep[2] = " << res.sleepWin;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
+	if(res.sleepWin == 0)//nothing to be done, jump direct to the next decision
+	{
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "[WARNING] Nothing to do, jump direct to next decision";
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+	log.endBlock();
+#endif
 
-      this->curState = DeltaAdaptiveDecisions::RUNNING_STP2;
+		this->resetBetaState(res);
+	}
+	else
+	{
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "[OK] runing the STEP2";
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+	log.endBlock();
+#endif
+
+                this->curState = DeltaAdaptiveDecisions::RUNNING_STP2;
+	}
    }
    else if (this->curState == DeltaAdaptiveDecisions::RUNNING_STP2)
    {
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "[OK] MIPS update : MIPS["<< this->formerFreqId <<"] = "<< Mips;
+	Logger &log = Logger::getLog(this->unit.getOSId ());
+	log.logOut(ss);
+#endif
+
       this->mipsEval [this->formerFreqId] = Mips;
       
       this->resetBetaState (res);

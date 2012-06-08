@@ -32,6 +32,7 @@ class Logger
 		static Logger & getLog(unsigned int id);
 
 		void logOut(std::stringstream &out);
+		void endBlock (void);
  		Logger(unsigned int id);
 		~Logger ();
 

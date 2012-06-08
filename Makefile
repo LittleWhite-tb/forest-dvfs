@@ -1,5 +1,6 @@
 CXX=g++
-CXXFLAGS=-O3 -msse3 -g -Wall -Wextra -DARCH_SNB -DREST_EXTRA_LOG
+FREQSEL=SEL2
+CXXFLAGS=-O3 -msse3 -g -Wall -Wextra -DARCH_SNB -DREST_EXTRA_LOG -D${FREQSEL}
 LD=$(CXX)
 LD_FLAGS=
 LIBS=-lpthread -lrt

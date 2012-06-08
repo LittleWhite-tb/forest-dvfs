@@ -37,7 +37,8 @@
 #include "CPUInfo.h"
 //#include "AdaptiveDecisions.h"
 //#include "DeltaAdaptiveDecisions.h"
-#include "DeltaAdaptiveDecisions.h"
+//#include "DeltaAdaptiveDecisions.h"
+#include "NewAdaptiveDecisions.h"
 #include "pfmProfiler.h"
 
 #ifdef REST_EXTRA_LOG
@@ -100,7 +101,7 @@ int main (int argc, char ** argv)
       restCtx.allOpts [i] = new thOpts ();
       thOpts * opts = restCtx.allOpts [i];
       opts->id = i;
-      opts->dec = new DeltaAdaptiveDecisions (unit);
+      opts->dec = new NewAdaptiveDecisions (unit);
       opts->prof = new PfmProfiler (unit);
       opts->unit = &unit;
 
@@ -118,7 +119,7 @@ int main (int argc, char ** argv)
    restCtx.allOpts [0] = new thOpts ();
    thOpts * opts = restCtx.allOpts [0];
    opts->id = 0;
-   opts->dec = new DeltaAdaptiveDecisions (unit0);
+   opts->dec = new NewAdaptiveDecisions (unit0);
    opts->prof = new PfmProfiler (unit0);
    opts->unit = &unit0;
 
@@ -166,7 +167,14 @@ static void * thProf (void * arg)
 
       // check what's going on
       opts->prof->read (hwc);
-      lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "sleep = "<< lastDec.sleepWin <<" | hwc.retired = "<< hwc.retired <<" | hwc.cycles = " << hwc.cycles << " | IPC = " << hwc.retired / (1.0 * hwc.cycles);
+	Logger &log = Logger::getLog(opts->unit->getOSId ());
+	log.logOut(ss);
+#endif
+
+      //lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
 
       // switch frequency
       opts->unit->setFrequency (lastDec.freqId);

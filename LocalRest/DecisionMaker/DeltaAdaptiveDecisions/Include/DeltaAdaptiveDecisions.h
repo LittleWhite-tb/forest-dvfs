@@ -18,16 +18,20 @@
 
 /**
  * @file DeltaAdaptiveDecisions.h
- * The AdaptiveDecisions class header is in this file
+ * The DeltaAdaptiveDecisions class header is in this file
  */
 
 #ifndef H_DELTAADAPTIVEDECISIONS
 #define H_DELTAADAPTIVEDECISIONS
 
 #include "DecisionMaker.h"
-#include "FreqSelector.h"
 #include <iostream>
 #include <stack>
+#ifdef REST_EXTRA_LOG
+#include <sstream>
+#include <vector>
+#include "Logger.h"
+#endif
 
 /**
  * @class AdaptiveDecisions
@@ -96,7 +100,15 @@ class DeltaAdaptiveDecisions : public DecisionMaker
       */
       inline float getMipsRatio (const HWCounters & hwc) const
       {
-         return (( (hwc.retired / (1.0 * hwc.cycles)) * this->unit.getFrequency (this->unit.getFrequency ())) /1000000);
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "IPC["<< this->unit.getFrequency() <<"]=" << (hwc.retired / (1.0 * hwc.cycles)) << " | retired = "<< hwc.retired << " | cycles = "<< hwc.cycles ;	
+	ss << " | MIPS["<< this->unit.getFrequency() <<"]=" << (( (hwc.retired / (1.0 * hwc.cycles)) * this->unit.getFrequency (this->unit.getFrequency ())) /1000 );
+	Logger & log = Logger::getLog(this->unit.getOSId ());	
+	log.logOut(ss);
+#endif
+
+         return (( (hwc.retired / (1.0 * hwc.cycles)) * this->unit.getFrequency (this->unit.getFrequency ())) /1000);
       }
       
       /**
