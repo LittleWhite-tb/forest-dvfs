@@ -166,17 +166,25 @@ static void * thProf (void * arg)
       usleep (lastDec.sleepWin);
 
       // check what's going on
-      opts->prof->read (hwc);
-#ifdef REST_EXTRA_LOG
+      while(hwc.cycles == 0)
+      	opts->prof->read (hwc);
+
+/*#ifdef REST_EXTRA_LOG
 	std::stringstream ss (std::stringstream::out);
 	ss << "sleep = "<< lastDec.sleepWin <<" | hwc.retired = "<< hwc.retired <<" | hwc.cycles = " << hwc.cycles << " | IPC = " << hwc.retired / (1.0 * hwc.cycles);
 	Logger &log = Logger::getLog(opts->unit->getOSId ());
 	log.logOut(ss);
-#endif
+#endif*/
 
-      //lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
+      lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
 
       // switch frequency
+#ifdef REST_EXTRA_LOG
+	std::stringstream ss (std::stringstream::out);
+	ss << "*** Freq Change ["<< opts->unit->getOSId() <<"] "<< lastDec.freqId;
+	Logger &log = Logger::getLog(opts->unit->getOSId ());
+	log.logOut(ss);
+#endif
       opts->unit->setFrequency (lastDec.freqId);
 
       // if needed, wait a bit for the freq to be applied
