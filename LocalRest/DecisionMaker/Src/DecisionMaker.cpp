@@ -29,7 +29,7 @@
 
 DecisionMaker::DecisionMaker (DVFSUnit & dvfsUnit) : unit (dvfsUnit)
 {
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
    std::ostringstream oss;
 
    oss.str (std::string (""));
@@ -39,14 +39,14 @@ DecisionMaker::DecisionMaker (DVFSUnit & dvfsUnit) : unit (dvfsUnit)
    {
       std::cerr << "Failed to open the log file for DVFS unit " << dvfsUnit.getOSId () << std::endl;
    }
-#endif
+#endif*/
 }
 
 DecisionMaker::~DecisionMaker (void)
 {
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
    this->switchOFS.flush ();
    this->switchOFS.close ();
-#endif
+#endif*/
 }
 

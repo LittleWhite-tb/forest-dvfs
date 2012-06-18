@@ -35,9 +35,13 @@
 #include "Common.h"
 #include "LocalRest.h"
 #include "CPUInfo.h"
-#include "AdaptiveDecisions.h"
-//#include "NewAdaptiveDecisions.h"
+//#include "AdaptiveDecisions.h"
+#include "NewAdaptiveDecisions.h"
 #include "pfmProfiler.h"
+
+#ifdef REST_EXTRA_LOG
+#include "Logger.h"
+#endif
 
 // local functions
 static void * thProf (void * arg);
@@ -78,6 +82,9 @@ int main (int argc, char ** argv)
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
 
+#ifdef REST_EXTRA_LOG
+   Logger::initLog(restCtx.cnfo->getNbDVFSUnits());
+#endif
    unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
@@ -91,8 +98,8 @@ int main (int argc, char ** argv)
       restCtx.allOpts [i] = new thOpts ();
       thOpts * opts = restCtx.allOpts [i];
       opts->id = i;
-      //opts->dec = new NewAdaptiveDecisions (unit);
-      opts->dec = new AdaptiveDecisions (unit);
+      opts->dec = new NewAdaptiveDecisions (unit);
+      //opts->dec = new AdaptiveDecisions (unit);
       opts->prof = new PfmProfiler (unit);
       opts->unit = &unit;
 
@@ -110,8 +117,8 @@ int main (int argc, char ** argv)
    restCtx.allOpts [0] = new thOpts ();
    thOpts * opts = restCtx.allOpts [0];
    opts->id = 0;
-   //opts->dec = new NewAdaptiveDecisions (unit0);
-   opts->dec = new AdaptiveDecisions (unit0);
+   opts->dec = new NewAdaptiveDecisions (unit0);
+   //opts->dec = new AdaptiveDecisions (unit0);
    opts->prof = new PfmProfiler (unit0);
    opts->unit = &unit0;
 
@@ -156,11 +163,11 @@ static void * thProf (void * arg)
       usleep (lastDec.sleepWin);
 
       // check what's going on
-      	opts->prof->read (hwc);
-      //if(hwc.cycles > 1000)
-      //{
-      	//lastDec = opts->dec->takeDecision (hwc);
-      //}
+      opts->prof->read (hwc);
+      if(hwc.cycles > 1000)
+      {
+      	lastDec = opts->dec->takeDecision (hwc);
+      }
       	// switch frequency
       	opts->unit->setFrequency (lastDec.freqId);
       
@@ -225,5 +232,9 @@ static void exitCleanup ()
    delete restCtx.cnfo;
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
+
+#ifdef REST_EXTRA_LOG
+   Logger::destroyLog();
+#endif 
 }
 
