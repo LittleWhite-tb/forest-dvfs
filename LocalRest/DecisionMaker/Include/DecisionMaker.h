@@ -72,7 +72,6 @@ class DecisionMaker
        * window is given.
        */
       virtual Decision takeDecision (const HWCounters & hwc) = 0;
-      virtual Decision takeDecision (const HWCounters & hwc, bool delayedStart) = 0;
 
       /**
        * Gives an initialization decision which defines a default sleep window

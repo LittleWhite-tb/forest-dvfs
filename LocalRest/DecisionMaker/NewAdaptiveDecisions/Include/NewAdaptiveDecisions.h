@@ -62,7 +62,6 @@ class NewAdaptiveDecisions : public DecisionMaker
        * window is given.
        */
       Decision takeDecision (const HWCounters & hwc);
-      Decision takeDecision (const HWCounters & hwc, bool delayedStart);
 
       /**
        * Gives an initialization decision which defines a default sleep window
@@ -76,7 +75,6 @@ class NewAdaptiveDecisions : public DecisionMaker
 
       typedef enum
       {       
-         START,
 	 EVAL_STP,
          GOTO_RUN_STP2,
 	 RUN_STP2_DONE

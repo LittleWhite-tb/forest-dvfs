@@ -44,7 +44,8 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (DVFSUnit & unit) :
    this->formerFreqIdStep1 = defDec.freqId;
    this->formerSleepWinStep2 = defDec.sleepWin;
    this->formerFreqIdStep2 = defDec.freqId;
-   this->curState = NewAdaptiveDecisions::START;
+   this->formerSleepWin = defDec.sleepWin;
+   this->curState = NewAdaptiveDecisions::EVAL_STP;
    this->totalsleepWin = NewAdaptiveDecisions::MIN_SLEEP_WIN;
 
 }
@@ -60,7 +61,7 @@ Decision NewAdaptiveDecisions::defaultDecision ()
    res.sleepWin = NewAdaptiveDecisions::MIN_SLEEP_WIN;
    res.freqId = 0;
    res.preCntResetPause = 0;
-
+   res.timeRatio = 0;
    return res;
 }
 
@@ -136,23 +137,12 @@ void NewAdaptiveDecisions::getVirtualFreq(float degradedIPC,unsigned int minFreq
 
 Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc)
 {
-	Decision dec = this->takeDecision (hwc, false);
-	return dec;
-}
-
-Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delayedStart)
-{
    Decision res;
    Decision Step1;
    Decision Step2;
 
    res = this->defaultDecision();
 
-   if(delayedStart == true)
-   {
-    	   return res;
-   }
-   unsigned int curSleepWin = this->formerSleepWin;
    unsigned int curFreqId = this->formerFreqId;
 
    float HWexp = this->getHWExploitationRatio (hwc);

@@ -35,7 +35,8 @@
 #include "Common.h"
 #include "LocalRest.h"
 #include "CPUInfo.h"
-#include "NewAdaptiveDecisions.h"
+#include "AdaptiveDecisions.h"
+//#include "NewAdaptiveDecisions.h"
 #include "pfmProfiler.h"
 
 // local functions
@@ -64,7 +65,6 @@ typedef struct
 // the context
 static RESTContext restCtx;
 
-static volatile bool delayedStartRest = true;
 
 /**
  * Rest entry point.
@@ -91,7 +91,8 @@ int main (int argc, char ** argv)
       restCtx.allOpts [i] = new thOpts ();
       thOpts * opts = restCtx.allOpts [i];
       opts->id = i;
-      opts->dec = new NewAdaptiveDecisions (unit);
+      //opts->dec = new NewAdaptiveDecisions (unit);
+      opts->dec = new AdaptiveDecisions (unit);
       opts->prof = new PfmProfiler (unit);
       opts->unit = &unit;
 
@@ -109,14 +110,14 @@ int main (int argc, char ** argv)
    restCtx.allOpts [0] = new thOpts ();
    thOpts * opts = restCtx.allOpts [0];
    opts->id = 0;
-   opts->dec = new NewAdaptiveDecisions (unit0);
+   //opts->dec = new NewAdaptiveDecisions (unit0);
+   opts->dec = new AdaptiveDecisions (unit0);
    opts->prof = new PfmProfiler (unit0);
    opts->unit = &unit0;
 
    // cleanup stuff when exiting
 #ifdef REST_EXTRA_LOG
    signal (SIGUSR1, sigHandler);
-   signal (SIGUSR2, sigHandler);
 #endif
    signal (SIGINT, sigHandler);
    atexit (exitCleanup);
@@ -141,7 +142,6 @@ static void * thProf (void * arg)
       sigemptyset (&set);
       sigaddset (&set, SIGINT);
       sigaddset (&set, SIGUSR1);
-      sigaddset (&set, SIGUSR2);
       pthread_sigmask (SIG_BLOCK, &set, NULL);
    }
 
@@ -159,7 +159,7 @@ static void * thProf (void * arg)
       	opts->prof->read (hwc);
       //if(hwc.cycles > 1000)
       //{
-      	//lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
+      	//lastDec = opts->dec->takeDecision (hwc);
       //}
       	// switch frequency
       	opts->unit->setFrequency (lastDec.freqId);
@@ -199,15 +199,6 @@ static void sigHandler (int nsig)
             restCtx.allOpts [i]->dec->logMarker ();
          }
 #endif
-      }
-      else
-      {
-         if (nsig == SIGUSR2)
-         {
-#ifdef REST_EXTRA_LOG
-            delayedStartRest = false;
-#endif
-         }
       }
    }
 }
