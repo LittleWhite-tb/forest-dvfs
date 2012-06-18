@@ -35,15 +35,8 @@
 #include "Common.h"
 #include "LocalRest.h"
 #include "CPUInfo.h"
-//#include "AdaptiveDecisions.h"
-//#include "DeltaAdaptiveDecisions.h"
-//#include "DeltaAdaptiveDecisions.h"
 #include "NewAdaptiveDecisions.h"
 #include "pfmProfiler.h"
-
-#ifdef REST_EXTRA_LOG
-#include "Logger.h"
-#endif
 
 // local functions
 static void * thProf (void * arg);
@@ -85,9 +78,6 @@ int main (int argc, char ** argv)
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
 
-/*#ifdef REST_EXTRA_LOG
-	Logger::initLog(restCtx.cnfo->getNbDVFSUnits ());
-#endif*/
    unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
@@ -166,16 +156,7 @@ static void * thProf (void * arg)
       usleep (lastDec.sleepWin);
 
       // check what's going on
-      //while(!(hwc.cycles > 1000))
       	opts->prof->read (hwc);
-
-/*#ifdef REST_EXTRA_LOG
-	std::stringstream ss (std::stringstream::out);
-	ss << "sleep = "<< lastDec.sleepWin <<" | hwc.retired = "<< hwc.retired <<" | hwc.cycles = " << hwc.cycles << " | IPC = " << hwc.retired / (1.0 * hwc.cycles);
-	Logger &log = Logger::getLog(opts->unit->getOSId ());
-	log.logOut(ss);
-#endif*/
-
       //if(hwc.cycles > 1000)
       //{
       	//lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
@@ -253,9 +234,5 @@ static void exitCleanup ()
    delete restCtx.cnfo;
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
-
-#ifdef REST_EXTRA_LOG
-	Logger::destroyLog();
-#endif
 }
 
