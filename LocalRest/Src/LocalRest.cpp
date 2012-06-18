@@ -85,9 +85,9 @@ int main (int argc, char ** argv)
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 	Logger::initLog(restCtx.cnfo->getNbDVFSUnits ());
-#endif
+#endif*/
    unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
@@ -166,7 +166,7 @@ static void * thProf (void * arg)
       usleep (lastDec.sleepWin);
 
       // check what's going on
-      while(hwc.cycles == 0)
+      //while(!(hwc.cycles > 1000))
       	opts->prof->read (hwc);
 
 /*#ifdef REST_EXTRA_LOG
@@ -176,16 +176,13 @@ static void * thProf (void * arg)
 	log.logOut(ss);
 #endif*/
 
-      lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
-
-      // switch frequency
-#ifdef REST_EXTRA_LOG
-	std::stringstream ss (std::stringstream::out);
-	ss << "*** Freq Change ["<< opts->unit->getOSId() <<"] "<< lastDec.freqId;
-	Logger &log = Logger::getLog(opts->unit->getOSId ());
-	log.logOut(ss);
-#endif
-      opts->unit->setFrequency (lastDec.freqId);
+      //if(hwc.cycles > 1000)
+      //{
+      	//lastDec = opts->dec->takeDecision (hwc, delayedStartRest);
+      //}
+      	// switch frequency
+      	opts->unit->setFrequency (lastDec.freqId);
+      
 
       // if needed, wait a bit for the freq to be applied
       if (lastDec.preCntResetPause != 0)

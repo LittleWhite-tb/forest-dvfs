@@ -125,12 +125,12 @@ class NewAdaptiveDecisions : public DecisionMaker
       {
 	uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getFrequency (this->unit.getFrequency ()));
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
         std::stringstream ss (std::stringstream::out);
         ss <<  "hwc.cycles = " << hwc.cycles << " | hwc.retired = " << hwc.retired << " | IPC ["<< this->unit.getFrequency() <<"] = " <<  hwc.retired / (1. * swRefCycles);;
         Logger & log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);
-#endif
+#endif*/
          
          return hwc.retired / (1. * swRefCycles);
       }

@@ -78,12 +78,12 @@ void NewAdaptiveDecisions::getVirtualFreq(float degradedIPC,unsigned int minFreq
 	Step2.timeRatio = 0.0;
 
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
         std::stringstream ss (std::stringstream::out);
         ss << "degradedIPC = " << degradedIPC << " | minFreqId = " << minFreqId << " | maxFreqId = " << maxFreqId;
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);
-#endif
+#endif*/
 	
 	//find the two consecutive IPC that majorate and minorate the degradedIPC
 	for (unsigned int i = minFreqId; i <= maxFreqId; i++)
@@ -92,24 +92,24 @@ void NewAdaptiveDecisions::getVirtualFreq(float degradedIPC,unsigned int minFreq
 		{
 			max = this->ipcEval[i];
 			tmpfreqId1 = i;
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
         std::stringstream ss (std::stringstream::out);
         ss << "max = " << max << " | tmpfreqId1 = " << tmpfreqId1;
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);
-#endif
+#endif*/
 
 		}
 		if(min > this->ipcEval[i] && this->ipcEval[i] > degradedIPC )
 		{
 			min = this->ipcEval[i];
 			tmpfreqId2 = i;
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
         std::stringstream ss (std::stringstream::out);
         ss << "min = " << min << " | tmpfreqId2 = " << tmpfreqId2;
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);
-#endif
+#endif*/
 
 		}
 
@@ -162,28 +162,28 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
    {
 	this->freqWindowCenter = this->formerFreqIdStep1;
    }
-   else if (this->formerSleepWinStep1 == this->formerSleepWinStep2)
+  /* else if (this->formerSleepWinStep1 == this->formerSleepWinStep2)
    {
 	this->freqWindowCenter = this->formerFreqIdStep1;
 	if(this->formerFreqIdStep1 > this->formerFreqIdStep2)
 	{
 		this->freqWindowCenter = this->formerFreqIdStep2;
 	}
-   }
+   }*/
    else
    {
 	this->freqWindowCenter = this->formerFreqIdStep2;
    }
 
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 {
 	std::stringstream ss (std::stringstream::out);
         ss << "~~~ Fstep1["<<this->formerSleepWinStep1 <<"] && Fstep2["<< this->formerSleepWinStep2 <<"] ";
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);	
 }
-#endif
+#endif*/
 
 
    //define the freq to test
@@ -192,35 +192,49 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
    unsigned int maxEvalFreqId = rest_min (this->unit.getNbFreqs () - 1,
                                           this->freqWindowCenter + NewAdaptiveDecisions::NB_EVAL_NEAR_FREQS);
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 {
 	std::stringstream ss (std::stringstream::out);
         ss << "+++ ["<<minEvalFreqId << "] <[["<<this->freqWindowCenter <<"]] < ["<<maxEvalFreqId <<"]";
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);	
 }
-#endif
+#endif*/
+
+/*#ifdef REST_EXTRA_LOG
+{
+	std::stringstream ss (std::stringstream::out);
+        ss << "### STATE => "<< this->curState;
+        Logger &log = Logger::getLog(this->unit.getOSId ());
+        log.logOut(ss);	
+}
+#endif*/
 
    // were we in the evaluation step
    // 1 if the sleeping window = 20 (we test freq) 0 elsewhere.
-  if ( curSleepWin == NewAdaptiveDecisions::IPC_EVAL_TIME )
+  /*if ( curSleepWin == NewAdaptiveDecisions::IPC_EVAL_TIME )
   {
 	this->curState = NewAdaptiveDecisions::EVAL_STP;
-  }
+  }*/
  
 
    if ( this->curState == NewAdaptiveDecisions::EVAL_STP )
    {
       // remember the IPC for this frequency
       this->ipcEval [curFreqId] = HWexp;
-#ifdef REST_EXTRA_LOG
+      //if the retired gives super strange value, provoking the IPC to be in 10^15
+      if(HWexp < 0.001 || HWexp > 5)
+      {
+	return res;
+      }
+/*#ifdef REST_EXTRA_LOG
 {
 	std::stringstream ss (std::stringstream::out);
         ss << "IN EVAL STEP";
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);	
 }
-#endif
+#endif*/
 
       // we have other frequencies to evaluate
       if (curFreqId != maxEvalFreqId)
@@ -231,7 +245,7 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
       // this was the last evaluation
       else
       {
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 {
         std::stringstream ss (std::stringstream::out);
 	ss << "END OF THE EVAL PROCESS, START DECISION ";
@@ -239,7 +253,7 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
 	log.logOut(ss);
 	log.endBlock();
 }
-#endif
+#endif*/
 
          // get the maxIPC from the tested IPC
          float maxIPC = 0;
@@ -249,11 +263,11 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
          }
 	 
 	 //get the frequency couple to fit the 5% degradation
-	 float degradedIPC = 0.95*maxIPC;	
+	 float degradedIPC = 0.95 * maxIPC;	
          this->getVirtualFreq (degradedIPC, minEvalFreqId, maxEvalFreqId, Step1, Step2);
          
          // increase the sleeping window if we were previously using this freq
-         if (this->formerFreqIdStep1 == Step1.freqId && this->formerFreqIdStep2 == Step2.freqId)
+         if (this->formerFreqIdStep1 == Step1.freqId || this->formerFreqIdStep2 == Step2.freqId)
          {
             this->totalsleepWin = rest_min (NewAdaptiveDecisions::MAX_SLEEP_WIN, this->totalsleepWin * 2);
          }
@@ -261,14 +275,14 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
          {
             this->totalsleepWin = NewAdaptiveDecisions::MIN_SLEEP_WIN;
          }
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
         {
 	std::stringstream ss (std::stringstream::out);
         ss << "-- ["<<Step1.timeRatio<<"] Step1.freqId = " << Step1.freqId << " ["<<Step2.timeRatio<<"] Step2.freqId = " << Step2.freqId <<" --";
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);
 	}
-#endif
+#endif*/
 	 //apply the first step of the decsion
          res.freqId = Step1.freqId;
 	 res.sleepWin = Step1.timeRatio * this->totalsleepWin;
@@ -283,25 +297,26 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
 	this->formerFreqIdStep2 = Step2.freqId;
 	this->formerSleepWinStep2 = this->sleepWinStep2;
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 	{
 	std::stringstream ss (std::stringstream::out);
-        ss << "SWIN1["<<res.sleepWin <<"] && SWIN2["<< this->sleepWinStep2 <<"] && TOTS["<< this->totalsleepWin <<"]";
+        //ss << "SWIN1["<<res.sleepWin <<"] && SWIN2["<< this->sleepWinStep2 <<"] && TOTS["<< this->totalsleepWin <<"]";
+	ss << this->totalsleepWin;
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);	
 	}
-#endif
+#endif*/
 
 
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 	{
 	std::stringstream ss (std::stringstream::out);
         ss << "SET FIRST STEP, WAITNG FOR STEP 2";
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);	
 	}
-#endif
+#endif*/
 	curState = NewAdaptiveDecisions::GOTO_RUN_STP2;
       }
    }
@@ -310,14 +325,14 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
       //do we have to run the next step ?
       if(this->curState == NewAdaptiveDecisions::GOTO_RUN_STP2)
       {
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 	{
 	std::stringstream ss (std::stringstream::out);
         ss << "FIRST STEP ENDED,SET STEP 2";
         Logger &log = Logger::getLog(this->unit.getOSId ());
         log.logOut(ss);	
 	}
-#endif
+#endif*/
  
          res.freqId = this->freqIdStep2;
 	 res.sleepWin = this->sleepWinStep2;
@@ -325,7 +340,7 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
       }
       else
       {
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 	{
 	std::stringstream ss (std::stringstream::out);
         ss << "ALL STEP DONE, GOING IN EVAL STEP";
@@ -333,12 +348,12 @@ Decision NewAdaptiveDecisions::takeDecision (const HWCounters & hwc, bool delaye
         log.logOut(ss);	
 	log.endBlock();
 	}
-#endif
+#endif*/
 
          //then go in the eval process
          res.freqId = minEvalFreqId;
          res.sleepWin = NewAdaptiveDecisions::IPC_EVAL_TIME;
-
+	 this->curState = NewAdaptiveDecisions::EVAL_STP;
          if (NewAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0)
          {
             std::cout << "boundness: " << (hwc.l2miss * 1.) / hwc.cycles << std::endl;
