@@ -45,6 +45,7 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (DVFSUnit & unit) :
    this->formerSleepWinStep2 = defDec.sleepWin;
    this->formerFreqIdStep2 = defDec.freqId;
    this->formerSleepWin = defDec.sleepWin;
+   this->formerFreqId = defDec.freqId;
    this->curState = NewAdaptiveDecisions::EVAL_STP;
    this->totalsleepWin = NewAdaptiveDecisions::MIN_SLEEP_WIN;
 
@@ -61,7 +62,6 @@ Decision NewAdaptiveDecisions::defaultDecision ()
    res.sleepWin = NewAdaptiveDecisions::MIN_SLEEP_WIN;
    res.freqId = 0;
    res.preCntResetPause = 0;
-   res.timeRatio = 0;
    return res;
 }
 
@@ -126,10 +126,11 @@ void NewAdaptiveDecisions::getVirtualFreq(float degradedIPC,unsigned int minFreq
 	else
 	{	
 		//once the freq are found, compute the time to spend in each
-		Step1.freqId = tmpfreqId1;
-		Step1.timeRatio = (degradedIPC - max)/(min-max);
 		Step2.freqId = tmpfreqId2;
-		Step2.timeRatio = 1 - Step1.timeRatio;
+		Step2.timeRatio = (degradedIPC - max)/(min-max);
+
+		Step1.freqId = tmpfreqId1;
+		Step1.timeRatio =1 - Step2.timeRatio;
 	}
 	
 }

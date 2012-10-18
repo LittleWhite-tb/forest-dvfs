@@ -39,9 +39,9 @@
 #include "NewAdaptiveDecisions.h"
 #include "pfmProfiler.h"
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
 #include "Logger.h"
-#endif
+#endif*/
 
 // local functions
 static void * thProf (void * arg);
@@ -82,9 +82,9 @@ int main (int argc, char ** argv)
    // initialize the general context
    restCtx.cnfo = new CPUInfo ();
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
    Logger::initLog(restCtx.cnfo->getNbDVFSUnits());
-#endif
+#endif*/
    unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
    restCtx.thIds = new pthread_t [nbDVFSUnits];
    restCtx.allOpts = new thOpts * [nbDVFSUnits];
@@ -201,10 +201,10 @@ static void sigHandler (int nsig)
       {
 #ifdef REST_EXTRA_LOG
          // log a marker in all the logs
-         for (unsigned int i = 0; i < restCtx.cnfo->getNbDVFSUnits (); i++)
+         /*for (unsigned int i = 0; i < restCtx.cnfo->getNbDVFSUnits (); i++)
          {
             restCtx.allOpts [i]->dec->logMarker ();
-         }
+         }*/
 #endif
       }
    }
@@ -233,8 +233,8 @@ static void exitCleanup ()
    delete [] restCtx.thIds;
    delete [] restCtx.allOpts;
 
-#ifdef REST_EXTRA_LOG
+/*#ifdef REST_EXTRA_LOG
    Logger::destroyLog();
-#endif 
+#endif*/
 }
 

@@ -85,7 +85,7 @@ class DecisionMaker
       /**
        * Print a marker in the log file.
        */
-      inline void logMarker ()
+    /*  inline void logMarker ()
       {
          struct timespec ts;
          clock_gettime (CLOCK_MONOTONIC, &ts);
@@ -94,7 +94,7 @@ class DecisionMaker
       inline void log(unsigned int freq,unsigned int window)
       {
 	this->switchOFS << "[realy applied] Freq : "<<freq<<" sleep : "<<window <<std::endl;
-      }
+      }*/
 #endif
 
    protected:
