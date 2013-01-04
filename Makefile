@@ -1,6 +1,5 @@
 CXX=g++
-FREQSEL=SEL2
-CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DARCH_SNB -DREST_LOG -D${FREQSEL}
+CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DARCH_SNB -DREST_LOG
 CXXFLAGS_DEBUG=-g -pg
 LD=$(CXX)
 LD_FLAGS=
