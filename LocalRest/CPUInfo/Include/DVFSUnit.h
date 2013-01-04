@@ -29,6 +29,7 @@
 #include <fstream>
 #include <stdint.h>
 #include <iostream>
+#include <vector>
 
 #include "Common.h"
 
@@ -46,7 +47,7 @@ class DVFSUnit
        * @param id The id of the processor for the OS
        * @param useTB Do we consider the TurboBoost frequency or ignore it.
        */
-      DVFSUnit (unsigned int id, bool useTB);
+      DVFSUnit (unsigned int id, unsigned int cpuid, bool useTB);
 
       /**
        * Destructor
@@ -59,9 +60,18 @@ class DVFSUnit
        *
        * @return The unit number defined by the underlying OS.
        */
-      inline unsigned int getOSId () const
+      inline unsigned int getOSId (unsigned idx = 0) const
       {
-         return this->procId;
+         assert (idx < this->cpuIds.size ());
+         return this->cpuIds[idx];
+      }
+
+			inline unsigned int getId () const {
+				return id;
+			}
+
+      inline unsigned int getNbCpuIds () const{
+            return this->cpuIds.size ();
       }
 
       /**
@@ -94,9 +104,13 @@ class DVFSUnit
        *
        * @return The id of the last required frequency.
        */
-      inline unsigned int getFrequency () const
+      inline unsigned int getCurFreqId () const
       {
          return this->curFreqId;
+      }
+      
+      inline unsigned int getCurFreq () const{
+      	return this->freqs [this->curFreqId];
       }
 
       /**
@@ -112,18 +126,21 @@ class DVFSUnit
        * @return The latency (in ns) required by the unit to actually
        * change its frequency.
        */
-      inline unsigned int getSwitchLatency ()
+      inline unsigned int getSwitchLatency () const
       {
          return this->latency;
       }
 
+			/**
+			 * Add a core id in the list of cpus of the dvfs unit
+			 * Replaces its corresponding governor by userspace,
+			 * saving its former governor to be able to restore it
+			 * afterwards
+			 */
+      void addCpuId (unsigned int cpuId);	
    private:
-
-      /**
-       * The id of the processor we are handling.
-       */
-      unsigned int procId;
-
+	 		// TODO comment
+	 		unsigned int id;
       /**
        * The number of frequencies which this unit can use.
        */
@@ -143,17 +160,24 @@ class DVFSUnit
       /**
        * Governor in use before we take control of the DVFS unit.
        */
-      std::string formerGov;
+			std::vector<std::string> formerGov;
 
       /**
        * File where to write to set the frequency.
        */
-      std::ofstream freqFs;
+			std::vector<std::ofstream*> freqFs;
 
       /**
        * Latency imposed to switch the frequency (nanoseconds).
        */
       unsigned int latency;
+
+      /**
+       * List of cores that are linked to the DVFS Unit by frequency
+       * and handled by it 
+       */
+      std::vector<unsigned int> cpuIds;
+			unsigned int nbCpuIds;
 };
 
 

@@ -47,18 +47,16 @@ void Logger::destroyLog (void)
 	}
 	
 }
-Logger & Logger::getLog(unsigned int id)
-{
-	assert (id < (unsigned int)Logger::logList.size());
 
-	return *Logger::logList [id];
-
+Logger *Logger::getLog (unsigned int id) {
+	assert (id < Logger::logList.size ());
+	return Logger::logList[id];
 }
 
 Logger::Logger (unsigned int id)
 {
 	std::ostringstream oss;
-	this->thId =id;
+	this->thId = id;
 	oss.str (std::string (""));
 
 	oss << "RESTlog" << this->thId;
@@ -75,13 +73,16 @@ Logger::~Logger (void)
 	this->switchOFS.close ();
 }
 
-void Logger::logOut (std::stringstream &logString)
-{
+void Logger::logOut (const char *logString) {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	this->switchOFS << "[" << (ts.tv_nsec + ts.tv_sec * 1000000000)/ 1000000000.0 << "]*["<<this->thId<<"] >> " << logString.str() << std::endl;
+	this->switchOFS << (ts.tv_nsec + ts.tv_sec * 1000000000)
+									<< " " << logString << std::endl;
 }
 
+void Logger::logOut (std::ostringstream& oss) {
+	this->logOut (oss.str ().c_str ());
+}
 
 void Logger::endBlock ()
 {

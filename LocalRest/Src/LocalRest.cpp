@@ -39,9 +39,9 @@
 #include "NewAdaptiveDecisions.h"
 #include "pfmProfiler.h"
 
-/*#ifdef REST_EXTRA_LOG
-#include "Logger.h"
-#endif*/
+#ifdef REST_LOG
+	#include "Logger.h"
+#endif
 
 // local functions
 static void * thProf (void * arg);
@@ -51,190 +51,172 @@ static void sigHandler (int nsig);
 // options used to create the threads
 typedef struct
 {
-   unsigned int id;
-   DecisionMaker * dec;
-   Profiler * prof;
-   DVFSUnit * unit;
+	unsigned int id;
+	DecisionMaker *dec;
+	Profiler *prof;
+	DVFSUnit *unit;
 } thOpts;
 
-// variables shared among the threads
-typedef struct
-{
-   CPUInfo * cnfo;
-   pthread_t * thIds;
-   thOpts ** allOpts;
-} RESTContext;
+struct ThreadContext {
+	pthread_t pid;
+	thOpts opts;
+};
 
+// variables shared among the threads
+struct RESTContext
+{
+	CPUInfo cnfo;
+	ThreadContext *thdCtx;
+};
 
 // the context
 static RESTContext restCtx;
-
 
 /**
  * Rest entry point.
  */
 int main (int argc, char ** argv)
 {
-   (void)(argc);
-   (void)(argv);
+	(void)(argc);
+	(void)(argv);
 
-
-   // initialize the general context
-   restCtx.cnfo = new CPUInfo ();
-
-/*#ifdef REST_EXTRA_LOG
-   Logger::initLog(restCtx.cnfo->getNbDVFSUnits());
-#endif*/
-   unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
-   restCtx.thIds = new pthread_t [nbDVFSUnits];
-   restCtx.allOpts = new thOpts * [nbDVFSUnits];
-
-
-   // launch threads
-   for (unsigned int i = 1; i < nbDVFSUnits; i++)
-   {
-      DVFSUnit & unit = restCtx.cnfo->getDVFSUnit (i);
-      // initialize options
-      restCtx.allOpts [i] = new thOpts ();
-      thOpts * opts = restCtx.allOpts [i];
-      opts->id = i;
-      opts->dec = new NewAdaptiveDecisions (unit);
-      //opts->dec = new AdaptiveDecisions (unit);
-      opts->prof = new PfmProfiler (unit);
-      opts->unit = &unit;
-
-      // run thread
-      if (pthread_create (&restCtx.thIds [i], NULL, thProf, opts) != 0)
-      {
-         std::cerr << "Failed to create profiler thread" << std::endl;
-         return EXIT_FAILURE;
-      }
-   }
-
-   // the main process is the main profiler
-   DVFSUnit & unit0 = restCtx.cnfo->getDVFSUnit (0);
-
-   restCtx.allOpts [0] = new thOpts ();
-   thOpts * opts = restCtx.allOpts [0];
-   opts->id = 0;
-   opts->dec = new NewAdaptiveDecisions (unit0);
-   //opts->dec = new AdaptiveDecisions (unit0);
-   opts->prof = new PfmProfiler (unit0);
-   opts->unit = &unit0;
-
-   // cleanup stuff when exiting
-#ifdef REST_EXTRA_LOG
-   signal (SIGUSR1, sigHandler);
+	unsigned int nbDVFSUnits = restCtx.cnfo.getNbDVFSUnits ();
+#ifdef REST_LOG	
+	Logger::initLog (nbDVFSUnits);
 #endif
-   signal (SIGINT, sigHandler);
-   atexit (exitCleanup);
+	restCtx.thdCtx = new ThreadContext [nbDVFSUnits];
+	handleAllocation (restCtx.thdCtx);
+	
+	// launch threads
+	for (unsigned int i = 1; i < nbDVFSUnits; i++)
+	{
+		DVFSUnit& unit = restCtx.cnfo.getDVFSUnit (i);
+		// initialize options	
+		thOpts& opts = restCtx.thdCtx[i].opts;
+		opts.id = i;
+		opts.dec = new NewAdaptiveDecisions (unit);
+		handleAllocation (opts.dec);
+		opts.prof = new PfmProfiler (unit);
+		handleAllocation (opts.dec);
+		opts.unit = &unit;
 
-   thProf (opts);
+		// run thread
+		if (pthread_create (&restCtx.thdCtx[i].pid, NULL, thProf, &opts) != 0)
+		{
+			std::cerr << "Error: Failed to create profiler thread" << std::endl;
+			return EXIT_FAILURE;
+		}
+	}
 
-   // never reached
-   return EXIT_SUCCESS;
+	// the main process is the main profiler
+	DVFSUnit& unit0 = restCtx.cnfo.getDVFSUnit (0);
+	thOpts& opts = restCtx.thdCtx[0].opts;
+	opts.id = 0;
+	opts.dec = new NewAdaptiveDecisions (unit0);
+	handleAllocation (opts.dec);
+	opts.prof = new PfmProfiler (unit0);
+	handleAllocation (opts.dec);
+	opts.unit = &unit0;
+
+	// cleanup stuff when exiting
+#ifdef REST_LOG
+	signal (SIGUSR1, sigHandler);
+#endif
+	signal (SIGINT, sigHandler);
+	atexit (exitCleanup);
+
+	// Launch the function for main thread
+	thProf (&opts);
+
+	// never reached
+	return EXIT_SUCCESS;
 }
 
 static void * thProf (void * arg)
 {
-   HWCounters hwc;
-   thOpts * opts = (thOpts *) arg;
-   Decision lastDec;
+	thOpts * opts = (thOpts *) arg;
+	Decision dec = DECISION_DEFAULT_INITIALIZER;
 
-   // only the main thread receives signals
-   if (opts->id != 0)
-   {
-      sigset_t set;
+	opts->dec->setProfiler (opts->prof);
 
-      sigemptyset (&set);
-      sigaddset (&set, SIGINT);
-      sigaddset (&set, SIGUSR1);
-      pthread_sigmask (SIG_BLOCK, &set, NULL);
-   }
+	// only the main thread receives signals
+	if (opts->id != 0)
+	{
+		sigset_t set;
 
-   // reset counters and get initialization data
-   opts->prof->read (hwc);
-   lastDec = opts->dec->defaultDecision ();
+		sigemptyset (&set);
+		sigaddset (&set, SIGINT);
+		sigaddset (&set, SIGUSR1);
+		pthread_sigmask (SIG_BLOCK, &set, NULL);
+	}
 
-   // do it as long as we are not getting killed by a signal
-   while (true)
-   {
-      // wait for a while
-      usleep (lastDec.sleepWin);
+	// do it as long as we are not getting killed by a signal
+	while (true) {
+		// If the runtime's decision is to skip the sleeping time, we obey it !!
+		if (!dec.skip) {
+			// wait for a while	
+			usleep (dec.sleepWin);
+		}
+		
+		dec = opts->dec->takeDecision ();
+		
+		if (!dec.skip) {
+			// switch frequency	
+			opts->unit->setFrequency (dec.freqId);
 
-      // check what's going on
-      opts->prof->read (hwc);
-      if(hwc.cycles > 1000)
-      {
-      	lastDec = opts->dec->takeDecision (hwc);
-      }
-      	// switch frequency
-      	opts->unit->setFrequency (lastDec.freqId);
-      
+			// if needed, wait a bit for the freq to be applied	
+			if (dec.freqApplyDelay != 0) {
+				usleep (dec.freqApplyDelay);
+				opts->dec->readCounters (); // Reset the counters
+			}
+		}	
+	}
 
-      // if needed, wait a bit for the freq to be applied
-      if (lastDec.preCntResetPause != 0)
-      {
-         usleep (lastDec.preCntResetPause);
-
-         // reset the counters
-         opts->prof->read (hwc);
-      }
-
-   }
-
-   // pacify compiler but we never get out of while loop
-   return NULL;
+	// pacify compiler but we never get out of while loop
+	return NULL;
 }
 
 static void sigHandler (int nsig)
 {
-   // Ctrl + C
-   if (nsig == SIGINT)
-   {
-      exit (EXIT_FAILURE);
-   }
-   else
-   {
-      // SIGUSER1
-      if (nsig == SIGUSR1)
-      {
-#ifdef REST_EXTRA_LOG
-         // log a marker in all the logs
-         /*for (unsigned int i = 0; i < restCtx.cnfo->getNbDVFSUnits (); i++)
-         {
-            restCtx.allOpts [i]->dec->logMarker ();
-         }*/
-#endif
-      }
-   }
+	switch (nsig) {
+	case SIGINT:	
+			exit (EXIT_FAILURE);
+			break;
+	case SIGUSR1:
+			#ifdef REST_LOG
+				for (unsigned int i = 0; i < restCtx.cnfo.getNbDVFSUnits (); i++) {
+					Logger *log = Logger::getLog (restCtx.cnfo.getDVFSUnit (i).getId ());
+					log->logOut ("*");
+				}
+			#endif
+			break;
+	default:
+			std::cerr << "Received signal #" << nsig << std::endl;
+	};
 }
 
 static void exitCleanup ()
 {
-   unsigned int i;
-   unsigned int nbUnits = restCtx.cnfo->getNbDVFSUnits ();
+	unsigned int i;
+	unsigned int nbUnits = restCtx.cnfo.getNbDVFSUnits ();
 
-   // cancel all threads (0 = main process, not a thread)
-   for (i = 1; i < nbUnits; i++)
-   {
-      pthread_cancel (restCtx.thIds [i]);
-      pthread_join (restCtx.thIds [i], NULL);
-   }
+	// cancel all threads (0 = main process, not a thread)
+	for (i = 1; i < nbUnits; i++)
+	{
+		pthread_cancel (restCtx.thdCtx[i].pid);
+		pthread_join (restCtx.thdCtx[i].pid, NULL);
+	}
 
-   // clean the memory used by all the threads
-   for (i = 0; i < nbUnits; i++)
-   {
-      delete restCtx.allOpts [i]->prof;
-      delete restCtx.allOpts [i]->dec;
-      delete restCtx.allOpts [i];
-   }
-   delete restCtx.cnfo;
-   delete [] restCtx.thIds;
-   delete [] restCtx.allOpts;
+	// clean the memory used by all the threads
+	for (i = 0; i < nbUnits; i++)
+	{
+		delete restCtx.thdCtx[i].opts.prof;
+		delete restCtx.thdCtx[i].opts.dec;
+	}
+	delete restCtx.thdCtx;
 
-/*#ifdef REST_EXTRA_LOG
-   Logger::destroyLog();
-#endif*/
+#ifdef REST_LOG
+	Logger::destroyLog();
+#endif
 }
 

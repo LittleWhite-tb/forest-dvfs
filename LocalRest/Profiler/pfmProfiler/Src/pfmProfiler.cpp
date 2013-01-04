@@ -58,74 +58,100 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    int res;
 
    // libpfm init
-   PfmProfiler::pfmInit ();
+   PfmProfiler::pfmInit (); 
+   this->nbCpuIds = this->unit.getNbCpuIds ();
 
-   // initialize counters
-   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
-   {
-      pfm_perf_encode_arg_t arg;
+//   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
 
-      // initialize the structure
-      arg.attr = new perf_event_attr ();
-      arg.fstr = NULL;
-      arg.size = sizeof (arg);
+   this->pfmFds = new int [NB_HW_COUNTERS*nbCpuIds];
+   handleAllocation (this->pfmFds);
 
-      // encode the counter
-      res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
-      if (res != PFM_SUCCESS)
-      {
-         std::cerr << "Failed to get counter " << counters [i] << std::endl;
-         exit (EXIT_FAILURE);
-      }
+   this->formerMeasurement = new HWCounters [nbCpuIds];
+   handleAllocation (this->formerMeasurement);
 
-      // request scaling in case of shared counters
-      arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+   // For each CPU in the DVFSUnit
+   for (unsigned int cpu = 0; cpu < nbCpuIds; cpu++) {
+      unsigned int cpuId = this->unit.getOSId (cpu);
 
-      // open the corresponding file on the system
-      this->pfmFds [i] = perf_event_open (arg.attr, -1, this->unit.getOSId (), -1, 0);
-      if (this->pfmFds [i] == -1)
-      {
-         std::cerr << "Cannot open counter " << counters [i] << " on cpu " << this->unit.getOSId () << std::endl;
-         exit (EXIT_FAILURE);
-      }
+      // Offset in the pfmFds array because flattened 2D array
+      unsigned baseIdx = cpu*NB_HW_COUNTERS;
 
-      // Activate the counter
-      if (ioctl (this->pfmFds [i], PERF_EVENT_IOC_ENABLE, 0))
-      {
-         std::cerr << "Cannot enable event " << counters [i] << " on cpu " << this->unit.getOSId () << std::endl;
-         exit (EXIT_FAILURE);
-      }
+       // initialize counters for the current cpu
+       for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+       {
+					struct perf_event_attr attr;
+          pfm_perf_encode_arg_t arg;
+ 
+         	// initialize the structure
+				 	memset (&attr, 0, sizeof (attr));
+					memset (&arg, 0, sizeof (arg));
+          arg.attr = &attr;
+          arg.fstr = 0;
+          arg.size = sizeof (arg);
 
-      // initially, old values are 0
-      memset (&this->formerMeasurement, 0, sizeof (this->formerMeasurement));
+          // encode the counter
+          res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
+          if (res != PFM_SUCCESS)
+          {
+             std::cerr << "Failed to get counter " << counters [i] << " on cpu " << cpu << std::endl;
+             exit (EXIT_FAILURE);
+          }
 
-      // free some mem
-      delete arg.attr;
-   }
+          // request scaling in case of shared counters
+          arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+
+          // open the corresponding file on the system
+          this->pfmFds [baseIdx + i] = perf_event_open (arg.attr, -1, cpuId, -1, 0);
+          if (this->pfmFds [baseIdx + i] == -1)
+          {
+             std::cerr << "Cannot open counter " << counters [i] << " on cpu " << cpuId << std::endl;
+             exit (EXIT_FAILURE);
+          }
+
+          // Activate the counter
+          if (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0))
+          {
+             std::cerr << "Cannot enable event " << counters [i] << " on cpu " << cpuId << std::endl;
+             exit (EXIT_FAILURE);
+          }
+        }
+    }
+  // initially, old values are 0
+  memset (this->formerMeasurement, 0, this->nbCpuIds * sizeof (*this->formerMeasurement)); 
 }
 
 PfmProfiler::~PfmProfiler ()
 {
    // free memory
-   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+   for (unsigned int i = 0; i < nbCpuIds*NB_HW_COUNTERS; i++)
    {
       close (this->pfmFds [i]);
    }
+
+   delete [] pfmFds, pfmFds = 0;
+   delete [] formerMeasurement, formerMeasurement = 0;
 
    // close pfm
    PfmProfiler::pfmTerminate ();
 }
 
-void PfmProfiler::read (HWCounters & hwc)
+void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
 {
-   int res;
-
-   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
-   {
+    assert (cpu < this->nbCpuIds);
+    int res;
+    
+    //std::cerr << "reading hwc for cpu " << cpu << std::endl;
+ 
+		// Base index of the file descriptors array (because it's a flattened 2d array)
+    unsigned baseIdx = cpu*NB_HW_COUNTERS;
+      
+    // for each hw counter of this cpu
+    for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+    {
       uint64_t buf [3];
       uint64_t value;
 
-      res = ::read (this->pfmFds [i], buf, sizeof (buf));
+      res = ::read (this->pfmFds [baseIdx + i], buf, sizeof (buf));
       if (res != sizeof (buf))
       {
          std::cerr << "Failed to read counter #" << i << std::endl;
@@ -133,17 +159,17 @@ void PfmProfiler::read (HWCounters & hwc)
 
       // handle scaling to allow PMU sharing
       value = (uint64_t)( (double) buf [0] * buf [1] / buf [2]);
-      if (this->formerMeasurement.values [i] <= value)
+      if (this->formerMeasurement[cpu].values [i] <= value)
       {
-         hwc.values [i] = value - this->formerMeasurement.values [i];
+         hwc.values [i] = value - this->formerMeasurement[cpu].values [i];
       }
       else  // overflow
       {
-         hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - this->formerMeasurement.values [i] + value;
+         hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - this->formerMeasurement[cpu].values [i] + value;
       }
 
       // remember this value
-      this->formerMeasurement.values [i] = value;
-   }
+      this->formerMeasurement[cpu].values [i] = value;
+    }
 }
 

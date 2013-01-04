@@ -26,6 +26,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <iomanip>
 
 #include "Common.h"
 
@@ -57,23 +58,23 @@ class FreqSelector
        *
        * @param freqId The identifier of the frequency to promote.
        */
-      inline void promoteFrequency (unsigned int freqId)
+      inline void promote (unsigned int freqId, float ratio)
       {
          assert (freqId < this->nbFreqs);
 
-         if (this->coeffs [freqId] == FreqSelector::MAX_PROMS)
+         if (this->coeffs [freqId]+ratio >= FreqSelector::MAX_PROMS)
          {
             for (unsigned int i = 0; i < this->nbFreqs; i++)
             {
-               if (i != freqId && this->coeffs [i] != 0)
+               if (i != freqId && this->coeffs [i]-ratio > 0)
                {
-                  this->coeffs [i]--;
+                  this->coeffs [i] -= ratio;
                }
             }
          }
          else
          {
-            this->coeffs [freqId]++;
+            this->coeffs [freqId] += ratio;
          }
       }
 
@@ -103,13 +104,30 @@ class FreqSelector
          return 0;
       }
 
+			inline bool areWeStableYet (unsigned int freqId) {
+				assert (freqId < this->nbFreqs);
+				return this->coeffs [freqId] >= 1.5;
+			}
+
+			inline float getFrequencyRatio (unsigned idx) {
+				assert (idx < this->nbFreqs);
+				return this->coeffs [idx];
+			}
+
+			inline void print () {
+				for (unsigned int i = 0; i < this->nbFreqs; i++) {
+					std::cerr << std::setw (10) << this->coeffs [i] << " ";
+				}
+				std::cerr << std::endl;
+			}
+
    private:
 
       /**
        * Maximal number of successive promotions that a frequency has to have
        * before being selected.
        */
-      static const unsigned int MAX_PROMS = 2;
+      static const float MAX_PROMS = 2;
 
       /**
        * Number of frequencies in the coeff array.
@@ -119,7 +137,7 @@ class FreqSelector
       /**
        * Current coefficient applied to every frequency.
        */
-      unsigned int * coeffs;
+      float * coeffs;
 };
 
 #endif

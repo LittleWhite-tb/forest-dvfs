@@ -27,7 +27,7 @@
 
 #include "NaiveDecisions.h"
 
-NaiveDecisions::NaiveDecisions (DVFSUnit & unit) :
+NaiveDecisions::NaiveDecisions (const DVFSUnit & unit) :
    DecisionMaker (unit)
 {
 

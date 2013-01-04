@@ -53,8 +53,9 @@ class PfmProfiler : public Profiler
        * Reads the counter values and "resets" them.
        *
        * @param hwc The hardware counter structure to fill with the results.
+       * @param cpu The id of the cpu in the internal profiler table
        */
-      void read (HWCounters & hwc);
+      void read (HWCounters & hwc, unsigned int cpu);
 
    private:
 
@@ -95,6 +96,15 @@ class PfmProfiler : public Profiler
          pthread_mutex_unlock (&PfmProfiler::pfmInitMtx);
       }
 
+      inline unsigned int getNbCpuIds () const{
+          return this->nbCpuIds;
+      }
+
+      /**
+       * Number of cpu handled by the Profiler
+       */
+      unsigned int nbCpuIds;
+
       /**
        * Mutex to access the pfm initialization variables.
        */
@@ -108,12 +118,12 @@ class PfmProfiler : public Profiler
       /**
        * List of fds opened to read the HW counters.
        */
-      int pfmFds [NB_HW_COUNTERS];
+      int *pfmFds;
 
       /**
        * Former result to allow difference computations.
        */
-      HWCounters formerMeasurement;
+      HWCounters *formerMeasurement;
 };
 
 #endif

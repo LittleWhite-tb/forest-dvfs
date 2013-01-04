@@ -51,7 +51,9 @@ class Profiler
        *
        * @param hwc The hardware counter structure to fill with the results.
        */
-      virtual void read (HWCounters & hwc) = 0;
+      virtual void read (HWCounters & hwc, unsigned cpu) = 0;
+
+      virtual unsigned int getNbCpuIds () const = 0;
 
    protected:
 

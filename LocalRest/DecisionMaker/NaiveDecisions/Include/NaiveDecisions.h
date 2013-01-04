@@ -38,7 +38,7 @@ class __attribute__ ((deprecated)) NaiveDecisions : public DecisionMaker
       /**
        * @brief Constructor
        */
-      NaiveDecisions (DVFSUnit & unit);
+      NaiveDecisions (const DVFSUnit & unit);
 
       /**
        * @brief Destructor

@@ -26,7 +26,7 @@
 #include "AdaptiveDecisions.h"
 #include "Common.h"
 
-AdaptiveDecisions::AdaptiveDecisions (DVFSUnit & unit) :
+AdaptiveDecisions::AdaptiveDecisions (const DVFSUnit & unit) :
    DecisionMaker (unit)
 {
    Decision defDec = this->defaultDecision ();
@@ -53,7 +53,8 @@ Decision AdaptiveDecisions::defaultDecision ()
 
    res.sleepWin = AdaptiveDecisions::MIN_SLEEP_WIN;
    res.freqId = 0;
-   res.preCntResetPause = 0;
+   res.freqApplyDelay = 0;
+   res.timeRatio = 0;
 
    return res;
 }
@@ -115,7 +116,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
          {
             if (this->ipcEval [i] > 0.9 * maxIPC)
             {
-               this->freqSel->promoteFrequency (i);
+               this->freqSel->promote (i, 1);
             }
          }
 
@@ -166,7 +167,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
 #endif
 
       // we don't care about when the frequency will be set
-      res.preCntResetPause = 0;
+      res.freqApplyDelay = 0;
 
       // remember what we have decided
       this->formerExecFreqId = res.freqId;
@@ -176,7 +177,7 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    {
       // we are in an evaluation step, wait before reseting the counters: the
       // latency has to be actually set before we can measure anything relevant
-      res.preCntResetPause = this->unit.getSwitchLatency () / 1000;
+      res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
    }
 
    return res;

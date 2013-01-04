@@ -28,10 +28,12 @@ class Logger
 	public:
 		static std::vector<Logger *> logList;
 		static void initLog (unsigned int nbTh);
-		static void destroyLog (void);
-		static Logger & getLog(unsigned int id);
+		static void destroyLog (void);	
+		static Logger *getLog (unsigned int id);
 
-		void logOut(std::stringstream &out);
+		void logOut (const char *str);
+		void logOut (std::ostringstream& oss);
+			
 		void endBlock (void);
  		Logger(unsigned int id);
 		~Logger ();

@@ -69,7 +69,6 @@ class CPUInfo
       }
 
    private:
-
       /**
        * Number of independant frequency-scalable computing units (thread or
        * core with independant DVFS capacity)

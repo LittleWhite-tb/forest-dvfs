@@ -40,7 +40,7 @@ class AdaptiveDecisions : public DecisionMaker
       /**
        * Constructor
        */
-      AdaptiveDecisions (DVFSUnit & dvfsUnit);
+      AdaptiveDecisions (const DVFSUnit & dvfsUnit);
 
       /**
        * Destructor
@@ -109,7 +109,7 @@ class AdaptiveDecisions : public DecisionMaker
        */
       inline float getHWExploitationRatio (const HWCounters & hwc) const
       {
-         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getFrequency (this->unit.getFrequency ()));
+         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getCurFreq ());
 
          return hwc.retired / (1. * swRefCycles);
       }

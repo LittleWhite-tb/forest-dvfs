@@ -26,6 +26,9 @@
 #define H_COMMON
 
 #include <stdint.h>
+#include <iostream>
+#include <cstdlib>
+#include <time.h>
 
 /**
  * Value of the watched hardware counters.
@@ -48,9 +51,17 @@ typedef union
  */
 #define NB_HW_COUNTERS (sizeof(HWCounters) / sizeof(uint64_t))
 
-// a few utility functions which may be usefull at some point
+// a few utility functions which may be useful at some point
 #define rest_max(a, b) ((a) > (b) ? (a) : (b))
 #define rest_min(a, b) ((a) < (b) ? (a) : (b))
 #define rest_abs(a) ((a) < 0 ? -(a) : (a))
+
+// TODO comment
+inline void handleAllocation (void *toTest) {
+	if (toTest == 0) {
+		std::cerr << "Error: One resource couldn't be allocated." << std::endl;
+		exit (EXIT_FAILURE);
+	}
+}
 
 #endif

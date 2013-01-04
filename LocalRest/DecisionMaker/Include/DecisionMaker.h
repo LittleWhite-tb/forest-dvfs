@@ -24,7 +24,7 @@
 #ifndef H_DECISIONMAKER
 #define H_DECISIONMAKER
 
-#ifdef REST_EXTRA_LOG
+#ifdef REST_LOG
 #include <iostream>
 #include <fstream>
 #include <time.h>
@@ -32,6 +32,7 @@
 
 #include "Common.h"
 #include "DVFSUnit.h"
+#include "Profiler.h"
 
 /**
  * Decision taken by the decision maker.
@@ -39,10 +40,15 @@
 typedef struct
 {
    unsigned int freqId;    // new frequency to use
+   unsigned int cpuId;			// the current cpu to apply the decision to
    unsigned int sleepWin;  // new sleep window to use (usec)
    float timeRatio; //the portion of the totalSleepWin ossiciated to the selected freq, sleepWin = timeRatio * totalSleepWin
-   unsigned int preCntResetPause;   // amount of time to wait before reseting the counters (in usec)
+   unsigned int freqApplyDelay;   // amount of time to wait before reseting the counters (in usec)
+   bool skip;
 } Decision;
+
+#define DECISION_DEFAULT_INITIALIZER {0,0,500,0,0,false}
+#define DECISION_ZERO_INITIALIZER {0,0,0,0,0,true}
 
 /**
  * @class DecisionMaker
@@ -56,7 +62,7 @@ class DecisionMaker
       /**
        * Constructor
        */
-      DecisionMaker (DVFSUnit & dvfsUnit);
+      DecisionMaker (const DVFSUnit& dvfsUnit);
 
       /**
        * Destructor
@@ -71,45 +77,20 @@ class DecisionMaker
        * @return A decision object where a new core frequency and sleeping
        * window is given.
        */
-      virtual Decision takeDecision (const HWCounters & hwc) = 0;
+      virtual Decision takeDecision () = 0;
 
-      /**
-       * Gives an initialization decision which defines a default sleep window
-       * and frequency to use.
-       *
-       * @return A default decision object.
-       */
-      virtual Decision defaultDecision () = 0;
+			/**
+			 * Read the HW counters of all the cores in the Decision Maker's DVFS Unit
+			 */
+			virtual void readCounters () = 0;
 
-#ifdef REST_EXTRA_LOG
-      /**
-       * Print a marker in the log file.
-       */
-    /*  inline void logMarker ()
-      {
-         struct timespec ts;
-         clock_gettime (CLOCK_MONOTONIC, &ts);
-         this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " #" << std::endl;
-      }
-      inline void log(unsigned int freq,unsigned int window)
-      {
-	this->switchOFS << "[realy applied] Freq : "<<freq<<" sleep : "<<window <<std::endl;
-      }*/
-#endif
+			// TODO Comment
+			virtual void setProfiler (Profiler *prof) = 0;
 
    protected:
-
       /**
        * Which DVFS unit we are handling.
        */
-      DVFSUnit & unit;
-
-#ifdef REST_EXTRA_LOG
-      /**
-       * File where to output the frequency switches.
-       */
-      std::ofstream switchOFS;
-#endif
-
+      const DVFSUnit& unit;
 };
 #endif
