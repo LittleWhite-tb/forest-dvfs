@@ -21,6 +21,8 @@
  * The AdaptiveDecisions class is in this file
  */
 
+#if 0
+
 #include <iostream>
 
 #include "AdaptiveDecisions.h"
@@ -183,3 +185,4 @@ Decision AdaptiveDecisions::takeDecision (const HWCounters & hwc)
    return res;
 }
 
+#endif

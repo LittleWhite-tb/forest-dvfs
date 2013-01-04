@@ -56,6 +56,7 @@ typedef union
 #define rest_min(a, b) ((a) < (b) ? (a) : (b))
 #define rest_abs(a) ((a) < 0 ? -(a) : (a))
 
+
 // TODO comment
 inline void handleAllocation (void *toTest) {
 	if (toTest == 0) {

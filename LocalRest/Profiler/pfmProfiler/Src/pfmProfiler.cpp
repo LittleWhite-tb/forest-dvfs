@@ -137,17 +137,17 @@ PfmProfiler::~PfmProfiler ()
 
 void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
 {
-    assert (cpu < this->nbCpuIds);
-    int res;
-    
-    //std::cerr << "reading hwc for cpu " << cpu << std::endl;
- 
-		// Base index of the file descriptors array (because it's a flattened 2d array)
-    unsigned baseIdx = cpu*NB_HW_COUNTERS;
-      
-    // for each hw counter of this cpu
-    for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
-    {
+   assert (cpu < this->nbCpuIds);
+   int res;
+
+   //std::cerr << "reading hwc for cpu " << cpu << std::endl;
+
+   // Base index of the file descriptors array (because it's a flattened 2d array)
+   unsigned baseIdx = cpu*NB_HW_COUNTERS;
+
+   // for each hw counter of this cpu
+   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+   {
       uint64_t buf [3];
       uint64_t value;
 
@@ -158,18 +158,18 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
       }
 
       // handle scaling to allow PMU sharing
-      value = (uint64_t)( (double) buf [0] * buf [1] / buf [2]);
-      if (this->formerMeasurement[cpu].values [i] <= value)
+      value = (uint64_t)((double) buf [0] * buf [1] / buf [2]);
+      if (this->formerMeasurement [cpu].values [i] <= value)
       {
-         hwc.values [i] = value - this->formerMeasurement[cpu].values [i];
+         hwc.values [i] = value - this->formerMeasurement [cpu].values [i];
       }
       else  // overflow
       {
-         hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - this->formerMeasurement[cpu].values [i] + value;
+         hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - this->formerMeasurement [cpu].values [i] + value;
       }
 
       // remember this value
-      this->formerMeasurement[cpu].values [i] = value;
-    }
+      this->formerMeasurement [cpu].values [i] = value;
+   }
 }
 

@@ -92,7 +92,7 @@ int main (int argc, char ** argv)
 	{
 		DVFSUnit& unit = restCtx.cnfo.getDVFSUnit (i);
 		// initialize options	
-		thOpts& opts = restCtx.thdCtx[i].opts;
+		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
 		opts.dec = new NewAdaptiveDecisions (unit);
 		handleAllocation (opts.dec);
@@ -101,7 +101,7 @@ int main (int argc, char ** argv)
 		opts.unit = &unit;
 
 		// run thread
-		if (pthread_create (&restCtx.thdCtx[i].pid, NULL, thProf, &opts) != 0)
+		if (pthread_create (&restCtx.thdCtx [i].pid, NULL, thProf, &opts) != 0)
 		{
 			std::cerr << "Error: Failed to create profiler thread" << std::endl;
 			return EXIT_FAILURE;
@@ -110,7 +110,7 @@ int main (int argc, char ** argv)
 
 	// the main process is the main profiler
 	DVFSUnit& unit0 = restCtx.cnfo.getDVFSUnit (0);
-	thOpts& opts = restCtx.thdCtx[0].opts;
+	thOpts& opts = restCtx.thdCtx [0].opts;
 	opts.id = 0;
 	opts.dec = new NewAdaptiveDecisions (unit0);
 	handleAllocation (opts.dec);
@@ -135,7 +135,13 @@ int main (int argc, char ** argv)
 static void * thProf (void * arg)
 {
 	thOpts * opts = (thOpts *) arg;
-	Decision dec = DECISION_DEFAULT_INITIALIZER;
+	Decision dec;
+
+   // default initialization for the first decision
+   dec.freqId = 0;
+   dec.cpuId = opts->unit->getOSId ();
+   dec.sleepWin = 0;
+   dec.freqApplyDelay = 0;
 
 	opts->dec->setProfiler (opts->prof);
 
@@ -150,27 +156,29 @@ static void * thProf (void * arg)
 		pthread_sigmask (SIG_BLOCK, &set, NULL);
 	}
 
-	// do it as long as we are not getting killed by a signal
-	while (true) {
-		// If the runtime's decision is to skip the sleeping time, we obey it !!
-		if (!dec.skip) {
-			// wait for a while	
-			usleep (dec.sleepWin);
-		}
-		
-		dec = opts->dec->takeDecision ();
-		
-		if (!dec.skip) {
-			// switch frequency	
-			opts->unit->setFrequency (dec.freqId);
+   // do it as long as we are not getting killed by a signal
+   while (true) {
+      // If the runtime's decision is to skip the sleeping time, we obey it !!
+      // wait for a while	
+      if (dec.sleepWin > 0)
+      {
+         usleep (dec.sleepWin);
+      }
 
-			// if needed, wait a bit for the freq to be applied	
-			if (dec.freqApplyDelay != 0) {
-				usleep (dec.freqApplyDelay);
-				opts->dec->readCounters (); // Reset the counters
-			}
-		}	
-	}
+      dec = opts->dec->takeDecision ();
+
+      // switch frequency	
+      if (dec.sleepWin > 0) 
+      {
+         opts->unit->setFrequency (dec.freqId);
+      }
+
+      // if needed, wait a bit for the freq to be applied	
+      if (dec.freqApplyDelay != 0) {
+         usleep (dec.freqApplyDelay);
+         opts->dec->readCounters (); // Reset the counters
+      }
+   }
 
 	// pacify compiler but we never get out of while loop
 	return NULL;
@@ -203,20 +211,20 @@ static void exitCleanup ()
 	// cancel all threads (0 = main process, not a thread)
 	for (i = 1; i < nbUnits; i++)
 	{
-		pthread_cancel (restCtx.thdCtx[i].pid);
-		pthread_join (restCtx.thdCtx[i].pid, NULL);
+		pthread_cancel (restCtx.thdCtx [i].pid);
+		pthread_join (restCtx.thdCtx [i].pid, NULL);
 	}
 
 	// clean the memory used by all the threads
 	for (i = 0; i < nbUnits; i++)
 	{
-		delete restCtx.thdCtx[i].opts.prof;
-		delete restCtx.thdCtx[i].opts.dec;
+		delete restCtx.thdCtx [i].opts.prof;
+		delete restCtx.thdCtx [i].opts.dec;
 	}
-	delete restCtx.thdCtx;
+	delete [] restCtx.thdCtx;
 
 #ifdef REST_LOG
-	Logger::destroyLog();
+	Logger::destroyLog ();
 #endif
 }
 

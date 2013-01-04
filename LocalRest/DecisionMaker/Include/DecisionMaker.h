@@ -40,15 +40,10 @@
 typedef struct
 {
    unsigned int freqId;    // new frequency to use
-   unsigned int cpuId;			// the current cpu to apply the decision to
+   unsigned int cpuId;		// the current cpu to apply the decision to
    unsigned int sleepWin;  // new sleep window to use (usec)
-   float timeRatio; //the portion of the totalSleepWin ossiciated to the selected freq, sleepWin = timeRatio * totalSleepWin
    unsigned int freqApplyDelay;   // amount of time to wait before reseting the counters (in usec)
-   bool skip;
 } Decision;
-
-#define DECISION_DEFAULT_INITIALIZER {0,0,500,0,0,false}
-#define DECISION_ZERO_INITIALIZER {0,0,0,0,0,true}
 
 /**
  * @class DecisionMaker
@@ -79,18 +74,30 @@ class DecisionMaker
        */
       virtual Decision takeDecision () = 0;
 
-			/**
-			 * Read the HW counters of all the cores in the Decision Maker's DVFS Unit
-			 */
-			virtual void readCounters () = 0;
+      /**
+       * Read the HW counters of all the cores in the Decision Maker's DVFS Unit
+       */
+      virtual void readCounters () = 0;
 
-			// TODO Comment
-			virtual void setProfiler (Profiler *prof) = 0;
+      /**
+       * Sets the hardware counter profiler to prof.
+       *
+       * @param prof The new profiler to use.
+       */
+      virtual void setProfiler (Profiler *prof)
+      {
+         this->prof = prof;
+      }
 
    protected:
       /**
        * Which DVFS unit we are handling.
        */
       const DVFSUnit& unit;
+
+      /**
+       * Profiler used to read  
+       */
+      Profiler *prof;
 };
 #endif

@@ -1,20 +1,20 @@
 /*
- Copyright (C) 2011 Exascale Research Center
+   Copyright (C) 2011 Exascale Research Center
 
- This program is free software; you can redistribute it and/or
- modify it under the terms of the GNU General Public License
- as published by the Free Software Foundation; either version 2
- of the License, or (at your option) any later version.
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+   */
 
 /**
  * @file NewAdaptiveDecisions.h
@@ -24,6 +24,7 @@
 #ifndef H_NEWADAPTIVEDECISIONS
 #define H_NEWADAPTIVEDECISIONS
 
+#include <set>
 #include <sstream>
 #include <time.h>
 
@@ -33,19 +34,38 @@
 #include "FreqSelector.h"
 
 #ifdef REST_LOG
-	#include <vector>
-	#include "Logger.h"
+#include <vector>
+#include "Logger.h"
 #endif
 
-struct FreqChunk {
-	unsigned int freqId;
-	float timeRatio;
-};
 
 // Frequency sequence data structure
 enum { STEP1 = 0, STEP2 };
-struct DecisionCouple {
-	Decision step[2];
+
+/**
+ * A frequency and an associated weight. The time ratio is a relative execution
+ * time required for the frequency.
+ */
+struct FreqChunk {
+   unsigned int freqId;
+   float timeRatio;
+};
+
+/**
+ * A couple of freq chunk.
+ */
+struct FreqChunkCouple
+{
+   FreqChunk step [2];
+};
+
+
+/**
+ * A couple of decisions
+ */
+struct DecisionCouple
+{
+   Decision step [2];
 };
 
 /**
@@ -75,24 +95,18 @@ class NewAdaptiveDecisions : public DecisionMaker
        * window is given.
        */
       Decision takeDecision ();
-      
-			// TODO Comment
-			void setProfiler (Profiler *prof) {
-				this->prof = prof;
-			}
-      
-   private:
-			// TODO Comment
-			TimeProfiler timeProfiler;
 
+
+
+   private:
       /**
        * Debug flag.
        */
-			#ifdef NDEBUG
-      	static const bool VERBOSE = false;
-			#else
-				static const bool VERBOSE = true;
-			#endif
+#ifdef NDEBUG
+      static const bool VERBOSE = false;
+#else
+      static const bool VERBOSE = true;
+#endif
 
       /**
        * Time required to evaluate the IPC for one frequency (us).
@@ -104,8 +118,15 @@ class NewAdaptiveDecisions : public DecisionMaker
        */
       static const unsigned int MIN_SLEEP_WIN = 500;
 
-			// TODO comment
-			static const unsigned int MAX_FREQ_WINDOW = 1;
+      /**
+       * Number of frequencies to consider when computing the stability of the
+       * successive choices. If this value is 1 for instance, the new frequency
+       * applied can be the most representative frequency among those applied
+       * during the last sequence, the one above, or the one below while we
+       * still consider the situation as stable, i.e. the sleep window is 
+       * increased.
+       */
+      static const unsigned int MAX_FREQ_WINDOW = 1;
 
       /**
        * Maximal execution time before re-evaluating which frequency to use
@@ -120,133 +141,93 @@ class NewAdaptiveDecisions : public DecisionMaker
        * one and two just above.
        */
       static const unsigned int NB_EVAL_NEAR_FREQS = 2;
-      
-			/**
-			 * Number representing the minimum time ratio that can be added in the sequence
-			 * If the time ratio is less than this number, then the frequency chunk is not added to the sequence
-			 * and the time ratio is distributed to the last element in the sequence
-			 */
-			static const float MIN_TIME_RATIO = 0.10; 
 
-			/**
-			 * Compute the center of the frequency window for the current cpu
-			 * that is being evaluated, according to the two previous steps
-			 */
-      inline void computeFreqWindowCenter (unsigned int id) {
-				assert (id < this->nbCpuIds);
+      /**
+       * Number representing the minimum time ratio that can be added in the sequence
+       * If the time ratio is less than this number, then the frequency chunk is not added to the sequence
+       * and the time ratio is distributed to the last element in the sequence
+       */
+      static const float MIN_TIME_RATIO = 0.10; 
 
-				if(this->dec[id].step[STEP1].timeRatio < this->dec[id].step[STEP2].timeRatio) {
-					this->freqWindowCenter = this->dec[id].step[STEP1].freqId;
-				}	else {
-					this->freqWindowCenter = this->dec[id].step[STEP2].freqId;
-				}
-			}
+      /**
+       * Maximal performance degradation allowed by the user (in % of the
+       * max performance).
+       */
+      static const float USER_PERF_REQ = 0.95;
 
-			/**
-			 * Compute the window of frequencies that will be evaluated by the runtime
-			 */
-      inline void computeFreqWindow () {
-				unsigned int minFreqId = 
-					rest_max (0
-							,
-								(int) this->freqWindowCenter
-							- (int) NewAdaptiveDecisions::NB_EVAL_NEAR_FREQS
-					);
-				unsigned int maxFreqId =
-					rest_min (this->nbFreqs - 1
-							,
-								this->freqWindowCenter
-							+ NewAdaptiveDecisions::NB_EVAL_NEAR_FREQS
-					);
-
-
-				//std::cerr << "nbFreqs = " << this->nbFreqs << ", min = " << minFreqId << ", max = " << maxFreqId << std::endl;
-				
-				for (unsigned int i = minFreqId; i <= maxFreqId; i++) {
-					//std::cerr << "enabling " << i << std::endl;
-					this->evaluateFreq[i] = true;
-				}
-			}
-
-			/**
-			 * Generic method called for the evaluation step
-			 * Does several steps:
-			 * - Evaluation Init (see initEvaluation)
-			 * - Frequency Evaluation (see evaluateFrequency)
-			 * - 2 Steps computation (see computeSteps)
-			 * - Sequence computation (see computeSequence)
-			 * 
-			 * @return The decision of the evaluation
-			 */
+      /**
+       * Generic method called for the evaluation step
+       * Does several steps:
+       * - Evaluation Init (see initEvaluation)
+       * - Frequency Evaluation (see evaluateFrequency)
+       * - 2 Steps computation (see computeSteps)
+       * - Sequence computation (see computeSequence)
+       * 
+       * @return The decision of the evaluation
+       */
       Decision evaluate ();
 
-			/**
-			 * Decides wheter we can increase the sleeping time of the runtime
-			 * considering the current and the previous generated sequences.
-			 * If they are similar enough, we expand the sleeping time,
-			 * else we reset it
-			 */
-      void lengthenSleepTime ();
- 
       /**
-			 * Initializes the evaluation, does several steps : 
-			 * - Compute the center of the frequency window (see computeFreqWindowCenter)
-			 * - Compute the frequency Window (see computeFreqWindow)
-			 * - Reset some values
-			 */
+       * Initializes the evaluation, does several steps : 
+       * - Compute the center of the frequency window (see computeFreqWindowCenter)
+       * - Compute the frequency Window (see computeFreqWindow)
+       * - Reset some values
+       */
       Decision initEvaluation ();
 
-			/**
-			 * Call iteratively the getHWExploitationRatio method to evaluate each
-			 * frequency in the window computed before
-			 *
-			 * @return The decision corresponding to the next frequency to be evaluated (or a zeroDecision if it was the last frequency)
-			 */
+      /**
+       * Call iteratively the getHWExploitationRatio method to evaluate each
+       * frequency in the window computed before
+       *
+       * @return The decision corresponding to the next frequency to be evaluated (or a zeroDecision if it was the last frequency)
+       */
       Decision evaluateFrequency ();
 
-			/**
-			 * Compute the step1 and step2 for each core
-			 */
+      /**
+       * Compute the step1 and step2 for each core
+       */
       void computeSteps ();
 
       /**
-			 * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
-			 *
-			 */
-			void computeSequence ();
-     
-			/**
-			 * Executes the sequence of frequency/timeRatio couples in the runtime
-			 */
+       * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
+       *
+       */
+      void computeSequence ();
+
+      /**
+       * Executes the sequence of frequency/timeRatio couples in the runtime
+       */
       Decision executeSequence ();
 
-			/**
-			 * Is useful to check whether we have to read the counters or not (it's not necessary in the execution state)
-			 *
-			 * @return Whether the runtime is currently evaluating or executing the frequency sequence
-			 */
-	    inline bool isEvaluating () const{
-  	      return this->curRuntimeState == EVALUATION;
-    	}
+      /**
+       * Is useful to check whether we have to read the counters or not (it's not necessary in the execution state)
+       *
+       * @return Whether the runtime is currently evaluating or executing the frequency sequence
+       */
+      inline bool isEvaluating () const{
+         return this->curRuntimeState == EVALUATION;
+      }
 
-			/**
-			 * Method for printing debug information
-			 */
-			inline void debug (const char *str) {
-				#ifndef NDEBUG
-				if (NewAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0) {
-					std::cerr << "DEBUG:: " << str << std::endl;
-				}
-				#endif
-				(void) str;
-			}
 
-			// TODO comment
-			void logFrequency (unsigned int freqId) const;
+      /**
+       * Method for printing debug information
+       */
+      inline void debug (const char *str) {
+#ifndef NDEBUG
+         if (NewAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0) {
+            std::cerr << "DEBUG:: " << str << std::endl;
+         }
+#endif
+         (void) str;
+      }
 
-			inline void debug (std::ostringstream& str) {
-				this->debug (str.str ().c_str ());
-			}
+      // TODO comment
+      void logFrequency (unsigned int freqId) const;
+
+      inline void debug (std::ostringstream& str) {
+         this->debug (str.str ().c_str ());
+      }
+
       /**
        * Computes the hardware exploitation ratio from the hardware counters.
        *
@@ -257,121 +238,106 @@ class NewAdaptiveDecisions : public DecisionMaker
        * whereas large values means that the cpu is often paused and waits for
        * the memory.
        */
-				inline float getHWExploitationRatio (const HWCounters & hwc) const{
-					uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getCurFreq ());
-					/*std::cerr << "hwc.cycles = " << hwc.cycles
-										<< " hwc.retired = " << hwc.retired << std::endl;
-					std::cerr << "getFreq(0) = " << this->unit.getFrequency(0)
-										<< " getCurFreq () = " << this->unit.getCurFreq() << std::endl;*/
-					return hwc.retired / (1. * swRefCycles);
-				}
+      inline float getHWExploitationRatio (const HWCounters & hwc) const{
+         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getCurFreq ());
+         /*std::cerr << "hwc.cycles = " << hwc.cycles
+           << " hwc.retired = " << hwc.retired << std::endl;
+           std::cerr << "getFreq (0) = " << this->unit.getFrequency (0)
+           << " getCurFreq () = " << this->unit.getCurFreq () << std::endl;*/
+         return hwc.retired / (1. * swRefCycles);
+      }
 
       /**
-       * Computes the couples of FreqId and their associated sleepWindows to emulate a frequency associated to the 5% degraded IPC
-       * @param	degradedIPC the 5% degraded IPC
-       * @param minFreqId the Lowest bound of the frequency window
-       * @param maxFreqId the Highesr bound of the frequency window
-       * @param Step1 the first member of the couple
-       * @param Step2 the second member of the couple
+       * Computes the couple of freq Id and its associated sleepWindows to
+       *  emulate a frequency that would lead to the provided degraded IPC
+       * 
+       * @param degradedIPC the target degraded IPC
+       * @param cpu The cpu for which the virtual freq is computed
        */
-      void getVirtualFreq (float degradedIPC, unsigned int cpu);
+      FreqChunkCouple getVirtualFreq (float degradedIPC, unsigned int cpu) const;
 
-			// TODO comment
-			void readCounters ();
-      
+      // TODO comment
+      void readCounters ();
+
+      // TODO Comment
+      TimeProfiler timeProfiler;
+
       /**
        * The current state of the decision maker
-			 */
+       */
       State curRuntimeState;
-			/**
-			 * The current evaluation state of the decision maker (because several evaluation steps)
-			 */
+      /**
+       * The current evaluation state of the decision maker (because several evaluation steps)
+       */
       EvalState curEvalState;
 
-			/**
-			 * The current frequency chunk we are executing (in the runtime execution step)
-			 */
-      unsigned int currentSeqChunk;
-      
-			/**
-			 * Size of the ipcEval array
-			 */
-      size_t ipcEvalSize;
-
-			/**
-			 * Number of cpuIds that are handled by the Decision Maker
-			 */
-			size_t nbCpuIds;
-
-			/**
-			 * Number of frequencies that are available on the processor
-			 */
-			size_t nbFreqs;
-
-			/**
-			 * Table of step1/step2 couples that are generated in computeSteps during the evaluation
-			 */
-			DecisionCouple *dec;
-			float *timeRatios;
-
-			/**
-			 * TODO comment
-			 */
-  		bool *evaluateFreq;
-			std::vector<unsigned int> freqsToEvaluate;
-			
-			/**
-			 * The old and current sequences that are being exeucuted in the execution step
-			 */
-			std::vector<FreqChunk> sequence;
-			unsigned int oldMaxFreqId;
-			
-			/**
-			 * Array containing the states of the steps only for the computeSequence method.
-			 * It's been added as a class variable to allocate memory only once instead of
-			 * reallocating the same space each time computeSequence is called (optimization)
-			 */
-			short int *stepState;
-			
-			/**
-       * The center of the freq window
+      /**
+       * The current frequency chunk we are executing (in the runtime execution step)
        */
-      unsigned int freqWindowCenter;
+      unsigned int currentSeqChunk;
 
       /**
-       * The Total SleepWindow, sleepWinStep1+sleelWinStep2
+       * Number of cpuIds that are handled by the Decision Maker
        */
-      unsigned int totalsleepWin;
+      size_t nbCpuIds;
+
+      /**
+       * Number of frequencies that are available on the processor
+       */
+      size_t nbFreqs;
+
+      /**
+       * The decision couples computed by every core.
+       */
+      FreqChunkCouple *cpuDecs;
+
+      /**
+       * List of all the frequencies to evaluate
+       */
+      std::set<unsigned int> freqsToEvaluate;
+
+      /**
+       * Currently evaluated frequency. Related to freqsToEvaluate.
+       */
+      std::set<unsigned int>::iterator currentEvalFreqId;
+
+      /**
+       * The current sequence
+       */
+      std::vector<FreqChunk> sequence;
+
+      /**
+       * Maximum freq id used in the former sequence for stability evaluation.
+       */
+      unsigned int oldMaxFreqId;
+
+      /**
+       * The sleep window consumed by the whole sequence
+       */
+      unsigned int totalSleepWin;
+
       /**
        * IPC evaluation result.
        */
       float * ipcEval;
 
       /**
-       * The freqId associated to the seconf part of the decision to apply
+       * Size of the ipcEval array
        */
-      unsigned int freqIdStep2;
-	
-      /**
-       * The sleepWin associated to the second part of the decision to apply
-       */
-      unsigned int sleepWinStep2;
- 
-      /**
-       * Current Frequency
-       */
-      unsigned int currentFreqId;
+      size_t ipcEvalSize;
 
-			#ifdef REST_LOG
-			/**
-			 * Log reference to trace the runtime decisions and important information
-			 */
-			Logger *log;
-			#endif
+      /**
+       * Helps to compute stability accross settings.
+       */
+      FreqSelector freqSelector;
 
-			// TODO Comment
-			Profiler *prof;
-			FreqSelector freqSelector;
+#ifdef REST_LOG
+      /**
+       * Log reference to trace the runtime decisions and important information
+       */
+      Logger *log;
+#endif
+
 };
 
 #endif
