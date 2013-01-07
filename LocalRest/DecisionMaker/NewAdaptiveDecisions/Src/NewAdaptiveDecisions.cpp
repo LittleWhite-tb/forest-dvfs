@@ -99,7 +99,7 @@ FreqChunkCouple NewAdaptiveDecisions::getVirtualFreq (float degradedIPC,
 	FreqChunk &Step1 = res.step [STEP1];
 	FreqChunk &Step2 = res.step [STEP2];
 
-	float max = 0;
+	float max = -1;
 	float min = std::numeric_limits<float>::max ();
 	
 	int tmpfreqId1 = -1;
@@ -411,11 +411,17 @@ void NewAdaptiveDecisions::computeSequence ()
 		}
 	}
 
+#ifdef REST_LOG
+   if (this->oldMaxFreqId != maxRatioFreqId)
+   {
+      this->logFrequency (maxRatioFreqId);
+   }
+#endif
+
 	// Lengthen sleeping time if necessary
 	if (this->freqSelector.isFreqStable (maxRatioFreqId))
    {
 		this->totalSleepWin = rest_min (NewAdaptiveDecisions::MAX_SLEEP_WIN, this->totalSleepWin * 2);
-      this->logFrequency (maxRatioFreqId);
 	}
    else
    {

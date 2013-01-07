@@ -112,12 +112,12 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * Time required to evaluate the IPC for one frequency (us).
        */
-      static const unsigned int IPC_EVAL_TIME = 20;
+      static const unsigned int IPC_EVAL_TIME = 75;
 
       /**
        * Minimal execution time once a frequency is chosen (us).
        */
-      static const unsigned int MIN_SLEEP_WIN = 500;
+      static const unsigned int MIN_SLEEP_WIN = 1000;
 
       /**
        * Number of frequencies to consider when computing the stability of the
@@ -240,11 +240,20 @@ class NewAdaptiveDecisions : public DecisionMaker
        * the memory.
        */
       inline float getHWExploitationRatio (const HWCounters & hwc) const{
+         // CPU off -> IPC = 0
+         if (hwc.cycles == 0)
+         {
+            std::cerr << "idle core" << std::endl;
+            return 0;
+         }
+
          uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getCurFreq ());
+
          /*std::cerr << "hwc.cycles = " << hwc.cycles
            << " hwc.retired = " << hwc.retired << std::endl;
            std::cerr << "getFreq (0) = " << this->unit.getFrequency (0)
            << " getCurFreq () = " << this->unit.getCurFreq () << std::endl;*/
+         
          return hwc.retired / (1. * swRefCycles);
       }
 
