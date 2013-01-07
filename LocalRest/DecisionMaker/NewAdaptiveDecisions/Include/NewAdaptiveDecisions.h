@@ -99,6 +99,7 @@ class NewAdaptiveDecisions : public DecisionMaker
 
 
    private:
+
       /**
        * Debug flag.
        */

@@ -62,15 +62,20 @@ class FreqSelector
       {
          assert (freqId < this->nbFreqs);
 
-         if (this->coeffs [freqId]+ratio >= FreqSelector::MAX_PROMS)
+         if (this->coeffs [freqId] + ratio >= FreqSelector::MAX_PROMS)
          {
+            // maximal mark? now decrease the other freq marks
+            float dec = ratio - (FreqSelector::MAX_PROMS - this->coeffs [freqId]);
             for (unsigned int i = 0; i < this->nbFreqs; i++)
             {
-               if (i != freqId && this->coeffs [i]-ratio > 0)
+               if (i != freqId)
                {
-                  this->coeffs [i] -= ratio;
+                  this->coeffs [i] = rest_max (0, this->coeffs [i] - dec);
                }
             }
+
+            // useful when reaching the max for the first time
+            this->coeffs [freqId] = FreqSelector::MAX_PROMS;
          }
          else
          {
@@ -104,22 +109,42 @@ class FreqSelector
          return 0;
       }
 
-			inline bool areWeStableYet (unsigned int freqId) {
-				assert (freqId < this->nbFreqs);
-				return this->coeffs [freqId] >= 1.5;
-			}
+      /**
+       * Returns true if the given frequency can be safely considered as stable.
+       * It is stable if its mark is above 75% of the maximal possible mark.
+       *
+       * @param freqId The id of the frequency to test.
+       *
+       * @return True if the frequency can be considered as stable.
+       */
+      inline bool isFreqStable (unsigned int freqId) {
+         assert (freqId < this->nbFreqs);
 
-			inline float getFrequencyRatio (unsigned idx) {
-				assert (idx < this->nbFreqs);
-				return this->coeffs [idx];
-			}
+         return this->coeffs [freqId] >= 0.75f * MAX_PROMS;
+      }
 
-			inline void print () {
-				for (unsigned int i = 0; i < this->nbFreqs; i++) {
-					std::cerr << std::setw (10) << this->coeffs [i] << " ";
-				}
-				std::cerr << std::endl;
-			}
+      /**
+       * Returns the current mark for a given frequency.
+       *
+       * @param freqId The id of the frequency
+       *
+       * @return The current mark of the frequency in the selector.
+       */
+      inline float getFrequencyMark (unsigned freqId) {
+         assert (freqId < this->nbFreqs);
+
+         return this->coeffs [freqId];
+      }
+
+      /**
+       * Debug print function.
+       */
+      inline void print () {
+         for (unsigned int i = 0; i < this->nbFreqs; i++) {
+            std::cerr << std::setw (10) << this->coeffs [i] << " ";
+         }
+         std::cerr << std::endl;
+      }
 
    private:
 

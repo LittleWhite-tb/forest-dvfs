@@ -269,6 +269,8 @@ Decision NewAdaptiveDecisions::initEvaluation ()
 	res.sleepWin = NewAdaptiveDecisions::IPC_EVAL_TIME;	
 	res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
 
+   assert (res.freqId < this->nbFreqs);
+
    // time the evaluation for debuging purposes
    this->timeProfiler.evaluate (EVALUATION_INIT);
 
@@ -296,7 +298,12 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 		} else {
 			this->ipcEval [currentFreq*this->nbCpuIds + i] = HWexp;
 		}
-	}
+   }
+
+	// in case of panic, restart evaluation
+   if (!hwcPanic) {
+      this->currentEvalFreqId++;
+   }
 	
    // last evaluation step?
 	if (!hwcPanic && this->currentEvalFreqId == this->freqsToEvaluate.end ()) {
@@ -313,17 +320,14 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 		return res;
 	}
 
-   // in case of panic, restart evaluation
-   if (!hwcPanic) {
-      this->currentEvalFreqId++;
-   }
-
    // evaluate the next frequency
    res.freqId = *this->currentEvalFreqId;
    res.cpuId = this->unit.getOSId ();
    res.sleepWin = NewAdaptiveDecisions::IPC_EVAL_TIME;
    res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
 		
+   assert (res.freqId < this->nbFreqs);
+
    return res;
 }
 
@@ -373,6 +377,7 @@ void NewAdaptiveDecisions::computeSteps ()
 void NewAdaptiveDecisions::computeSequence () 
 {
    float *timeRatios = new float [this->nbFreqs];
+   memset (timeRatios, 0, this->nbFreqs * sizeof (*timeRatios));
 	
 	// store the maximal time ratio per frequency
    for (unsigned int i = 0; i < this->nbCpuIds; i++) {
@@ -383,22 +388,34 @@ void NewAdaptiveDecisions::computeSequence ()
 		timeRatios [step2.freqId] = rest_max (timeRatios [step2.freqId], step2.timeRatio);
 	}
 
-	// Promote frequencies and search for max time ratio
-	unsigned int maxRatioFreqId = 0;
-	for (unsigned int i = 0; i < this->nbFreqs; i++) {
-		if (timeRatios [i] != 0) {
-			this->freqSelector.promote (i, timeRatios [i]);
-		}
+   // convert the time ratio of the steps into sequence time ratios:
+   // decide among the frequencies requested by all the cores
+   // currently we favor high frequencies
+   // 1 | 0.2 | 0.5 | 0.7 -> 0 | 0 | 0.3 | 0.7
+   float totTimeRatio = 0;
+   for (int i = this->nbFreqs - 1; totTimeRatio < 1 && i >= 0; i--)
+   {
+      timeRatios [i] = rest_min (1 - totTimeRatio, timeRatios [i]);
+      totTimeRatio = rest_min (1, totTimeRatio + timeRatios [i]);
+   }
 
-		if (timeRatios [maxRatioFreqId] < timeRatios [i]) {
+	// Search for max time ratio and its associated frequency
+   // also promote the frequencies
+	unsigned int maxRatioFreqId = 0;
+	for (unsigned int i = 1; i < this->nbFreqs; i++)
+   {
+      this->freqSelector.promote (i, timeRatios [i]);
+
+		if (timeRatios [i] > timeRatios [maxRatioFreqId]) {
 			maxRatioFreqId = i;
 		}
 	}
 
 	// Lengthen sleeping time if necessary
-	if (this->freqSelector.areWeStableYet (maxRatioFreqId))
+	if (this->freqSelector.isFreqStable (maxRatioFreqId))
    {
 		this->totalSleepWin = rest_min (NewAdaptiveDecisions::MAX_SLEEP_WIN, this->totalSleepWin * 2);
+      this->logFrequency (maxRatioFreqId);
 	}
    else
    {
@@ -410,51 +427,54 @@ void NewAdaptiveDecisions::computeSequence ()
 		if (maxRatioFreqId < minFreqWindow || maxRatioFreqId > maxFreqWindow)
       {
 			this->totalSleepWin = NewAdaptiveDecisions::MIN_SLEEP_WIN;
-			this->logFrequency (maxRatioFreqId);
 		}
 	}
 
 	// Generate the new sequence
 	this->sequence.clear ();
 
-	float totalTimeRatio = 0.;
-   for (int f = this->nbFreqs - 1; f >= 0; f--)
+   float totalTimeRatio = 0.0f;
+   for (unsigned int i = 0; i < this->nbFreqs; i++)
    {
-		if (timeRatios [f] * this->totalSleepWin > NewAdaptiveDecisions::MIN_SLEEP_WIN)
+		if (timeRatios [i] * this->totalSleepWin < NewAdaptiveDecisions::MIN_SLEEP_WIN)
       {
-			FreqChunk freqChunk;
+         continue;
+      }
 
-			freqChunk.freqId = f;
-			if (timeRatios [f] + totalTimeRatio > 1)
-         {
-				freqChunk.timeRatio = 1 - totalTimeRatio;
-            totalTimeRatio = 1;
-            break;
-			}
-         
-         freqChunk.timeRatio = timeRatios [f];
-			totalTimeRatio += freqChunk.timeRatio;
-			
-			this->sequence.push_back (freqChunk);
-		}
+      FreqChunk freqChunk = {i, timeRatios [i]};
+      totalTimeRatio += timeRatios [i];
+
+      this->sequence.push_back (freqChunk);
 	}
 	
-	// Special case: any frequency is significant enough, so we take the previous choice as the good one
+	// most of the freqs have too small execution times
 	if (totalTimeRatio < 1)
-   {	
-		FreqChunk freqChunk = { maxRatioFreqId, 1};
-
-		this->sequence.clear ();
-		this->sequence.push_back (freqChunk);
+   {
+      if (this->sequence.size () > 0)
+      {
+         // scale the time ratio of every frequency to reach a total of 1 
+         for (std::vector<FreqChunk>::iterator it = this->sequence.begin ();
+              it != this->sequence.end ();
+              it++)
+         {
+            it->timeRatio = it->timeRatio / totalTimeRatio;
+         }
+      }
+      // the sequence is empty
+      else
+      {
+   		FreqChunk freqChunk = { maxRatioFreqId, 1};
+		   this->sequence.push_back (freqChunk);
+      }
 	}
 
 #if 0
-	std::cerr << "#" << this->unit.getId () << ", st = " << this->totalsleepWin << " {";
+	std::cerr << "#" << this->unit.getId () << ", st = " << this->totalSleepWin << " {";
 	for (unsigned int i = 0; i < this->sequence.size (); i++) {
-		std::cerr << "{" << this->sequence [i].freqId << ", " << this->sequence [i].timeRatio << "}, ";	
+		std::cerr << "{" << this->sequence [i].freqId << ", " << this->sequence [i].timeRatio << " / " << this->freqSelector.getFrequencyMark (this->sequence [i].freqId) << " }, ";	
 	}
 	std::cerr << "}" << std::endl;
-#endif	
+#endif
 
 	this->oldMaxFreqId = maxRatioFreqId;
 
@@ -508,10 +528,9 @@ Decision NewAdaptiveDecisions::executeSequence ()
 	if (this->currentSeqChunk < seqSize) {
       Decision res;
 
-		res.freqId = this->sequence.at (this->currentSeqChunk).freqId;
+		res.freqId = this->sequence [this->currentSeqChunk].freqId;
 		res.cpuId = this->unit.getOSId ();
-      res.sleepWin =	this->sequence.at (this->currentSeqChunk).timeRatio *
-         this->totalSleepWin;
+      res.sleepWin =	this->sequence [this->currentSeqChunk].timeRatio * this->totalSleepWin;
       res.freqApplyDelay = 0;
       
 		assert (res.sleepWin <= this->totalSleepWin);
@@ -522,7 +541,8 @@ Decision NewAdaptiveDecisions::executeSequence ()
    }
    else
    {
-      assert (this->currentSeqChunk > 0);
+      // this assert is not required, isn't it?
+      //assert (this->currentSeqChunk > 0);
 
 		// Reset the current sequence chunk that will be executed in the
       // execution state

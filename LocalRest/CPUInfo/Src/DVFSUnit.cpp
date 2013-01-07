@@ -98,18 +98,18 @@ DVFSUnit::~DVFSUnit ()
    // restore the former governor for each CPU
 	 size_t i, size = this->cpuIds.size ();
 	for (i = 0; i < size; i++) {
-		oss << "/sys/devices/system/cpu/cpu" << this->cpuIds[i] << "/cpufreq/scaling_governor";
+		oss << "/sys/devices/system/cpu/cpu" << this->cpuIds [i] << "/cpufreq/scaling_governor";
   	ofs.open (oss.str ().c_str ());
 
 		if (ofs != 0 && ofs.is_open ()) {
-  		ofs << this->formerGov[i];
+  		ofs << this->formerGov [i];
  	 		ofs.flush ();
 			ofs.close ();
 		}
 		oss.str (std::string (""));
 
-		this->freqFs[i]->close ();
-		delete this->freqFs[i];
+		this->freqFs [i]->close ();
+		delete this->freqFs [i];
 	}
    // cleanup memory
    delete [] this->freqs;
@@ -147,11 +147,11 @@ void DVFSUnit::addCpuId (unsigned int cpuId) {
 	// If it is the first cpu id to be added, then 
 	// it represents the id we'll write into	
   // open the file in wich we have to write to set a frequency
-	oss.str (std::string(""));
+	oss.str (std::string (""));
 	oss << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/scaling_setspeed";
 	std::ofstream *freqFs = new std::ofstream ();
 	handleAllocation (freqFs);
-	freqFs->open (oss.str().c_str ());
+	freqFs->open (oss.str ().c_str ());
 	if (!freqFs->is_open ()) {
    	std::cerr << "Error: Cannot open frequency file setter. Are you root and running Linux ?" << std::endl;
    	std::cerr << "Technical Info:" << std::endl << "- DVFSunit id: " << cpuId << std::endl;
@@ -159,7 +159,7 @@ void DVFSUnit::addCpuId (unsigned int cpuId) {
    	exit (EXIT_FAILURE);
 	}
 
-	*freqFs << this->freqs[0];
+	*freqFs << this->freqs [0];
 	freqFs->flush ();
 	this->curFreqId = 0;
 	this->cpuIds.push_back (cpuId);
@@ -173,7 +173,8 @@ void DVFSUnit::setFrequency (unsigned int freqId)
 
    //std::ostringstream oss;
 		
-	 //std::cerr << "Setting frequency id #" << freqId << std::endl;
+	//std::cerr << "Setting frequency id #" << freqId << std::endl;
+
    // nothing to do?
    if (freqId == this->curFreqId) {
       return;
@@ -182,10 +183,10 @@ void DVFSUnit::setFrequency (unsigned int freqId)
 	size_t i, size = this->nbCpuIds;
 	for (i = 0; i < size; i++) {
 		// write the correct frequency in the file
-		//this->freqFs[i]->seekp (0, std::ios::beg);
-  	*(this->freqFs[i]) << this->freqs[freqId];
-		this->freqFs[i]->flush ();
-		assert (!this->freqFs [i]->fail () && !this->freqFs[i]->bad ());
+		//this->freqFs [i]->seekp (0, std::ios::beg);
+  	*(this->freqFs [i]) << this->freqs [freqId];
+		this->freqFs [i]->flush ();
+		assert (!this->freqFs [i]->fail () && !this->freqFs [i]->bad ());
 		//std::cerr << "Writing " << this->freqs [freqId] << std::endl;
 	}
 
