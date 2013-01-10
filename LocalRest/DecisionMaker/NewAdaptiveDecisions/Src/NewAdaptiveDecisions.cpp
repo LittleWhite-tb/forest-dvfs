@@ -138,7 +138,7 @@ FreqChunkCouple NewAdaptiveDecisions::getVirtualFreq (float degradedIPC,
       {
          // no freq is above and none is below the threshold
          // we should never reach that point!
-         std::cerr << "The impossible hapened!" << std::endl;
+         std::cerr << "The impossible happened!" << std::endl;
          exit (EXIT_FAILURE);
 		}
 
@@ -179,9 +179,13 @@ void NewAdaptiveDecisions::logFrequency (unsigned int freqId) const
    logger << freqId;
 
 #if 0
+	float totTimeRatio = 0.;
 	for (unsigned int i = 0; i < this->sequence.size (); i++) {
-		logger << "{" << this->sequence [i].freqId << ", " << this->sequence [i].timeRatio << "}, ";	
+		logger << "{" << this->sequence [i].freqId << ", " << this->sequence [i].timeRatio << "}, ";
+		totTimeRatio += this->sequence [i].timeRatio;
 	}
+	std::cerr << logger.str () << std::endl;
+	assert (totTimeRatio == 1);
 	logger << "}" << std::endl;	
 
 
@@ -199,16 +203,17 @@ void NewAdaptiveDecisions::logFrequency (unsigned int freqId) const
 		 */
 		logger << " " << this->ipcEval [max] << std::endl;
 
-	logger << "IPC Eval array :" << std::endl;
-	unsigned int freqsToEvalSize = this->freqsToEvaluate.size ();
+	logger << "IPC Eval array :" << std::endl;	
 	logger << std::endl;
-	for (unsigned int i = 0; i < freqsToEvalSize; i++) {
-		unsigned int baseIdx = this->freqsToEvaluate [i]*this->nbCpuIds;
-		logger << this->freqsToEvaluate [i] << " ";
-		for (unsigned int j = 0; j < this->nbCpuIds; j++) {
-			logger << std::setw (10) << this->ipcEval [baseIdx+j] << " ";
-		}	
-		logger << std::endl;
+	for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
+		it != this->freqsToEvaluate.end ();
+		it++) {
+			unsigned int baseIdx = *it*this->nbCpuIds;
+			logger << *it << " ";
+			for (unsigned int j = 0; j < this->nbCpuIds; j++) {
+				logger << std::setw (10) << this->ipcEval [baseIdx+j] << " ";
+			}
+			logger << std::endl;
 	}
 
 
@@ -378,6 +383,7 @@ void NewAdaptiveDecisions::computeSequence ()
 {
    float *timeRatios = new float [this->nbFreqs];
    memset (timeRatios, 0, this->nbFreqs * sizeof (*timeRatios));
+	 bool logFrequency = false;
 	
 	// store the maximal time ratio per frequency
    for (unsigned int i = 0; i < this->nbCpuIds; i++) {
@@ -393,11 +399,12 @@ void NewAdaptiveDecisions::computeSequence ()
    // currently we favor high frequencies
    // 1 | 0.2 | 0.5 | 0.7 -> 0 | 0 | 0.3 | 0.7
    float totTimeRatio = 0;
-   for (int i = this->nbFreqs - 1; totTimeRatio < 1 && i >= 0; i--)
+	 for (int i = this->nbFreqs - 1; i >= 0; i--)
    {
-      timeRatios [i] = rest_min (1 - totTimeRatio, timeRatios [i]);
+      timeRatios [i] = rest_min (1 - totTimeRatio, timeRatios [i]);	
       totTimeRatio = rest_min (1, totTimeRatio + timeRatios [i]);
    }
+	 assert (totTimeRatio <= 1);
 
 	// Search for max time ratio and its associated frequency
    // also promote the frequencies
@@ -414,7 +421,7 @@ void NewAdaptiveDecisions::computeSequence ()
 #ifdef REST_LOG
    if (this->oldMaxFreqId != maxRatioFreqId)
    {
-      this->logFrequency (maxRatioFreqId);
+	 		logFrequency = true; 
    }
 #endif
 
@@ -472,6 +479,10 @@ void NewAdaptiveDecisions::computeSequence ()
    		FreqChunk freqChunk = { maxRatioFreqId, 1};
 		   this->sequence.push_back (freqChunk);
       }
+	}
+
+	if (logFrequency) {
+	 this->logFrequency (maxRatioFreqId);	
 	}
 
 #if 0
