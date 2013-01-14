@@ -172,7 +172,7 @@ for nf in range(1, len(freqs)):
   er.append([])
   for nc in range(getNbCores()):
      er[-1].append((res[nf][0] * res[nf][1]) / (res[0][0] * res[0][1]))
-  ratios.append (res [nf][1] / res [len (freqs)-1][1] * 100 )
+  ratios.append (res [nf][1] / res [0][1] * 100 )
 
 # compare minimal freq to the next one
 er = [] + er
