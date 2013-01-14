@@ -5,7 +5,7 @@ import os, subprocess as sp, multiprocessing as mp, sys
 
 """
 The power consumption of a CPU is C * f * V² = W
-C depends on the program 
+C depends on the program
 considering the consumption of a program at two frequencies f1 and f2 (W1 and W2), W1/W2 = f1*V1²/f2*V2² (<- program independant!!!)
 The execution time of the program under the two frequencies is t1 and t2
 t1/t2 * W1/W2 = e1/e2 (e1 and e2 are energy consumption for both frequencies)
@@ -37,8 +37,8 @@ def runBench(nr, nc):
          + ' --output-dir "/tmp"'
 
    ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
-   ex.communicate()[0]
-
+   ex.communicate() [0]
+   
    # fetch result
    fd = open("/tmp/kernel_add_2500000.csv")
    data = []
@@ -60,9 +60,11 @@ def runBench(nr, nc):
 def getIdealNIters(t):
    '''
    Estimates the number of iterations to use with the benchmark to reach the provided execution time.
-   
+
    t is the target execution time for the benchmark (in ms)
    '''
+
+   assert (t > 1000)
 
    nr = 1
    exectime = 0
@@ -164,10 +166,13 @@ for f in freqs:
 
 # compute the energy ratio for all frequencies with the minimal freq
 er = []
+# compute the power ratio for all frequencies with the maximum freq
+ratios = []
 for nf in range(1, len(freqs)):
   er.append([])
   for nc in range(getNbCores()):
      er[-1].append((res[nf][0] * res[nf][1]) / (res[0][0] * res[0][1]))
+  ratios.append (res [nf][1] / res [len (freqs)-1][1] * 100 )
 
 # compare minimal freq to the next one
 er = [] + er
@@ -179,4 +184,10 @@ for nf in range(len(freqs)):
    er[nf] = [rf < 1 for rf in er[nf]]
    if any(er[nf]):
       print freqs[nf]
+
+
+for nf in range (len (freqs)):
+   er [nf] = [rf < 1 for rf in er [nf]]
+   if any (er [nf]):
+      print ratios [nf]
 
