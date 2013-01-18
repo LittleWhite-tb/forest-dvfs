@@ -30,8 +30,17 @@ def runBench(nr, nc):
 
     nr is the number of iterations to use
     '''
+    
+    taskMask = "{";
+    for i in range (0, nc):
+      taskMask += str(i);
+      if i+1 < nc:
+         taskMask += ","
+    taskMask += "}"
+    #print taskMask
+    #sys.exit (0)
 
-    cmd = '$HOME/nfs/microlaunch/microlaunch --kernelname "add.s" --nbprocess ' + str(nc) + ' --repetition ' + str(nr)\
+    cmd = '$HOME/nfs/microlaunch/microlaunch --kernelname "add.s" --nbprocess ' + str(nc) + ' --cpupin "' + taskMask + '" --repetition ' + str(nr)\
              + ' --metarepetition 5 --basename "add"   --info "raw;raw" --evallib '\
              + '"$HOME/nfs/microlaunch/Libraries/power_snb_msr/libraries/energy_msr_snb.so;$HOME/nfs/microlaunch/Libraries/wallclock/wallclock.so"'\
              + ' --output-dir "/tmp"'
@@ -186,7 +195,8 @@ setFreq(freqs[-1])
 
 # try to reach 30 seconds with the benchmark to let TB react significantly
 sys.stderr.write ("Determining Microlaunch configuration... ")
-nr = getIdealNIters(30000)
+#nr = getIdealNIters(30000)
+nr = 50
 sys.stderr.write ("done (" + str (nr) + ")\n")
 
 # get time and power for all frequencies and number of cores
@@ -245,7 +255,7 @@ for i in range(len(freqs)):
 fd.write ("\n")
 for i in cores:
    for j in range(len(freqs)):
-      if not freqsToDelete [i]:
+      if not freqsToDelete [j]:
          fd.write (str ((1 - res[j][i][1] / res [highestFreq][i][1])*100) + " ")
    fd.write ("\n")
 fd.close ()
