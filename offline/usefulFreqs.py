@@ -195,8 +195,8 @@ setFreq(freqs[-1])
 
 # try to reach 30 seconds with the benchmark to let TB react significantly
 sys.stderr.write ("Determining Microlaunch configuration... ")
-#nr = getIdealNIters(30000)
-nr = 50
+nr = getIdealNIters(30000)
+#nr = 50
 sys.stderr.write ("done (" + str (nr) + ")\n")
 
 # get time and power for all frequencies and number of cores
