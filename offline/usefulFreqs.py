@@ -37,8 +37,6 @@ def runBench(nr, nc):
       if i+1 < nc:
          taskMask += ","
     taskMask += "}"
-    #print taskMask
-    #sys.exit (0)
 
     cmd = '$HOME/nfs/microlaunch/microlaunch --kernelname "add.s" --nbprocess ' + str(nc) + ' --cpupin "' + taskMask + '" --repetition ' + str(nr)\
              + ' --metarepetition 5 --basename "add"   --info "raw;raw" --evallib '\
@@ -135,9 +133,10 @@ def getFreqs():
 #----------------------------------
 
 def setFreq(f):
-    '''Sets the given frequency'''
+   '''Sets the given frequency'''
 
-    for c in cores:
+   try:
+      for c in cores:
          fd = open("/sys/devices/system/cpu/cpu" + str(c) + "/cpufreq/scaling_governor", "w")
          fd.write("userspace")
          fd.flush()
@@ -147,6 +146,8 @@ def setFreq(f):
          fd.write(str(f))
          fd.flush()
          fd.close()
+   except IOError as e:
+      sys.stderr.write ("Error: Cannot open resource : " + e.strerror + "\n")
 
 #----------------------------------
 
@@ -195,8 +196,8 @@ setFreq(freqs[-1])
 
 # try to reach 30 seconds with the benchmark to let TB react significantly
 sys.stderr.write ("Determining Microlaunch configuration... ")
-nr = getIdealNIters(30000)
-#nr = 50
+#nr = getIdealNIters(30000)
+nr = 100
 sys.stderr.write ("done (" + str (nr) + ")\n")
 
 # get time and power for all frequencies and number of cores
@@ -227,38 +228,54 @@ for i in range(len(freqs)):
    for l in range(len(freqs)):
       if i != l:
          deleteFreq = True
+         #print "Evaluating Freq (l/i) = (" + str(l) + "," + str (i) + ")"
          if freqs [i] > freqs [l]:
             for k in cores:
+               #print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] < 1:
+                  #print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
+               #else:
+                  #print "\tDeleting freq, continuing..."
             if deleteFreq:
                #print "> deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
          else:
-            for k in cores: 
+            for k in cores:
+               #print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] * res [l][k][0] / res [i][k][0] < 1:
+                  #print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
+               #else:
+                  #print "\tDeleting freq, continuing..."
             if deleteFreq:
                #print "< deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
 sys.stderr.write (" done\n")
 
-# Generating configuration file with results
-fd = open (configFile, 'w')
+# Energy configuration file generation
+fdEnergy = open ("energy_" + configFile, 'w')
+fdPerf = open ("performance_" + configFile, 'w')
 highestFreq = 0
 for i in range(len(freqs)):
    if not freqsToDelete [i]:
-      fd.write (str (freqs [i]) + " ")
+      fdEnergy.write (str (freqs [i]) + " ")
       highestFreq = i
-fd.write ("\n")
+   fdPerf.write (str (freqs [i]) + " ") 
+fdEnergy.write ("\n")
+fdPerf.write ("\n")
+
 for i in cores:
    for j in range(len(freqs)):
       if not freqsToDelete [j]:
-         fd.write (str ((1 - res[j][i][1] / res [highestFreq][i][1])*100) + " ")
-   fd.write ("\n")
-fd.close ()
+         fdEnergy.write (str ((1 - res[j][i][1] / res [highestFreq][i][1])*100) + " ")
+      fdPerf.write (str ((1 - res [j][i][1] / res [len(freqs)-1][i][1])*100) + " ")
+   fdEnergy.write ("\n")
+   fdPerf.write ("\n")
+fdEnergy.close ()
+fdPerf.close ()
 
 #for i in range(len(freqs)):
 #   if not freqsToDelete [i]:
