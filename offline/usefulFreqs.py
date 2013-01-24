@@ -196,8 +196,8 @@ setFreq(freqs[-1])
 
 # try to reach 30 seconds with the benchmark to let TB react significantly
 sys.stderr.write ("Determining Microlaunch configuration... ")
-#nr = getIdealNIters(30000)
-nr = 100
+nr = getIdealNIters(30000)
+#nr = 100
 sys.stderr.write ("done (" + str (nr) + ")\n")
 
 # get time and power for all frequencies and number of cores
@@ -228,28 +228,30 @@ for i in range(len(freqs)):
    for l in range(len(freqs)):
       if i != l:
          deleteFreq = True
-         #print "Evaluating Freq (l/i) = (" + str(l) + "," + str (i) + ")"
+         print "Evaluating Freq (l/i) = (" + str(l) + "," + str (i) + ")"
          if freqs [i] > freqs [l]:
             for k in cores:
-               #print "For core #" + str (k)
+               print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] < 1:
-                  #print "\tKeeping freq, exiting"
+                  print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
-               #else:
+               else:
                   #print "\tDeleting freq, continuing..."
+                  print "\tratio = " + res [l][k][1] / res [i][k][1]
             if deleteFreq:
-               #print "> deleting freq " + str (freqs[l])
+               print "> deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
          else:
             for k in cores:
-               #print "For core #" + str (k)
+               print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] * res [l][k][0] / res [i][k][0] < 1:
-                  #print "\tKeeping freq, exiting"
+                  print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
-               #else:
+               else:
                   #print "\tDeleting freq, continuing..."
+                  print "\tratio = " + res [l][k][1] / res [i][k][1] * res [l][k][0] / res [i][k][0]
             if deleteFreq:
                #print "< deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
