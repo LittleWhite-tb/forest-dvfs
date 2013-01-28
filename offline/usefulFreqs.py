@@ -22,7 +22,7 @@ impact the actual frequency applied by TurboBoost.
 
 #----------------------------------
 
-def runBench(nr, nc):
+def runBench (nr, nc):
     '''
     Returns the power and execution time for the benchmark.
     Returns None in case of measurement error. Otherwise result is a couple
@@ -30,7 +30,7 @@ def runBench(nr, nc):
 
     nr is the number of iterations to use
     '''
-    
+
     taskMask = "{";
     for i in range (0, nc):
       taskMask += str(i);
@@ -40,17 +40,17 @@ def runBench(nr, nc):
 
     cmd = '$HOME/nfs/microlaunch/microlaunch --kernelname "add.s" --nbprocess ' + str(nc) + ' --cpupin "' + taskMask + '" --repetition ' + str(nr)\
              + ' --metarepetition 5 --basename "add"   --info "raw;raw" --evallib '\
-             + '"$HOME/nfs/microlaunch/Libraries/power_snb_msr/libraries/energy_msr_snb.so;$HOME/nfs/microlaunch/Libraries/wallclock/wallclock.so"'\
+             + '"$HOME/nfs/microlaunch/Libraries/power_snb_msr/libraries/power_msr_snb.so;$HOME/nfs/microlaunch/Libraries/wallclock/wallclock.so"'\
              + ' --output-dir "/tmp"'
 
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
-    ex.communicate() [0] 
+    ex.communicate() [0]
 
     # fetch result
     fd = open("/tmp/kernel_add_2500000.csv")
     data = []
     for ln in fd.readlines()[1:]:
-      #print ln
+      print ln
       ln = ln.split(",")
 
       # error in data file
@@ -59,7 +59,7 @@ def runBench(nr, nc):
 
       #print "ln[0] = " + str (ln [0]) + ", ln[1] = " + str (ln [1]);
 
-      data.append((float(ln[1]), 1000000 * float(ln[0]) / (float(ln[1]))))
+      data.append((float(ln[1]), 1000000 * float(ln[0])))
     fd.close()
 
     data.sort()
@@ -67,16 +67,18 @@ def runBench(nr, nc):
 
 #----------------------------------
 
-def getIdealNIters(t):
+def getIdealNIters (t):
    '''
    Estimates the number of iterations to use with the benchmark to reach the provided execution time.
-   
+
    t is the target execution time for the benchmark (in ms)
    '''
 
    nr = 1
    exectime = 0
+   print "lol"
    while exectime < t or exectime > 2 * t:
+      print "Trying to run bench with " + str (nr) + " repetitions"
       r = runBench(nr, 1)
 
       if r is None:
@@ -85,7 +87,8 @@ def getIdealNIters(t):
 
       exectime = r[0]
       exectime = exectime / 1000
-      
+      print str (exectime) + "lol"
+
       if exectime < t:
          # less than a second is not relevant
          if exectime < 1000:
@@ -103,13 +106,10 @@ def getIdealNIters(t):
 
 #----------------------------------
 
-def getRelatedCores():
+def getRelatedCores (cpuid):
    '''Returns the number of cores on the system'''
-   if len (sys.argv) != 2:
-      print "Error: User must provide a cpu id"
-      sys.exit (0)
-   coreid = sys.argv[1]
-   fd = open ("/sys/devices/system/cpu/cpu" + str (coreid) + "/cpufreq/related_cpus")
+
+   fd = open ("/sys/devices/system/cpu/cpu" + str (cpuid) + "/cpufreq/related_cpus")
    data = fd.read ()
    fd.close ()
 
@@ -119,11 +119,11 @@ def getRelatedCores():
 
 #----------------------------------
 
-def getFreqs():
+def getFreqs (cpuid):
     """Returns the sorted list of all the available frequencies."""
 
-    fd = open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies")
-    data = fd.read()
+    fd = open("/sys/devices/system/cpu/cpu" + str (cpuid) + "/cpufreq/scaling_available_frequencies")
+    data = fd.read() 
     fd.close()
 
     data = data.split()
@@ -132,7 +132,7 @@ def getFreqs():
 
 #----------------------------------
 
-def setFreq(f):
+def setFreq (f):
    '''Sets the given frequency'''
 
    try:
@@ -151,7 +151,7 @@ def setFreq(f):
 
 #----------------------------------
 
-def setOnDemand():
+def setOnDemand ():
     '''Sets the dvfs governor to 'ondemand'.'''
 
     for c in cores:
@@ -164,22 +164,22 @@ def setOnDemand():
 #----------------------------------
 # Main
 
-if len (sys.argv) != 2:
-   print "Error: User must give the id of a cpu"
+if len (sys.argv) != 4:
+   print sys.argv[0] + " {cpuid} {mlTestTime} {configFileExtension}"
    sys.exit (0)
 
 # Get list of frequencies and sort'em
-freqs = getFreqs()
+freqs = getFreqs (int (sys.argv [1]))
 freqs.sort ()
 
 # Get list of related cores (by frequency)
-cores = getRelatedCores ()
+cores = getRelatedCores (int (sys.argv [1]))
 
 # Initialize the list of frequencies to avoid for energy
 freqsToDelete = [False for i in range(len(freqs))]
 
 # Name of the output configuration file
-configFile = "config_" + str (sys.argv [1] + ".cfg")
+configFile = "config_" + str (sys.argv [1] + "_" + str (sys.argv [3]) + ".cfg")
 
 # special case of 1 available frequency
 if len(freqs) == 1:
@@ -191,12 +191,13 @@ if len(freqs) == 1:
    fd.close ()
    sys.exit(0)
 
+print freqs
 # consider max frequency to get nr
-setFreq(freqs[-1])
+setFreq(freqs[0])
 
 # try to reach 30 seconds with the benchmark to let TB react significantly
 sys.stderr.write ("Determining Microlaunch configuration... ")
-nr = getIdealNIters(30000)
+nr = getIdealNIters(float (sys.argv [2]) * 1000)
 #nr = 100
 sys.stderr.write ("done (" + str (nr) + ")\n")
 
@@ -208,7 +209,7 @@ for f in freqs:
 
    res.append([])
    id = 0
-   for c in cores:
+   for c in range (0,4):
       res[-1].append(runBench(nr, c + 1))
       #print "res size = " + str(len (res)) + " res [-1] size = " + str(len(res[-1])) + ", res[-1][-1] size = " + str (len(res[-1][-1]))
       #print res [-1][-1]
@@ -230,30 +231,30 @@ for i in range(len(freqs)):
          deleteFreq = True
          print "Evaluating Freq (l/i) = (" + str(l) + "," + str (i) + ")"
          if freqs [i] > freqs [l]:
-            for k in cores:
+            for k in range (0,4):
                print "For core #" + str (k)
-               if res [l][k][1] / res [i][k][1] < 1:
+               if res [l][k][1] / res [i][k][1] < 0.95:
                   print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
                else:
                   #print "\tDeleting freq, continuing..."
-                  print "\tratio = " + res [l][k][1] / res [i][k][1]
+                  print "\tratio = " + str (res [l][k][1] / res [i][k][1] * 1.05)
             if deleteFreq:
                print "> deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
          else:
-            for k in cores:
+            for k in range (0,4):
                print "For core #" + str (k)
-               if res [l][k][1] / res [i][k][1] * res [l][k][0] / res [i][k][0] < 1:
+               if res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l] < 1:
                   print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
                else:
                   #print "\tDeleting freq, continuing..."
-                  print "\tratio = " + res [l][k][1] / res [i][k][1] * res [l][k][0] / res [i][k][0]
+                  print "\tratio = " + str (res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l])
             if deleteFreq:
-               #print "< deleting freq " + str (freqs[l])
+               print "< deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
 sys.stderr.write (" done\n")
 
@@ -265,15 +266,15 @@ for i in range(len(freqs)):
    if not freqsToDelete [i]:
       fdEnergy.write (str (freqs [i]) + " ")
       highestFreq = i
-   fdPerf.write (str (freqs [i]) + " ") 
+   fdPerf.write (str (freqs [i]) + " ")
 fdEnergy.write ("\n")
 fdPerf.write ("\n")
 
-for i in cores:
+for i in range (0,4):
    for j in range(len(freqs)):
       if not freqsToDelete [j]:
-         fdEnergy.write (str ((1 - res[j][i][1] / res [highestFreq][i][1])*100) + " ")
-      fdPerf.write (str ((1 - res [j][i][1] / res [len(freqs)-1][i][1])*100) + " ")
+         fdEnergy.write (str (res[j][i][1]) + " ")
+      fdPerf.write (str (res [j][i][1]) + " ")
    fdEnergy.write ("\n")
    fdPerf.write ("\n")
 fdEnergy.close ()
