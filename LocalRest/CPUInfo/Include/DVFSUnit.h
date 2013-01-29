@@ -26,6 +26,7 @@
 
 #include <cassert>
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <stdint.h>
 #include <iostream>
@@ -47,7 +48,7 @@ class DVFSUnit
        * @param id The id of the processor for the OS
        * @param useTB Do we consider the TurboBoost frequency or ignore it.
        */
-      DVFSUnit (unsigned int id, unsigned int cpuid, bool useTB);
+      DVFSUnit (unsigned int id, unsigned int cpuid, int mode);
 
       /**
        * Destructor
@@ -63,7 +64,7 @@ class DVFSUnit
       inline unsigned int getOSId (unsigned idx = 0) const
       {
          assert (idx < this->cpuIds.size ());
-         return this->cpuIds[idx];
+         return this->cpuIds[idx].logicalId;
       }
 
 			inline unsigned int getId () const {
@@ -131,15 +132,18 @@ class DVFSUnit
          return this->latency;
       }
 
-			/**
-			 * Add a core id in the list of cpus of the dvfs unit
-			 * Replaces its corresponding governor by userspace,
-			 * saving its former governor to be able to restore it
-			 * afterwards
-			 */
-      void addCpuId (unsigned int cpuId);	
+      // TODO comment
+      std::string getCpuIdList () const;
    private:
-	 		// TODO comment
+		/**
+         * Add a core id in the list of cpus of the dvfs unit
+         * Replaces its corresponding governor by userspace,
+         * saving its former governor to be able to restore it
+         * afterwards
+         */
+     void addCpuId (unsigned int cpuId);
+     
+     // TODO comment
 	 		unsigned int id;
       /**
        * The number of frequencies which this unit can use.
@@ -176,8 +180,12 @@ class DVFSUnit
        * List of cores that are linked to the DVFS Unit by frequency
        * and handled by it 
        */
-      std::vector<unsigned int> cpuIds;
-			unsigned int nbCpuIds;
+      std::vector<CPUCouple> cpuIds;
+		unsigned int nbCpuIds;
+      unsigned int nbPhysicalCores;
+      
+      // TODO comment
+      float *powerEconomy;
 };
 
 

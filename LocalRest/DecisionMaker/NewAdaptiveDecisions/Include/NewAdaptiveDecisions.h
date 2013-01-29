@@ -209,7 +209,6 @@ class NewAdaptiveDecisions : public DecisionMaker
          return this->curRuntimeState == EVALUATION;
       }
 
-
       /**
        * Method for printing debug information
        */
@@ -222,9 +221,14 @@ class NewAdaptiveDecisions : public DecisionMaker
          (void) str;
       }
 
-      // TODO comment
+      /**
+       * Outputs the frequency in the log file
+       */
       void logFrequency (unsigned int freqId) const;
 
+      /**
+       * Debug the str param on stderr (see debug (const char *str))
+       */
       inline void debug (std::ostringstream& str) {
          this->debug (str.str ().c_str ());
       }
@@ -256,6 +260,15 @@ class NewAdaptiveDecisions : public DecisionMaker
          
          return hwc.retired / (1. * swRefCycles);
       }
+
+      /**
+       * Computes the cpu usage ratio for each core
+       *
+       * The goal is to determine how many cores are defined as "active" to be
+       * able to have the correct power saving values later in the steps
+       * computation evaluation step.
+       */
+      unsigned int getCurrentCpuUsage () const;
 
       /**
        * Computes the couple of freq Id and its associated sleepWindows to
@@ -340,6 +353,11 @@ class NewAdaptiveDecisions : public DecisionMaker
        * Helps to compute stability accross settings.
        */
       FreqSelector freqSelector;
+
+      /**
+       * Informations from /proc/stat to compute the cpu usage per core
+       */
+      unsigned int *cpuUsageInfo;
 
 #ifdef REST_LOG
       /**

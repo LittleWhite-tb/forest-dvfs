@@ -30,15 +30,14 @@
 
 #include "CPUInfo.h"
 
-CPUInfo::CPUInfo ()
+CPUInfo::CPUInfo (unsigned mode)
 {
    std::ostringstream oss;
-   std::ifstream ifs;
 
    // the cores which are handled in a DVFS unit
    std::set<unsigned int> treatedCores;
    std::set<unsigned int>::iterator it;
-	 unsigned int cpuId;
+	unsigned int cpuId;
 
    // number of plugged processors
    unsigned int nbCores = sysconf (_SC_NPROCESSORS_ONLN);
@@ -61,35 +60,19 @@ CPUInfo::CPUInfo ()
         continue;
       }
 
-			//std::cerr << "Core #" << i << " is a DVFSUnit" << std::endl;
-
       // create the dvfs unit
-      DVFSUnit *newDVFS = new DVFSUnit (j++, i, false);
+      DVFSUnit *newDVFS = new DVFSUnit (j++, i, mode);
       handleAllocation (newDVFS);
       this->DVFSUnits.push_back (newDVFS);
-
-      // remember the processor numbers which are handled
-      oss.str ("");
-      oss << "/sys/devices/system/cpu/cpu" << i << "/cpufreq/related_cpus";
-      ifs.open (oss.str ().c_str ());
-
-      if (!ifs)
-      {
-         std::cerr << "Failed to open topology information for cpu " << i << std::endl;
-         exit (-1);
-      }
-
-      while (ifs >> cpuId)
+      const std::string& str = newDVFS->getCpuIdList ();
+      std::istringstream iss (str);
+      while (iss >> cpuId)
       {
          // We don't want to add every peer except from the dvfs id itself
          if (cpuId != i) {
-						//std::cerr << "Core #" << i << " is handling cpu " << cpuId << std::endl;
-            newDVFS->addCpuId (cpuId);
             treatedCores.insert (cpuId);
          }
       }
-
-      ifs.close ();
 
       // early exit if we have handled all the cores
       if (treatedCores.size () == nbCores)

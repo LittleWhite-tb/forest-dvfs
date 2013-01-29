@@ -26,27 +26,20 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <cstring>
 #include <string>
 #include <vector>
+#include <hwloc.h>
 
 #include "DVFSUnit.h"
 
-DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, bool useTB)
+DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
 {
    std::ostringstream oss;
    std::ifstream ifs;
-   std::ofstream ofs;
-   bool hasTB;    // has TurboBoost?
+   std::ofstream ofs;   
    unsigned int tmp;  // multi-purpose int
    std::vector<int> tmpAllFreqs; // to temporarily store frequencies 
-   
-	 // detect turboboost availability
-   if (system ("[ `cat /proc/cpuinfo | grep ida | wc -l` -eq 0 ]") == 0) {
-      hasTB = false;
-   }
-   else {
-      hasTB = true;
-   }
 
    // get the latency of this unit
    oss.str (std::string (""));
@@ -63,31 +56,110 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, bool useTB)
 
    // retrieve the available frequencies
    oss.str (std::string (""));
-   oss << "/sys/devices/system/cpu/cpu" << cpuid << "/cpufreq/scaling_available_frequencies";
+   if (mode == ENERGY_SAVER) {
+      oss << "offline/energy_config_" << cpuid << ".cfg";
+   } else if (mode == PERFORMANCE) {
+      oss << "offline/performance_config_" << cpuid << ".cfg";
+   } else {
+      std::cerr << "Error: Unknown runtime mode. Try {energy, performance}" << std::endl;
+      exit (EXIT_FAILURE);
+   } 
+   
    ifs.open (oss.str ().c_str ());
-   if (!ifs)
-   {
-      std::cerr << "Failed to fetch the available frequencies for cpu " << cpuid << std::endl;
-      exit (-1);
+   if (!ifs) {
+      std::cerr << "Error: Failed to fetch FoREST configuration file for cpuid #"
+      << cpuid << ". You must run the offline script before using FoREST"
+      << std::endl;
+      exit (EXIT_FAILURE);
+   } 
+
+   /* Read config file first line */
+   std::string line;
+   std::getline (ifs, line, '\n');
+   std::istringstream iss(line);
+   while (iss >> tmp) {
+      assert (!iss.fail ());
+      tmpAllFreqs.push_back (tmp);
+   } 
+   this->nbFreqs = tmpAllFreqs.size ();
+
+   this->freqs = new unsigned int [this->nbFreqs];
+   for (unsigned int i = 0; i < this->nbFreqs; i++) {
+      this->freqs [i] = tmpAllFreqs [i];
+   } 
+
+   // Add the current cpu as the first cpu id in the DVFS list
+	this->addCpuId (cpuid); 
+
+  // Retrieve all the cores that are linked to the main cpuid by frequency
+   std::ostringstream rel;
+   rel << "/sys/devices/system/cpu/cpu" << cpuid << "/cpufreq/related_cpus";
+   std::ifstream relIfs;
+   relIfs.open (rel.str ().c_str ());
+   if (!relIfs) {
+      std::cerr << "Error: Failed to open topology information for cpu " << cpuid << std::endl;
+      exit (EXIT_FAILURE);
    }
 
-   while (ifs >> tmp)
-   {
-      tmpAllFreqs.insert (tmpAllFreqs.begin (), tmp); //Saving the freq
+   unsigned int subCpuId;
+   // Add all others cpu ids in the DVFS list as related cpus
+   while (relIfs >> subCpuId) {
+      if (subCpuId != cpuid) {
+         this->addCpuId (subCpuId); 
+      }
+   }
+   relIfs.close ();
+
+   /* Go fetch physical core information and store it in this->cores eventually */
+   hwloc_topology_t topology;
+   hwloc_obj_t obj;
+   if (hwloc_topology_init (&topology) == -1) {
+      std::cerr << "Error: Cannot initialize Hwloc topology" << std::endl;
+      exit (EXIT_FAILURE);
+   }
+
+   hwloc_topology_ignore_type (topology, HWLOC_OBJ_CACHE);
+
+   if (hwloc_topology_load (topology) == -1) {
+      std::cerr << "Error: Cannot load Hwloc topology" << std::endl;
+      exit (EXIT_FAILURE);
+   }
+ 
+   assert (hwloc_get_depth_type (topology, 1) == HWLOC_OBJ_SOCKET);
+   assert (hwloc_get_depth_type (topology, 2) == HWLOC_OBJ_CORE);
+
+   this->nbPhysicalCores = hwloc_get_nbobjs_by_depth (topology, 2);
+   for (unsigned int j = 0; j < this->nbPhysicalCores; j++) { 
+      obj = hwloc_get_obj_by_depth (topology, 2, j);
+      for (unsigned k = 0; k < obj->arity; k++) {
+         for (unsigned int i = 0; i < this->nbCpuIds; i++) {
+            if (obj->children [k]->os_index == this->cpuIds [i].logicalId) {
+               this->cpuIds [i].physicalId = obj->os_index;
+            }
+         }
+      }
+   }
+
+   for (unsigned int i = 0; i < this->cpuIds.size (); i++) {
+      std::cerr << "{" << this->cpuIds [i].physicalId << ", " <<
+                  this->cpuIds [i].logicalId << "}";
+      std::cerr << std::endl;
+   }
+   hwloc_topology_destroy (topology);
+
+   /* Now we want to take all the power economy ratio information from the config file */
+   this->powerEconomy = new float [this->nbCpuIds * this->nbFreqs];
+  
+   // Go through all the other lines
+   float ratio;
+   unsigned int i = 0;
+   while (ifs >> ratio) {
+      this->powerEconomy [i++] = ratio;
+      assert (!ifs.fail ());
    }
    ifs.close ();
-
-   // transfert the frequencies into an array
-   this->nbFreqs = tmpAllFreqs.size () - ((hasTB && !useTB) ? 1 : 0);
-   this->freqs = new unsigned int [this->nbFreqs];
-
-   for (unsigned int i = 0; i < this->nbFreqs; i++)
-   {
-      this->freqs [i] = tmpAllFreqs [i];
-   }
-
-	this->addCpuId (cpuid);
-	this->id = id;
+	
+   this->id = id;
 }
 
 DVFSUnit::~DVFSUnit ()
@@ -98,7 +170,7 @@ DVFSUnit::~DVFSUnit ()
    // restore the former governor for each CPU
 	 size_t i, size = this->cpuIds.size ();
 	for (i = 0; i < size; i++) {
-		oss << "/sys/devices/system/cpu/cpu" << this->cpuIds [i] << "/cpufreq/scaling_governor";
+		oss << "/sys/devices/system/cpu/cpu" << this->cpuIds [i].logicalId << "/cpufreq/scaling_governor";
   	ofs.open (oss.str ().c_str ());
 
 		if (ofs != 0 && ofs.is_open ()) {
@@ -112,9 +184,19 @@ DVFSUnit::~DVFSUnit ()
 		delete this->freqFs [i];
 	}
    // cleanup memory
+   delete [] this->powerEconomy;
    delete [] this->freqs;
 }
 
+std::string DVFSUnit::getCpuIdList () const{
+   std::ostringstream oss;
+   for (std::vector<CPUCouple>::const_iterator it = this->cpuIds.begin ();
+        it != this->cpuIds.end ();
+        it++) {
+      oss << (*it).logicalId << " ";
+   } 
+   return std::string (oss.str ());
+}
 
 void DVFSUnit::addCpuId (unsigned int cpuId) {
 	assert (this->cpuIds.size () == this->formerGov.size ());
@@ -159,10 +241,12 @@ void DVFSUnit::addCpuId (unsigned int cpuId) {
    	exit (EXIT_FAILURE);
 	}
 
+   assert (this->freqs != NULL);
 	*freqFs << this->freqs [0];
 	freqFs->flush ();
 	this->curFreqId = 0;
-	this->cpuIds.push_back (cpuId);
+   CPUCouple cpuc = {0, cpuId};
+	this->cpuIds.push_back (cpuc);
 	this->nbCpuIds++;
 	this->freqFs.push_back (freqFs);
 }
@@ -184,7 +268,7 @@ void DVFSUnit::setFrequency (unsigned int freqId)
 	for (i = 0; i < size; i++) {
 		// write the correct frequency in the file
 		//this->freqFs [i]->seekp (0, std::ios::beg);
-  	*(this->freqFs [i]) << this->freqs [freqId];
+  	   *(this->freqFs [i]) << this->freqs [freqId];
 		this->freqFs [i]->flush ();
 		assert (!this->freqFs [i]->fail () && !this->freqFs [i]->bad ());
 		//std::cerr << "Writing " << this->freqs [freqId] << std::endl;

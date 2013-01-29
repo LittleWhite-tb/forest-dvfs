@@ -64,10 +64,11 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit) :
 	// Allocate data
 	this->ipcEval = new float [this->ipcEvalSize];
 	this->cpuDecs = new FreqChunkCouple [this->nbCpuIds];
+   this->cpuUsageInfo = new unsigned int [2*this->nbCpuIds];
 
 	// Check that allocation was successful
 	handleAllocation (this->ipcEval);
-	handleAllocation (this->cpuDecs);
+	handleAllocation (this->cpuDecs); 
 
 	// Reserve the critical vectors for performance reasons
 	this->sequence.reserve (this->nbCpuIds+1);
@@ -86,6 +87,7 @@ NewAdaptiveDecisions::~NewAdaptiveDecisions (void)
 {
 	delete [] this->ipcEval;
 	delete [] this->cpuDecs;
+   delete [] this->cpuUsageInfo;
 }
 
 FreqChunkCouple NewAdaptiveDecisions::getVirtualFreq (float degradedIPC,
@@ -229,6 +231,76 @@ void NewAdaptiveDecisions::logFrequency (unsigned int freqId) const
 #endif
 }
 
+unsigned int NewAdaptiveDecisions::getCurrentCpuUsage () const{
+   unsigned activeCpus = 0;
+   std::ifstream ifs;
+   std::ostringstream oss;
+   std::string str;
+   unsigned int cpuIdx = 0;
+
+   ifs.open ("/proc/stat");
+   if (!ifs) {
+      std::cerr << "Error: Cannot open /proc/stat for cpu usage info. Are you running on a Linux machine ?" << std::endl;
+      exit (EXIT_FAILURE);
+   }
+
+   /* For each line */ 
+   while (!std::getline (ifs, str, '\n').eof ()) {
+      /* We want to get the lines starting with cpu{0-9)+ */
+      if (!str.compare (0, 3, "cpu")) {
+         const char *cstr = str.c_str ();
+         
+         /* Eliminate the non numbered "cpu" lines */
+         if (cstr[3] != ' ') {
+            unsigned int i = 3;
+            /* get to the next space */
+            while (cstr [i] != ' ') i++;
+            std::istringstream iss (cstr + i);
+
+            /* go through the first 4 entries */
+            unsigned int totalTime = 0, idleTime = 0;
+            unsigned int value;
+            
+            /* Get total awake time with first 3 values */
+            //std::cerr << "cpu #" << cpuIdx;
+            for (unsigned int nb = 0; nb < 4; nb++) {
+               iss >> value;
+               //std::cerr << " " << value;
+               assert (!iss.bad () && !iss.fail ());
+               if (nb == 3) {
+                  idleTime = value;
+               }
+               totalTime += value;
+            } 
+
+            unsigned int diffIdle = rest_max (0, (int)(idleTime - this->cpuUsageInfo [cpuIdx * 2 + 1]));
+            unsigned int diffTotal = rest_max (0, (int)(totalTime - this->cpuUsageInfo [cpuIdx * 2]));
+
+            float ratio;
+            if (diffIdle == 0) {
+               ratio = 100.;
+            } else {
+               ratio = (abs(diffTotal - diffIdle)) / (float)diffIdle * 100;
+            }
+            ratio = rest_min (100, ratio);
+
+            std::cerr << "#" << cpuIdx << ": " << std::setw (10) << ratio << "%, ";
+            (void) ratio;
+            this->cpuUsageInfo [cpuIdx * 2] = totalTime;
+            this->cpuUsageInfo [cpuIdx * 2 + 1] = idleTime;
+
+            cpuIdx++;
+         }
+      }
+   } 
+   std::cerr << "         \r";
+   //exit (EXIT_FAILURE);
+   
+   ifs.close ();
+
+   return activeCpus;
+}
+
 Decision NewAdaptiveDecisions::initEvaluation ()
 {
 	Decision res;
@@ -354,6 +426,10 @@ void NewAdaptiveDecisions::computeSteps ()
 		std::cerr << std::endl;
 	}
 #endif
+
+    this->getCurrentCpuUsage ();
+
+   //std::cerr << activeCpus << std::endl;
 
    // make a decision per cpu
 	for (unsigned int cpu = 0; cpu < this->nbCpuIds; cpu++)

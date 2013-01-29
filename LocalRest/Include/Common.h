@@ -51,6 +51,15 @@ typedef union
  */
 #define NB_HW_COUNTERS (sizeof(HWCounters) / sizeof(uint64_t))
 
+/* Defines the runtime mode */
+enum {ENERGY_SAVER = 0, PERFORMANCE};
+
+/* Defines a cpu couple */
+struct CPUCouple {
+  unsigned int physicalId;
+  unsigned int logicalId; 
+};
+
 // a few utility functions which may be useful at some point
 #define rest_max(a, b) ((a) > (b) ? (a) : (b))
 #define rest_min(a, b) ((a) < (b) ? (a) : (b))

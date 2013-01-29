@@ -65,7 +65,7 @@ struct ThreadContext {
 // variables shared among the threads
 struct RESTContext
 {
-	CPUInfo cnfo;
+	CPUInfo *cnfo;
 	ThreadContext *thdCtx;
 };
 
@@ -80,7 +80,27 @@ int main (int argc, char ** argv)
 	(void)(argc);
 	(void)(argv);
 
-	unsigned int nbDVFSUnits = restCtx.cnfo.getNbDVFSUnits ();
+   if (argc != 2) {
+      std::cerr << argv [0] << " {energy,performance}" << std::endl;
+      exit (EXIT_FAILURE);
+   }
+
+   unsigned mode;
+   std::string energy ("energy");
+   std::string performance ("performance");
+
+   if (energy.compare (argv[1]) == 0) {
+      mode = ENERGY_SAVER;
+   } else if (performance.compare (argv [1]) == 0) {
+      mode = PERFORMANCE;
+   } else {
+      std::cerr << "Error: Unknown/Unsupported runtime mode" << std::endl;
+      exit (EXIT_FAILURE);
+   }
+
+   restCtx.cnfo = new CPUInfo (mode);
+
+	unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
 #ifdef REST_LOG	
 	Logger::initLog (nbDVFSUnits);
 #endif
@@ -90,7 +110,7 @@ int main (int argc, char ** argv)
 	// launch threads
 	for (unsigned int i = 1; i < nbDVFSUnits; i++)
 	{
-		DVFSUnit& unit = restCtx.cnfo.getDVFSUnit (i);
+		DVFSUnit& unit = restCtx.cnfo->getDVFSUnit (i);
 		// initialize options	
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
@@ -109,7 +129,7 @@ int main (int argc, char ** argv)
 	}
 
 	// the main process is the main profiler
-	DVFSUnit& unit0 = restCtx.cnfo.getDVFSUnit (0);
+	DVFSUnit& unit0 = restCtx.cnfo->getDVFSUnit (0);
 	thOpts& opts = restCtx.thdCtx [0].opts;
 	opts.id = 0;
 	opts.dec = new NewAdaptiveDecisions (unit0);
@@ -192,8 +212,8 @@ static void sigHandler (int nsig)
 			break;
 	case SIGUSR1:
 			#ifdef REST_LOG
-				for (unsigned int i = 0; i < restCtx.cnfo.getNbDVFSUnits (); i++) {
-					Logger *log = Logger::getLog (restCtx.cnfo.getDVFSUnit (i).getId ());
+				for (unsigned int i = 0; i < restCtx.cnfo->getNbDVFSUnits (); i++) {
+					Logger *log = Logger::getLog (restCtx.cnfo->getDVFSUnit (i).getId ());
 					log->logOut ("*");
 				}
 			#endif
@@ -204,9 +224,9 @@ static void sigHandler (int nsig)
 }
 
 static void exitCleanup ()
-{
+{ 
 	unsigned int i;
-	unsigned int nbUnits = restCtx.cnfo.getNbDVFSUnits ();
+	unsigned int nbUnits = restCtx.cnfo->getNbDVFSUnits ();
 
 	// cancel all threads (0 = main process, not a thread)
 	for (i = 1; i < nbUnits; i++)
@@ -226,5 +246,6 @@ static void exitCleanup ()
 #ifdef REST_LOG
 	Logger::destroyLog ();
 #endif
+   delete restCtx.cnfo;
 }
 
