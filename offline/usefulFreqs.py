@@ -45,8 +45,13 @@ def runBench (nr, nc):
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
     ex.communicate() [0]
 
-    # fetch result
-    fd = open("/tmp/kernel_add_2500000.csv")
+    try:
+      fd = open("/tmp/kernel_add_2500000.csv")
+    except IOError as e:
+       sys.stderr.write ("Error: Cannot launch Microlauncher.\n- Is it cloned at the base of your nfs directory ?\n")
+       sys.stderr.write ("- Are you connected to the local network ?\n- Did you modprobe msr and chmod it properly ?\n- Did you chmod cpufreq folder correctly ?\n- Did you echo -1 in the event_paranoid file ?\n- Are you running a SandyBridge or more recent architecture ?\n")
+       sys.exit (0)
+
     data = []
     for ln in fd.readlines()[1:]: 
       ln = ln.split(",")
@@ -113,6 +118,7 @@ def getRelatedCores (cpuid):
 
 def getPhysicalCores (cpuid):
    '''Returns the number of physical cores the given cpuid belongs to'''
+   cpuid = int (cpuid)
 
    # Retrieve the list of related cores to the given cpuid
    relatedCores = getRelatedCores (cpuid)
