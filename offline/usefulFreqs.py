@@ -55,8 +55,8 @@ def runBench (nr, nc):
       if len(ln) > 7:
           return None
 
-      # Data format: {Watts, ms}
-      data.append((float(ln[1]), float(ln[0]) / float (ln [1]) * 1e9))
+      # Data format: {ms, Watts}
+      data.append((float(ln[1]), float(ln[0]) / float (ln [1]) * 1e6))
     fd.close()
     data.sort()
 
@@ -114,28 +114,31 @@ def getRelatedCores (cpuid):
 def getPhysicalCores (cpuid):
    '''Returns the number of physical cores the given cpuid belongs to'''
 
+   # Retrieve the list of related cores to the given cpuid
    relatedCores = getRelatedCores (cpuid)
+
+   # By default, all the related cores are physical
    phyCores = [True for i in relatedCores]
    for i in relatedCores:
-      if phyCores [i]:
-#         print "handling related core #" + str (i)
+      if phyCores [i-cpuid]:
+         # Retrieve thread siblings information
          fd = open ("/sys/devices/system/cpu/cpu" + str (i) + "/topology/thread_siblings_list")
          data = fd.read ()
-#         print "data = " + data
          data = data.split (",")
          data = [int (f) for f in data]
          
          # Eliminate the siblings of the current core
          for core in data:
-#            print core
             if core != i:
-               phyCores [core] = False
-   physicalCores = []
+               phyCores [core-cpuid] = False
 
+   # We know which cores are physical and which are not, so let's generate a list ! :)
+   physicalCores = []
    for i in relatedCores:
-      if phyCores [i]:
+      if phyCores [i-cpuid]:
          physicalCores.append (i)
 
+   # We're all set !!
    return physicalCores;
 
 #----------------------------------
@@ -196,7 +199,6 @@ freqs.sort ()
 # Get list of related cores (by frequency)
 cores = getPhysicalCores (sys.argv [1])
 print cores;
-sys.exit (0)
 
 # Initialize the list of frequencies to avoid for energy
 freqsToDelete = [False for i in range(len(freqs))]
@@ -210,7 +212,7 @@ if len(freqs) == 1:
    fd = open (configFile, 'w')
    fd.write (str (freqs [0]) + "\n")
    for i in cores:
-      fd.write (str (0) + "\n")
+      fd.write ("0\n")
    fd.close ()
    sys.exit(0)
 
@@ -231,7 +233,7 @@ for f in freqs:
 
    res.append([])
    id = 0
-   for c in range (0,4):
+   for c in cores:
       res[-1].append(runBench(nr, c + 1))
       #print "res size = " + str(len (res)) + " res [-1] size = " + str(len(res[-1])) + ", res[-1][-1] size = " + str (len(res[-1][-1]))
       #print res [-1][-1]
@@ -253,7 +255,7 @@ for i in range(len(freqs)):
          deleteFreq = True
          print "Evaluating Freq (l/i) = (" + str(l) + "," + str (i) + ")"
          if freqs [i] > freqs [l]:
-            for k in range (0,4):
+            for k in cores:
                print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] < 1.05:
                   print "\tKeeping freq, exiting"
@@ -266,7 +268,7 @@ for i in range(len(freqs)):
                print "> deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
          else:
-            for k in range (0,4):
+            for k in cores:
                print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l] < 1.05:
                   print "\tKeeping freq, exiting"
@@ -292,7 +294,7 @@ for i in range(len(freqs)):
 fdEnergy.write ("\n")
 fdPerf.write ("\n")
 
-for i in range (0,4):
+for i in cores:
    for j in range(len(freqs)):
       if not freqsToDelete [j]:
          fdEnergy.write (str (res[j][i][1]) + " ")
@@ -302,27 +304,3 @@ for i in range (0,4):
 fdEnergy.close ()
 fdPerf.close ()
 
-#for i in range(len(freqs)):
-#   if not freqsToDelete [i]:
-#      sys.stdout.println (str (res [) + " ")
-
-
-#ratios.append (res [nf][1] / res [0][1] * 100 )
-
-# compare minimal freq to the next one
-#er = [] + er
-#for nc in cores:
-#    er[0].append((res[0][0] * res[0][1]) / (res[1][0] * res[1][1]))
-#
-## only print frequencies that can be useful
-#for nf in range(len(freqs)):
-#    er[nf] = [rf < 1 for rf in er[nf]]
-#    if any(er[nf]):
-#         print freqs[nf]
-#
-#
-#for nf in range (len (freqs)):
-#    er [nf] = [rf < 1 for rf in er [nf]]
-#    if any (er [nf]):
-#         print ratios [nf]
-#
