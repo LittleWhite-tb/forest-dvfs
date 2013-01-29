@@ -40,29 +40,26 @@ def runBench (nr, nc):
 
     cmd = '$HOME/nfs/microlaunch/microlaunch --kernelname "add.s" --nbprocess ' + str(nc) + ' --cpupin "' + taskMask + '" --repetition ' + str(nr)\
              + ' --metarepetition 5 --basename "add"   --info "raw;raw" --evallib '\
-             + '"$HOME/nfs/microlaunch/Libraries/power_snb_msr/libraries/power_msr_snb.so;$HOME/nfs/microlaunch/Libraries/wallclock/wallclock.so"'\
+             + '"$HOME/nfs/microlaunch/Libraries/power_snb_msr/libraries/energy_msr_snb.so;$HOME/nfs/microlaunch/Libraries/wallclock/wallclock.so"'\
              + ' --output-dir "/tmp"'
-
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
     ex.communicate() [0]
 
     # fetch result
     fd = open("/tmp/kernel_add_2500000.csv")
     data = []
-    for ln in fd.readlines()[1:]:
-      print ln
+    for ln in fd.readlines()[1:]: 
       ln = ln.split(",")
 
       # error in data file
       if len(ln) > 7:
           return None
 
-      #print "ln[0] = " + str (ln [0]) + ", ln[1] = " + str (ln [1]);
-
-      data.append((float(ln[1]), 1000000 * float(ln[0])))
+      # Data format: {Watts, ms}
+      data.append((float(ln[1]), float(ln[0]) / float (ln [1]) * 1e9))
     fd.close()
-
     data.sort()
+
     return data[len(data) / 2]
 
 #----------------------------------
@@ -76,9 +73,7 @@ def getIdealNIters (t):
 
    nr = 1
    exectime = 0
-   print "lol"
-   while exectime < t or exectime > 2 * t:
-      print "Trying to run bench with " + str (nr) + " repetitions"
+   while exectime < t or exectime > 2 * t:   
       r = runBench(nr, 1)
 
       if r is None:
@@ -86,12 +81,11 @@ def getIdealNIters (t):
          continue
 
       exectime = r[0]
-      exectime = exectime / 1000
-      print str (exectime) + "lol"
+      exectime = exectime
 
       if exectime < t:
-         # less than a second is not relevant
-         if exectime < 1000:
+         # less than a second is not relevant 
+         if exectime < 0.8*t:
             nr = nr * 10
          else:
             # assume linear impact of nr on exec time
@@ -117,13 +111,40 @@ def getRelatedCores (cpuid):
 
    return [int (f) for f in data];
 
+def getPhysicalCores (cpuid):
+   '''Returns the number of physical cores the given cpuid belongs to'''
+
+   relatedCores = getRelatedCores (cpuid)
+   phyCores = [True for i in relatedCores]
+   for i in relatedCores:
+      if phyCores [i]:
+#         print "handling related core #" + str (i)
+         fd = open ("/sys/devices/system/cpu/cpu" + str (i) + "/topology/thread_siblings_list")
+         data = fd.read ()
+#         print "data = " + data
+         data = data.split (",")
+         data = [int (f) for f in data]
+         
+         # Eliminate the siblings of the current core
+         for core in data:
+#            print core
+            if core != i:
+               phyCores [core] = False
+   physicalCores = []
+
+   for i in relatedCores:
+      if phyCores [i]:
+         physicalCores.append (i)
+
+   return physicalCores;
+
 #----------------------------------
 
 def getFreqs (cpuid):
     """Returns the sorted list of all the available frequencies."""
 
     fd = open("/sys/devices/system/cpu/cpu" + str (cpuid) + "/cpufreq/scaling_available_frequencies")
-    data = fd.read() 
+    data = fd.read()
     fd.close()
 
     data = data.split()
@@ -173,7 +194,9 @@ freqs = getFreqs (int (sys.argv [1]))
 freqs.sort ()
 
 # Get list of related cores (by frequency)
-cores = getRelatedCores (int (sys.argv [1]))
+cores = getPhysicalCores (sys.argv [1])
+print cores;
+sys.exit (0)
 
 # Initialize the list of frequencies to avoid for energy
 freqsToDelete = [False for i in range(len(freqs))]
@@ -191,7 +214,6 @@ if len(freqs) == 1:
    fd.close ()
    sys.exit(0)
 
-print freqs
 # consider max frequency to get nr
 setFreq(freqs[0])
 
@@ -233,7 +255,7 @@ for i in range(len(freqs)):
          if freqs [i] > freqs [l]:
             for k in range (0,4):
                print "For core #" + str (k)
-               if res [l][k][1] / res [i][k][1] < 0.95:
+               if res [l][k][1] / res [i][k][1] < 1.05:
                   print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
@@ -246,7 +268,7 @@ for i in range(len(freqs)):
          else:
             for k in range (0,4):
                print "For core #" + str (k)
-               if res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l] < 1:
+               if res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l] < 1.05:
                   print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
