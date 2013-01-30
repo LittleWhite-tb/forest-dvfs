@@ -115,6 +115,11 @@ class NewAdaptiveDecisions : public DecisionMaker
       static const unsigned int IPC_EVAL_TIME = 75;
 
       /**
+       * Threshold under which a logical processing unit is considered as not active
+       */
+      static const unsigned int ACTIVE_THRESHOLD = 30;
+
+      /**
        * Minimal execution time once a frequency is chosen (us).
        */
       static const unsigned int MIN_SLEEP_WIN = 1000;

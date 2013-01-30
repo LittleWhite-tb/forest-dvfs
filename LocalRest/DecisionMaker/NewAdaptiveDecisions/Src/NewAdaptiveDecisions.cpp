@@ -237,6 +237,11 @@ unsigned int NewAdaptiveDecisions::getCurrentCpuUsage () const{
    std::ostringstream oss;
    std::string str;
    unsigned int cpuIdx = 0;
+   const std::vector<CPUCouple>& cpuList = this->unit.getCpuIdList ();
+   std::vector<CPUCouple>::const_iterator it; 
+   unsigned int nbPhyCores = this->unit.getNbPhysicalCores ();
+   bool *activePhyCores = new bool [nbPhyCores];
+   handleAllocation (activePhyCores);
 
    ifs.open ("/proc/stat");
    if (!ifs) {
@@ -257,13 +262,13 @@ unsigned int NewAdaptiveDecisions::getCurrentCpuUsage () const{
             if (end == cstr) {
                std::cerr << "Error: Syntax error in /proc/stat" << std::endl;
                exit (EXIT_FAILURE);
-            }
-            const std::vector<CPUCouple>& cpuList = this->unit.getCpuIdList ();
-            std::vector<CPUCouple>::const_iterator it;
+            } 
             bool inDVFSUnit = false;
+            unsigned int phyCore;
             for (it = cpuList.begin (); it != cpuList.end (); it++) {
                if (number == (*it).logicalId) {
                   inDVFSUnit = true;
+                  phyCore = (*it).physicalId;
                   break;
                }
             }
@@ -298,9 +303,13 @@ unsigned int NewAdaptiveDecisions::getCurrentCpuUsage () const{
               } else {
                  ratio = (abs(diffTotal - diffIdle)) / (float)diffIdle * 100;
               }
-              ratio = rest_min (100, ratio);
+              ratio = rest_min (100, ratio); 
 
-              (void) ratio;
+               if (ratio > NewAdaptiveDecisions::ACTIVE_THRESHOLD) {
+                  activePhyCores [phyCore] = true;
+               }
+
+              // Save for next iteration
               this->cpuUsageInfo [cpuIdx * 2] = totalTime; // Store totalTime in index 0
               this->cpuUsageInfo [cpuIdx * 2 + 1] = idleTime; // Store idleTime in index 1
 
@@ -308,10 +317,17 @@ unsigned int NewAdaptiveDecisions::getCurrentCpuUsage () const{
            }
          }
       }
-   }
-   
+   } // End of /proc/stat reading
    ifs.close ();
 
+   activeCpus = 0;
+   for (unsigned int i = 0; i < nbPhyCores; i++) {
+      if (activePhyCores [i]) {
+         activeCpus++;
+      }
+   }
+
+   delete [] activePhyCores;
    return activeCpus;
 }
 
@@ -441,7 +457,7 @@ void NewAdaptiveDecisions::computeSteps ()
 	}
 #endif
 
-    this->getCurrentCpuUsage ();
+    unsigned int activeCpus = this->getCurrentCpuUsage ();
 
    //std::cerr << activeCpus << std::endl;
 

@@ -134,6 +134,10 @@ class DVFSUnit
 
       // TODO comment
       const std::vector<CPUCouple>& getCpuIdList () const;
+
+      inline unsigned int getNbPhysicalCores () const {
+         return this->nbPhysicalCores;
+      }
    private:
 		/**
          * Add a core id in the list of cpus of the dvfs unit
