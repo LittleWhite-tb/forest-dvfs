@@ -23,6 +23,9 @@
 #ifndef H_LOGGER
 #define H_LOGGER
 
+#include <fstream>
+#include <vector>
+
 class Logger
 {
 	public:

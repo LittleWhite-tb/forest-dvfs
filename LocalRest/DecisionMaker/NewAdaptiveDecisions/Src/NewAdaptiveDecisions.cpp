@@ -252,49 +252,63 @@ unsigned int NewAdaptiveDecisions::getCurrentCpuUsage () const{
          
          /* Eliminate the non numbered "cpu" lines */
          if (cstr[3] != ' ') {
-            unsigned int i = 3;
-            /* get to the next space */
-            while (cstr [i] != ' ') i++;
-            std::istringstream iss (cstr + i);
-
-            /* go through the first 4 entries */
-            unsigned int totalTime = 0, idleTime = 0;
-            unsigned int value;
-            
-            /* Get total awake time with first 3 values */
-            //std::cerr << "cpu #" << cpuIdx;
-            for (unsigned int nb = 0; nb < 4; nb++) {
-               iss >> value;
-               //std::cerr << " " << value;
-               assert (!iss.bad () && !iss.fail ());
-               if (nb == 3) {
-                  idleTime = value;
-               }
-               totalTime += value;
-            } 
-
-            unsigned int diffIdle = rest_max (0, (int)(idleTime - this->cpuUsageInfo [cpuIdx * 2 + 1]));
-            unsigned int diffTotal = rest_max (0, (int)(totalTime - this->cpuUsageInfo [cpuIdx * 2]));
-
-            float ratio;
-            if (diffIdle == 0) {
-               ratio = 100.;
-            } else {
-               ratio = (abs(diffTotal - diffIdle)) / (float)diffIdle * 100;
+            char *end;
+            unsigned int number = strtol (cstr+3, &end, 10);
+            if (end == cstr) {
+               std::cerr << "Error: Syntax error in /proc/stat" << std::endl;
+               exit (EXIT_FAILURE);
             }
-            ratio = rest_min (100, ratio);
+            const std::vector<CPUCouple>& cpuList = this->unit.getCpuIdList ();
+            std::vector<CPUCouple>::const_iterator it;
+            bool inDVFSUnit = false;
+            for (it = cpuList.begin (); it != cpuList.end (); it++) {
+               if (number == (*it).logicalId) {
+                  inDVFSUnit = true;
+                  break;
+               }
+            }
+            if (inDVFSUnit) {
+              unsigned int i = 3;
+              /* get to the next space */
+              while (cstr [i] != ' ') i++;
+              std::istringstream iss (cstr + i);
 
-            std::cerr << "#" << cpuIdx << ": " << std::setw (10) << ratio << "%, ";
-            (void) ratio;
-            this->cpuUsageInfo [cpuIdx * 2] = totalTime;
-            this->cpuUsageInfo [cpuIdx * 2 + 1] = idleTime;
+              /* go through the first 4 entries */
+              unsigned int totalTime = 0, idleTime = 0;
+              unsigned int value;
+              
+              /* Get total awake time with first 3 values */
+              //std::cerr << "cpu #" << cpuIdx;
+              for (unsigned int nb = 0; nb < 4; nb++) {
+                 iss >> value;
+                 //std::cerr << " " << value;
+                 assert (!iss.bad () && !iss.fail ());
+                 if (nb == 3) {
+                    idleTime = value;
+                 }
+                 totalTime += value;
+              } 
 
-            cpuIdx++;
+              unsigned int diffIdle = rest_max (0, (int)(idleTime - this->cpuUsageInfo [cpuIdx * 2 + 1]));
+              unsigned int diffTotal = rest_max (0, (int)(totalTime - this->cpuUsageInfo [cpuIdx * 2]));
+
+              float ratio;
+              if (diffIdle == 0) {
+                 ratio = 100.;
+              } else {
+                 ratio = (abs(diffTotal - diffIdle)) / (float)diffIdle * 100;
+              }
+              ratio = rest_min (100, ratio);
+
+              (void) ratio;
+              this->cpuUsageInfo [cpuIdx * 2] = totalTime; // Store totalTime in index 0
+              this->cpuUsageInfo [cpuIdx * 2 + 1] = idleTime; // Store idleTime in index 1
+
+              cpuIdx++;
+           }
          }
       }
-   } 
-   std::cerr << "         \r";
-   //exit (EXIT_FAILURE);
+   }
    
    ifs.close ();
 

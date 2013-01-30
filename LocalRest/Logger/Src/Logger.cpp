@@ -28,6 +28,8 @@ Copyright (C) 2011 Exascale Research Center
 #include <time.h>
 #include <cassert>
 #include <vector>
+#include <cstdlib>
+
 #include "Logger.h"
 
 std::vector<Logger *>Logger::logList;
@@ -36,8 +38,10 @@ void Logger::initLog (unsigned int nbTh)
 {
 	for(unsigned int i=0;i<nbTh;i++)
 	{
-		Logger::logList.push_back(new Logger(i));
-	}
+      Logger *nlog = new Logger (i);
+      assert (nlog != NULL);
+		Logger::logList.push_back(nlog);
+	} 
 }
 void Logger::destroyLog (void)
 {
@@ -60,10 +64,11 @@ Logger::Logger (unsigned int id)
 	oss.str (std::string (""));
 
 	oss << "RESTlog" << this->thId;
-	this->switchOFS.open (oss.str ().c_str (), std::ofstream::out | std::ofstream::trunc);
+	this->switchOFS.open (oss.str ().c_str (), std::ofstream::out | std::ofstream::trunc); 
 	if (!this->switchOFS)
 	{
 		std::cerr << "Failed to open the log file for DVFS unit " << this->thId << std::endl;
+      exit (EXIT_FAILURE);
 	}
 }
 

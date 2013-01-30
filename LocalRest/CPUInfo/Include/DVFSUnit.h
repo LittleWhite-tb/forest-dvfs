@@ -133,7 +133,7 @@ class DVFSUnit
       }
 
       // TODO comment
-      std::string getCpuIdList () const;
+      const std::vector<CPUCouple>& getCpuIdList () const;
    private:
 		/**
          * Add a core id in the list of cpus of the dvfs unit

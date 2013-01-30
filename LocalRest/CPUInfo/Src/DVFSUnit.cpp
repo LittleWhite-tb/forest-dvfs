@@ -57,9 +57,9 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
    // retrieve the available frequencies
    oss.str (std::string (""));
    if (mode == ENERGY_SAVER) {
-      oss << "offline/energy_config_" << cpuid << ".cfg";
+      oss << "offline/energy_config_" << cpuid << "_500.cfg";
    } else if (mode == PERFORMANCE) {
-      oss << "offline/performance_config_" << cpuid << ".cfg";
+      oss << "offline/performance_config_" << cpuid << "_500.cfg";
    } else {
       std::cerr << "Error: Unknown runtime mode. Try {energy, performance}" << std::endl;
       exit (EXIT_FAILURE);
@@ -86,9 +86,7 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
    this->freqs = new unsigned int [this->nbFreqs];
    for (unsigned int i = 0; i < this->nbFreqs; i++) {
       this->freqs [i] = tmpAllFreqs [i];
-      std::cerr << this->freqs [i] << " ";
-   }
-   std::cerr << std::endl;
+   } 
 
    // Add the current cpu as the first cpu id in the DVFS list
 	this->addCpuId (cpuid); 
@@ -157,19 +155,12 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
    // Go through all the other lines
    float ratio;
    unsigned int i = 0;
-   while (ifs >> ratio) {
+   while (ifs >> ratio) { 
+      assert (i < this->nbPhysicalCores * this->nbFreqs);
       this->power [i++] = ratio;
       assert (!ifs.fail ());
    }
    ifs.close ();
-
-   for (unsigned int i = 0; i < this->nbPhysicalCores; i++) {
-      for (unsigned int j = 0; j < this->nbFreqs; j++) {
-         std::cerr << this->power [i*this->nbFreqs + j] << " ";
-      }
-      std::cerr << std::endl;
-   }
-   exit (0);
 	
    this->id = id;
 }
@@ -200,14 +191,8 @@ DVFSUnit::~DVFSUnit ()
    delete [] this->freqs;
 }
 
-std::string DVFSUnit::getCpuIdList () const{
-   std::ostringstream oss;
-   for (std::vector<CPUCouple>::const_iterator it = this->cpuIds.begin ();
-        it != this->cpuIds.end ();
-        it++) {
-      oss << (*it).logicalId << " ";
-   } 
-   return std::string (oss.str ());
+const std::vector<CPUCouple>& DVFSUnit::getCpuIdList () const{
+   return this->cpuIds;
 }
 
 void DVFSUnit::addCpuId (unsigned int cpuId) {

@@ -101,6 +101,7 @@ int main (int argc, char ** argv)
    restCtx.cnfo = new CPUInfo (mode);
 
 	unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
+
 #ifdef REST_LOG	
 	Logger::initLog (nbDVFSUnits);
 #endif
@@ -240,7 +241,7 @@ static void exitCleanup ()
 	{
 		delete restCtx.thdCtx [i].opts.prof;
 		delete restCtx.thdCtx [i].opts.dec;
-	}
+	} 
 	delete [] restCtx.thdCtx;
 
 #ifdef REST_LOG

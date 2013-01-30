@@ -29,6 +29,7 @@
 #include <set>
 
 #include "CPUInfo.h"
+#include "Common.h"
 
 CPUInfo::CPUInfo (unsigned mode)
 {
@@ -37,7 +38,6 @@ CPUInfo::CPUInfo (unsigned mode)
    // the cores which are handled in a DVFS unit
    std::set<unsigned int> treatedCores;
    std::set<unsigned int>::iterator it;
-	unsigned int cpuId;
 
    // number of plugged processors
    unsigned int nbCores = sysconf (_SC_NPROCESSORS_ONLN);
@@ -48,6 +48,7 @@ CPUInfo::CPUInfo (unsigned mode)
    {
       // a dvfs unit already handle this processor?
       bool coreIsAlreadyHandled = false;
+
       // We loop through the structure containing all the cores already treated
       for (it = treatedCores.begin (); it != treatedCores.end (); it++) {
           if (*it == i) {
@@ -55,23 +56,25 @@ CPUInfo::CPUInfo (unsigned mode)
             break;
           }
       }
+
       // Core already handled -> go to the next iteration
       if (coreIsAlreadyHandled) {
         continue;
       }
 
-      // create the dvfs unit
+      // create the dvfs unit 
       DVFSUnit *newDVFS = new DVFSUnit (j++, i, mode);
       handleAllocation (newDVFS);
       this->DVFSUnits.push_back (newDVFS);
-      const std::string& str = newDVFS->getCpuIdList ();
-      std::istringstream iss (str);
-      while (iss >> cpuId)
-      {
-         // We don't want to add every peer except from the dvfs id itself
-         if (cpuId != i) {
-            treatedCores.insert (cpuId);
-         }
+
+      // Get all the cpu handled by the new dvfs unit to avoid creating other useless ones
+      const std::vector<CPUCouple>& cpuIds = newDVFS->getCpuIdList ();
+      std::vector<CPUCouple>::const_iterator it; 
+
+      // Insert all of them in the treatedCores vector
+      for (it = cpuIds.begin (); it != cpuIds.end (); it++) {
+         unsigned int cpuid = (*it).logicalId;
+         treatedCores.insert (cpuid);
       }
 
       // early exit if we have handled all the cores
@@ -79,9 +82,9 @@ CPUInfo::CPUInfo (unsigned mode)
       {
          break;
       }
-   }
+   } 
 
-   this->nbDVFSUnits = this->DVFSUnits.size ();
+   this->nbDVFSUnits = this->DVFSUnits.size ();  
 }
 
 CPUInfo::~CPUInfo ()
