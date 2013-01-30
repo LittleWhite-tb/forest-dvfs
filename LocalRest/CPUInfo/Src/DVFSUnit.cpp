@@ -86,7 +86,9 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
    this->freqs = new unsigned int [this->nbFreqs];
    for (unsigned int i = 0; i < this->nbFreqs; i++) {
       this->freqs [i] = tmpAllFreqs [i];
-   } 
+      std::cerr << this->freqs [i] << " ";
+   }
+   std::cerr << std::endl;
 
    // Add the current cpu as the first cpu id in the DVFS list
 	this->addCpuId (cpuid); 
@@ -113,6 +115,8 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
    /* Go fetch physical core information and store it in this->cores eventually */
    hwloc_topology_t topology;
    hwloc_obj_t obj;
+   
+   /* Initialize hwloc library */
    if (hwloc_topology_init (&topology) == -1) {
       std::cerr << "Error: Cannot initialize Hwloc topology" << std::endl;
       exit (EXIT_FAILURE);
@@ -125,10 +129,14 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
       exit (EXIT_FAILURE);
    }
  
+   /* We should have a certain kind of hwloc topology tree... */
    assert (hwloc_get_depth_type (topology, 1) == HWLOC_OBJ_SOCKET);
    assert (hwloc_get_depth_type (topology, 2) == HWLOC_OBJ_CORE);
 
    this->nbPhysicalCores = hwloc_get_nbobjs_by_depth (topology, 2);
+   /* For each physical core, we're going to see their children (eg the logical units)
+    * and see which logical id corresponds to which physical id
+    */
    for (unsigned int j = 0; j < this->nbPhysicalCores; j++) { 
       obj = hwloc_get_obj_by_depth (topology, 2, j);
       for (unsigned k = 0; k < obj->arity; k++) {
@@ -140,24 +148,28 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
       }
    }
 
-   for (unsigned int i = 0; i < this->cpuIds.size (); i++) {
-      std::cerr << "{" << this->cpuIds [i].physicalId << ", " <<
-                  this->cpuIds [i].logicalId << "}";
-      std::cerr << std::endl;
-   }
+   // We don't need hwloc anymore, bybye
    hwloc_topology_destroy (topology);
 
    /* Now we want to take all the power economy ratio information from the config file */
-   this->powerEconomy = new float [this->nbCpuIds * this->nbFreqs];
+   this->power = new float [this->nbPhysicalCores * this->nbFreqs];
   
    // Go through all the other lines
    float ratio;
    unsigned int i = 0;
    while (ifs >> ratio) {
-      this->powerEconomy [i++] = ratio;
+      this->power [i++] = ratio;
       assert (!ifs.fail ());
    }
    ifs.close ();
+
+   for (unsigned int i = 0; i < this->nbPhysicalCores; i++) {
+      for (unsigned int j = 0; j < this->nbFreqs; j++) {
+         std::cerr << this->power [i*this->nbFreqs + j] << " ";
+      }
+      std::cerr << std::endl;
+   }
+   exit (0);
 	
    this->id = id;
 }
@@ -184,7 +196,7 @@ DVFSUnit::~DVFSUnit ()
 		delete this->freqFs [i];
 	}
    // cleanup memory
-   delete [] this->powerEconomy;
+   delete [] this->power;
    delete [] this->freqs;
 }
 

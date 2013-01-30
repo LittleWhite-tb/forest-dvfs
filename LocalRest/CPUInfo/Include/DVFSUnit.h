@@ -184,8 +184,12 @@ class DVFSUnit
 		unsigned int nbCpuIds;
       unsigned int nbPhysicalCores;
       
-      // TODO comment
-      float *powerEconomy;
+      /**
+       * Flattened 2d array of power per given dvfsunit workload and per freq
+       * 1st dimension : dvfsunit workload (in number of actives physical cores)
+       * 2nd dimension : available frequencies
+       */
+      float *power;
 };
 
 

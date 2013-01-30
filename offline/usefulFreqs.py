@@ -22,7 +22,7 @@ impact the actual frequency applied by TurboBoost.
 
 #----------------------------------
 
-def runBench (nr, nc):
+def runBench (nr, nc, cores):
     '''
     Returns the power and execution time for the benchmark.
     Returns None in case of measurement error. Otherwise result is a couple
@@ -32,7 +32,8 @@ def runBench (nr, nc):
     '''
 
     taskMask = "{";
-    for i in range (0, nc):
+    myCores = cores [0:nc] 
+    for i in myCores:
       taskMask += str(i);
       if i+1 < nc:
          taskMask += ","
@@ -69,7 +70,7 @@ def runBench (nr, nc):
 
 #----------------------------------
 
-def getIdealNIters (t):
+def getIdealNIters (t, cores):
    '''
    Estimates the number of iterations to use with the benchmark to reach the provided execution time.
 
@@ -79,7 +80,7 @@ def getIdealNIters (t):
    nr = 1
    exectime = 0
    while exectime < t or exectime > 2 * t:   
-      r = runBench(nr, 1)
+      r = runBench(nr, 1, cores)
 
       if r is None:
          nr = nr * 10
@@ -204,7 +205,6 @@ freqs.sort ()
 
 # Get list of related cores (by frequency)
 cores = getPhysicalCores (sys.argv [1])
-print cores;
 
 # Initialize the list of frequencies to avoid for energy
 freqsToDelete = [False for i in range(len(freqs))]
@@ -227,7 +227,7 @@ setFreq(freqs[0])
 
 # try to reach 30 seconds with the benchmark to let TB react significantly
 sys.stderr.write ("Determining Microlaunch configuration... ")
-nr = getIdealNIters(float (sys.argv [2]) * 1000)
+nr = getIdealNIters(float (sys.argv [2]) * 1000, cores)
 #nr = 100
 sys.stderr.write ("done (" + str (nr) + ")\n")
 
@@ -240,7 +240,7 @@ for f in freqs:
    res.append([])
    id = 0
    for c in cores:
-      res[-1].append(runBench(nr, c + 1))
+      res[-1].append(runBench(nr, c + 1, cores))
       #print "res size = " + str(len (res)) + " res [-1] size = " + str(len(res[-1])) + ", res[-1][-1] size = " + str (len(res[-1][-1]))
       #print res [-1][-1]
       sys.stderr.write (".")
@@ -259,32 +259,32 @@ for i in range(len(freqs)):
    for l in range(len(freqs)):
       if i != l:
          deleteFreq = True
-         print "Evaluating Freq (l/i) = (" + str(l) + "," + str (i) + ")"
+         #print "Evaluating Freq (l/i) = (" + str(l) + "," + str (i) + ")"
          if freqs [i] > freqs [l]:
             for k in cores:
-               print "For core #" + str (k)
+               #print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] < 1.05:
-                  print "\tKeeping freq, exiting"
+                  #print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
-               else:
+               #else:
                   #print "\tDeleting freq, continuing..."
-                  print "\tratio = " + str (res [l][k][1] / res [i][k][1] * 1.05)
+                  #print "\tratio = " + str (res [l][k][1] / res [i][k][1] * 1.05)
             if deleteFreq:
-               print "> deleting freq " + str (freqs[l])
+               #print "> deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
          else:
             for k in cores:
-               print "For core #" + str (k)
+               #print "For core #" + str (k)
                if res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l] < 1.05:
-                  print "\tKeeping freq, exiting"
+                  #print "\tKeeping freq, exiting"
                   deleteFreq = False
                   break
-               else:
+               #else:
                   #print "\tDeleting freq, continuing..."
-                  print "\tratio = " + str (res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l])
+                  #print "\tratio = " + str (res [l][k][1] / res [i][k][1] * freqs [i] / freqs [l])
             if deleteFreq:
-               print "< deleting freq " + str (freqs[l])
+               #print "< deleting freq " + str (freqs[l])
                freqsToDelete [l] = True
 sys.stderr.write (" done\n")
 
