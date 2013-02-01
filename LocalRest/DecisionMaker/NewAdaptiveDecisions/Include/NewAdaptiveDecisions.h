@@ -282,7 +282,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @param degradedIPC the target degraded IPC
        * @param cpu The cpu for which the virtual freq is computed
        */
-      FreqChunkCouple getVirtualFreq (float degradedIPC, unsigned int cpu) const;
+      FreqChunkCouple getVirtualFreq (float degradedIPC, unsigned int cpu, unsigned int activeCpus) const;
 
       // TODO comment
       void readCounters ();
@@ -363,6 +363,12 @@ class NewAdaptiveDecisions : public DecisionMaker
        * Informations from /proc/stat to compute the cpu usage per core
        */
       unsigned int *cpuUsageInfo;
+
+      /**
+       * States whether we can skip the frequency sequence computation
+       * This is typically true if no physical core is active
+       */
+      bool skipSequenceComputation;
 
 #ifdef REST_LOG
       /**

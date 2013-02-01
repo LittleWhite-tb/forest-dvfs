@@ -94,7 +94,6 @@ class DVFSUnit
        */
       inline unsigned int getFrequency (unsigned int freqId) const
       {
- 	// std::cerr <<"["<< this->getOSId()<<"]" <<  "From DVFS freId : "<< freqId << " nbfreq : " << this->nbFreqs <<std::endl;
          assert (freqId < this->nbFreqs);
 
          return this->freqs [freqId];
@@ -137,6 +136,14 @@ class DVFSUnit
 
       inline unsigned int getNbPhysicalCores () const {
          return this->nbPhysicalCores;
+      }
+
+      inline float getPowerAt (unsigned int freqId, unsigned int activeCores) const{
+         assert (freqId < this->nbFreqs);
+         unsigned int activeCoresId = activeCores - 1; // Because we have power values between 1-n and table goes from 0-(n-1)
+         assert (activeCoresId < this->nbPhysicalCores+1);
+
+         return this->power [ activeCoresId * this->nbFreqs + freqId];
       }
    private:
 		/**
