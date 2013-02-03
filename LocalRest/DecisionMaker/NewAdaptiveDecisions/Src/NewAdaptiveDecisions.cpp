@@ -107,17 +107,20 @@ FreqChunkCouple NewAdaptiveDecisions::getVirtualFreq (float degradedIPC,
    std::vector<CoupleInfo>::iterator jt, kt;
    std::vector<FreqChunkCouple>::iterator lt;
 
+   std::cerr << "degradedIPC = " << degradedIPC << std::endl;
    for (it = this->freqsToEvaluate.begin ();
         it != this->freqsToEvaluate.end ();
         it++) {
       unsigned int idx = *it * this->nbCpuIds + cpu;
       CoupleInfo info = {this->ipcEval [idx], *it};
+      std::cerr << this->ipcEval [idx] << " ";
       if (this->ipcEval [idx] < degradedIPC) {
-         greaterIpc.push_back (info);
-      } else {
          smallerIpc.push_back (info);
+      } else {
+         greaterIpc.push_back (info);
       }
    }
+   std::cerr << std::endl;
 
    // We must have at list one ipc that is greater than degradedIpc
    assert (greaterIpc.size () > 0);
