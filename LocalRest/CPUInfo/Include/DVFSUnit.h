@@ -145,6 +145,7 @@ class DVFSUnit
 
          return this->power [ activeCoresId * this->nbFreqs + freqId];
       }
+
    private:
 		/**
          * Add a core id in the list of cpus of the dvfs unit

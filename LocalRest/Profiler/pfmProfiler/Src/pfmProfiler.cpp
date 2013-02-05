@@ -38,23 +38,12 @@ unsigned int PfmProfiler::nbPfmInit = 0;
 
 PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 {
-#ifdef ARCH_SNB
    const char * counters [] =
    {
-      "LAST_LEVEL_CACHE_REFERENCES",
       "INST_RETIRED:ANY_P",
-      "UNHALTED_CORE_CYCLES",
       "CPU_CLK_UNHALTED:REF_P"
    };
-#else
-   const char * counters [] =
-   {
-      "L2_RQSTS:MISS",
-      "INST_RETIRED:ANY_P",
-      "CPU_CLK_UNHALTED:THREAD_P",
-      "CPU_CLK_UNHALTED:REF_P"
-   };
-#endif
+
    int res;
 
    // libpfm init
@@ -141,6 +130,16 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
    int res;
 
    //std::cerr << "reading hwc for cpu " << cpu << std::endl;
+   
+   // specific case of the time stamp counter
+   uint32_t tsa, tsd;
+   uint64_t val;
+   asm volatile("rdtsc" : "=a" (tsa), "=d" (tsd));
+   val = ((uint64_t) tsa) | (((uint64_t) tsd) << 32);
+   hwc.values[NB_HW_COUNTERS - 1] = val 
+      - this->formerMeasurement[cpu].values[NB_HW_COUNTERS - 1];
+   this->formerMeasurement[cpu].values[NB_HW_COUNTERS - 1] = val;
+
 
    // Base index of the file descriptors array (because it's a flattened 2d array)
    unsigned baseIdx = cpu*NB_HW_COUNTERS;

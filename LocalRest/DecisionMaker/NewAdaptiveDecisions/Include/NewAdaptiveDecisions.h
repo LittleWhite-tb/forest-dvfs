@@ -162,6 +162,11 @@ class NewAdaptiveDecisions : public DecisionMaker
       static const float USER_PERF_REQ = 0.95;
 
       /**
+       * A CPU is active if its usage is above this.
+       */
+      static const float ACTIVITY_LEVEL = 0.3;
+
+      /**
        * Generic method called for the evaluation step
        * Does several steps:
        * - Evaluation Init (see initEvaluation)
@@ -193,6 +198,40 @@ class NewAdaptiveDecisions : public DecisionMaker
        * Compute the step1 and step2 for each core
        */
       void computeSteps ();
+
+      /**
+       * Converts IPC per core into IPC per processor. Actually averages the 
+       * IPCs per core. The result is outputed in the argument.
+       *
+       * @param avgIPC Output parameter. Must be an allocated array able to
+       * contain at least as many entries as the number of frequencies.
+       */
+      void getAvgIPCPerFreq(float *avgIPC);
+
+      /**
+       * Returns the maximal IPC in the array of IPCs per frequency.
+       *
+       * @param IPCs an array initialized with the IPC per frequency (one entry
+       * per frequency.
+       *
+       * @return The maximal IPC value in the array among the frequencies tested
+       * in the evaluation step.
+       */
+      float getMaxIPC(float *IPCs);
+
+      /**
+       * Computes the best frequency couple for achieving the target IPC with
+       * the frequencies whose IPC is provided in IPCs.
+       *
+       * @param IPCs an array of IPC per frequency. On entry per frequency.
+       * @param targetIPC The IPC the couple must achieve.
+       * @param coupleEnergy Output parameter filled with the couple energy
+       * estimation (not in J.) if non NULL.
+       *
+       * @return The frequency couple leading to the minimal energy consumption
+       * and achieving the targetIPC.
+       */
+      FreqChunkCouple getBestCouple(float *IPCs, float targetIPC, float *coupleEnergy);
 
       /**
        * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
@@ -248,32 +287,41 @@ class NewAdaptiveDecisions : public DecisionMaker
        * whereas large values means that the cpu is often paused and waits for
        * the memory.
        */
-      inline float getHWExploitationRatio (const HWCounters & hwc) const{
-         // CPU off -> IPC = 0
-         if (hwc.cycles == 0)
+      inline float getHWExploitationRatio (const HWCounters & hwc) const
+      {
+         if (hwc.time == 0)
          {
-            std::cerr << "idle core" << std::endl;
+            std::cerr << "no time elapsed since last measurement" << std::endl;
             return 0;
          }
-
-         uint64_t swRefCycles = hwc.cycles * ((double) this->unit.getFrequency (0) / this->unit.getCurFreq ());
 
          /*std::cerr << "hwc.cycles = " << hwc.cycles
            << " hwc.retired = " << hwc.retired << std::endl;
            std::cerr << "getFreq (0) = " << this->unit.getFrequency (0)
            << " getCurFreq () = " << this->unit.getCurFreq () << std::endl;*/
          
-         return hwc.retired / (1. * swRefCycles);
+         return hwc.retired / (1. * hwc.time);
       }
 
       /**
-       * Computes the cpu usage ratio for each core
+       * Returns the CPU usage corresponding to the given hardware counter
+       * measurement.
        *
-       * The goal is to determine how many cores are defined as "active" to be
-       * able to have the correct power saving values later in the steps
-       * computation evaluation step.
+       * @param hwc The hardware counter values.
+       *
+       * @return a usage ratio between 0 and 1 representing the CPU usage.
        */
-      unsigned int getCurrentCpuUsage () const;
+      inline float getCPUUsage(HWCounters &hwc) const 
+      {
+         if (hwc.time == 0)
+         {
+            std::cerr << "no time elapsed since last measurement" << std::endl;
+            return 0;
+         }
+
+         // NOTE: RDTSC and refCycles run at the same freq
+         return hwc.refCycles / (1. * hwc.time);
+      }
 
       /**
        * Computes the couple of freq Id and its associated sleepWindows to
@@ -345,7 +393,10 @@ class NewAdaptiveDecisions : public DecisionMaker
       unsigned int totalSleepWin;
 
       /**
-       * IPC evaluation result.
+       * IPC evaluation result. There are as many frequencies as the number of
+       * frequencies times the number of cpu on the current DVFS unit. For a two
+       * cores machines, ipcEval[1] is the IPC for freq 0 on core 1, ipcEval[2]
+       * is the IPC for freq 1 on core 0.
        */
       float * ipcEval;
 
@@ -355,14 +406,15 @@ class NewAdaptiveDecisions : public DecisionMaker
       size_t ipcEvalSize;
 
       /**
+       * Last measured CPU activity per core. As many entries as the number of
+       * cpu cores. Usage between 0 and 1.
+       */
+      float *usage;
+
+      /**
        * Helps to compute stability accross settings.
        */
       FreqSelector freqSelector;
-
-      /**
-       * Informations from /proc/stat to compute the cpu usage per core
-       */
-      unsigned int *cpuUsageInfo;
 
       /**
        * States whether we can skip the frequency sequence computation

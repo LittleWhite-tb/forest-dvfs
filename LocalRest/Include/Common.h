@@ -37,19 +37,18 @@ typedef union
 {
    struct __attribute__ ((packed))
    {
-      uint64_t l2miss;  // # of data L2 cache misses
-      uint64_t retired; // # of retired instructions
-      uint64_t cycles;  // cycles elapsed, considering the current freq
-      uint64_t refCycles;  // cycles elapsed at a reference frequency
+      uint64_t retired;    // # of retired instructions
+      uint64_t refCycles;  // unhalted cycles elapsed at the reference frequency
+      uint64_t time;       // time as reported by rdtsc 
    };
 
-   uint64_t values [4];
+   uint64_t values [3];
 } HWCounters;
 
 /**
- * How many counters have to be profiled.
+ * How many counters have to be profiled. Does not account for the time.
  */
-#define NB_HW_COUNTERS (sizeof(HWCounters) / sizeof(uint64_t))
+#define NB_HW_COUNTERS ((sizeof(HWCounters) - 1) / sizeof(uint64_t))
 
 /* Defines the runtime mode */
 enum {ENERGY_SAVER = 0, PERFORMANCE};
