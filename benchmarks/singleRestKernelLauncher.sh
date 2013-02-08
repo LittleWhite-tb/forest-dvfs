@@ -9,7 +9,7 @@ machine=`hostname`
 
 # Launch REST 2.0
 echo "Launching REST..."
-../localRest &
+../localRest performance &
 restPid=$!
 sleep 1 # Let some time for REST to start...
 

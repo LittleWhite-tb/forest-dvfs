@@ -64,7 +64,7 @@ class DVFSUnit
       inline unsigned int getOSId (unsigned idx = 0) const
       {
          assert (idx < this->cpuIds.size ());
-         return this->cpuIds[idx].logicalId;
+         return this->cpuIds [idx].logicalId;
       }
 
 			inline unsigned int getId () const {
@@ -138,12 +138,27 @@ class DVFSUnit
          return this->nbPhysicalCores;
       }
 
-      inline float getPowerAt (unsigned int freqId, unsigned int activeCores) const{
+      /**
+       * Return the power measurement obtained during the offline step for the
+       * given frequency with the given number of active cores.
+       *
+       * @param freqId The frequency whose power is requested for.
+       * @param nbCoresOn The number of active cores.
+       *
+       * @return The power consumption of the offline benchmark in the
+       * environment defined by the given parameters.
+       */
+      inline float getPowerAt (unsigned int freqId, unsigned int nbCoresOn) const
+      {
          assert (freqId < this->nbFreqs);
-         unsigned int activeCoresId = activeCores - 1; // Because we have power values between 1-n and table goes from 0-(n-1)
-         assert (activeCoresId < this->nbPhysicalCores+1);
+         assert (nbCoresOn <= this->nbPhysicalCores);
 
-         return this->power [ activeCoresId * this->nbFreqs + freqId];
+         if (nbCoresOn == 0)
+         {
+            return 0;
+         }
+
+         return this->power [(nbCoresOn - 1) * this->nbFreqs + freqId];
       }
 
    private:

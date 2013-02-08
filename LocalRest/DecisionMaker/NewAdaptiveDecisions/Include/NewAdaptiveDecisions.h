@@ -206,7 +206,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @param avgIPC Output parameter. Must be an allocated array able to
        * contain at least as many entries as the number of frequencies.
        */
-      void getAvgIPCPerFreq(float *avgIPC);
+      void getAvgIPCPerFreq (float *avgIPC);
 
       /**
        * Returns the maximal IPC in the array of IPCs per frequency.
@@ -217,7 +217,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @return The maximal IPC value in the array among the frequencies tested
        * in the evaluation step.
        */
-      float getMaxIPC(float *IPCs);
+      float getMaxIPC (float *IPCs);
 
       /**
        * Computes the best frequency couple for achieving the target IPC with
@@ -231,7 +231,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @return The frequency couple leading to the minimal energy consumption
        * and achieving the targetIPC.
        */
-      FreqChunkCouple getBestCouple(float *IPCs, float targetIPC, float *coupleEnergy);
+      FreqChunkCouple getBestCouple (float *IPCs, float targetIPC, float *coupleEnergy);
 
       /**
        * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
@@ -299,7 +299,7 @@ class NewAdaptiveDecisions : public DecisionMaker
            << " hwc.retired = " << hwc.retired << std::endl;
            std::cerr << "getFreq (0) = " << this->unit.getFrequency (0)
            << " getCurFreq () = " << this->unit.getCurFreq () << std::endl;*/
-         
+
          return hwc.retired / (1. * hwc.time);
       }
 
@@ -311,8 +311,10 @@ class NewAdaptiveDecisions : public DecisionMaker
        *
        * @return a usage ratio between 0 and 1 representing the CPU usage.
        */
-      inline float getCPUUsage(HWCounters &hwc) const 
+      inline float getCPUUsage (HWCounters &hwc) const 
       {
+         float res;
+
          if (hwc.time == 0)
          {
             std::cerr << "no time elapsed since last measurement" << std::endl;
@@ -320,7 +322,9 @@ class NewAdaptiveDecisions : public DecisionMaker
          }
 
          // NOTE: RDTSC and refCycles run at the same freq
-         return hwc.refCycles / (1. * hwc.time);
+         res = hwc.refCycles / (1. * hwc.time);
+
+         return rest_min(res, 1);
       }
 
       /**
@@ -363,9 +367,9 @@ class NewAdaptiveDecisions : public DecisionMaker
       size_t nbFreqs;
 
       /**
-       * The decision couples computed by every core.
+       * Last executed sequence.
        */
-      FreqChunkCouple *cpuDecs;
+      FreqChunkCouple lastSequence;
 
       /**
        * List of all the frequencies to evaluate
@@ -395,7 +399,7 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * IPC evaluation result. There are as many frequencies as the number of
        * frequencies times the number of cpu on the current DVFS unit. For a two
-       * cores machines, ipcEval[1] is the IPC for freq 0 on core 1, ipcEval[2]
+       * cores machines, ipcEval [1] is the IPC for freq 0 on core 1, ipcEval [2]
        * is the IPC for freq 1 on core 0.
        */
       float * ipcEval;

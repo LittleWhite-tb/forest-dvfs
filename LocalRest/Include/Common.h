@@ -46,9 +46,9 @@ typedef union
 } HWCounters;
 
 /**
- * How many counters have to be profiled. Does not account for the time.
+ * How many counters have to be profiled. Does not include time.
  */
-#define NB_HW_COUNTERS ((sizeof(HWCounters) - 1) / sizeof(uint64_t))
+#define NB_HW_COUNTERS ((sizeof(HWCounters) / sizeof(uint64_t)) - 1)
 
 /* Defines the runtime mode */
 enum {ENERGY_SAVER = 0, PERFORMANCE};

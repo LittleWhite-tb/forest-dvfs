@@ -50,7 +50,7 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    PfmProfiler::pfmInit (); 
    this->nbCpuIds = this->unit.getNbCpuIds ();
 
-//   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
+   //   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
 
    this->pfmFds = new int [NB_HW_COUNTERS*nbCpuIds];
    handleAllocation (this->pfmFds);
@@ -65,48 +65,49 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
       // Offset in the pfmFds array because flattened 2D array
       unsigned baseIdx = cpu*NB_HW_COUNTERS;
 
-       // initialize counters for the current cpu
-       for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
-       {
-					struct perf_event_attr attr;
-          pfm_perf_encode_arg_t arg;
- 
-         	// initialize the structure
-				 	memset (&attr, 0, sizeof (attr));
-					memset (&arg, 0, sizeof (arg));
-          arg.attr = &attr;
-          arg.fstr = 0;
-          arg.size = sizeof (arg);
+      // initialize counters for the current cpu
+      for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+      {
+         struct perf_event_attr attr;
+         pfm_perf_encode_arg_t arg;
 
-          // encode the counter
-          res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
-          if (res != PFM_SUCCESS)
-          {
-             std::cerr << "Failed to get counter " << counters [i] << " on cpu " << cpu << std::endl;
-             exit (EXIT_FAILURE);
-          }
+         // initialize the structure
+         memset (&attr, 0, sizeof (attr));
+         memset (&arg, 0, sizeof (arg));
+         arg.attr = &attr;
+         arg.fstr = 0;
+         arg.size = sizeof (arg);
 
-          // request scaling in case of shared counters
-          arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+         // encode the counter
+         res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
+         if (res != PFM_SUCCESS)
+         {
+            std::cerr << "Failed to get counter " << counters [i] << " on cpu " << cpu << std::endl;
+            exit (EXIT_FAILURE);
+         }
 
-          // open the corresponding file on the system
-          this->pfmFds [baseIdx + i] = perf_event_open (arg.attr, -1, cpuId, -1, 0);
-          if (this->pfmFds [baseIdx + i] == -1)
-          {
-             std::cerr << "Cannot open counter " << counters [i] << " on cpu " << cpuId << std::endl;
-             exit (EXIT_FAILURE);
-          }
+         // request scaling in case of shared counters
+         arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
-          // Activate the counter
-          if (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0))
-          {
-             std::cerr << "Cannot enable event " << counters [i] << " on cpu " << cpuId << std::endl;
-             exit (EXIT_FAILURE);
-          }
-        }
-    }
-  // initially, old values are 0
-  memset (this->formerMeasurement, 0, this->nbCpuIds * sizeof (*this->formerMeasurement)); 
+         // open the corresponding file on the system
+         this->pfmFds [baseIdx + i] = perf_event_open (arg.attr, -1, cpuId, -1, 0);
+         if (this->pfmFds [baseIdx + i] == -1)
+         {
+            std::cerr << "Cannot open counter " << counters [i] << " on cpu " << cpuId << std::endl;
+            exit (EXIT_FAILURE);
+         }
+
+         // Activate the counter
+         if (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0))
+         {
+            std::cerr << "Cannot enable event " << counters [i] << " on cpu " << cpuId << std::endl;
+            exit (EXIT_FAILURE);
+         }
+      }
+   }
+
+   // initially, old values are 0
+   memset (this->formerMeasurement, 0, this->nbCpuIds * sizeof (*this->formerMeasurement)); 
 }
 
 PfmProfiler::~PfmProfiler ()
@@ -134,12 +135,10 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
    // specific case of the time stamp counter
    uint32_t tsa, tsd;
    uint64_t val;
-   asm volatile("rdtsc" : "=a" (tsa), "=d" (tsd));
+   asm volatile ("rdtsc" : "=a" (tsa), "=d" (tsd));
    val = ((uint64_t) tsa) | (((uint64_t) tsd) << 32);
-   hwc.values[NB_HW_COUNTERS - 1] = val 
-      - this->formerMeasurement[cpu].values[NB_HW_COUNTERS - 1];
-   this->formerMeasurement[cpu].values[NB_HW_COUNTERS - 1] = val;
-
+   hwc.time = val - this->formerMeasurement [cpu].time;
+   this->formerMeasurement [cpu].time = val;
 
    // Base index of the file descriptors array (because it's a flattened 2d array)
    unsigned baseIdx = cpu*NB_HW_COUNTERS;

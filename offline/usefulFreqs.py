@@ -19,7 +19,7 @@ some frequencies such as TurboBoost lie on the frequency declared to the OS. Dif
 impact the actual frequency applied by TurboBoost.
 """
 
-MLPATH="/home/users/bpradelle/nfs/microlaunch/"
+MLPATH="./microlaunch/"
 
 
 #----------------------------------
@@ -38,8 +38,9 @@ def runBench (nr, cores):
 
     cmd = MLPATH + 'microlaunch --kernelname "add.s" --nbprocess ' + str(len(cores)) + ' --cpupin "' + taskMask + '" --repetition ' + str(nr)\
              + ' --metarepetition 5 --basename "add"   --info "raw;raw" --evallib '\
-             + '"{0}Libraries/power_snb_msr/libraries/energy_msr_snb.so;{0}Libraries/wallclock/wallclock.so"'.format(MLPATH)\
+             + '"{0}Libraries/likwid_power/likwid_energy.so;{0}Libraries/wallclock/wallclock.so"'.format(MLPATH)\
              + ' --output-dir "/tmp"'
+    #print cmd
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
     ex.communicate() [0]
 
