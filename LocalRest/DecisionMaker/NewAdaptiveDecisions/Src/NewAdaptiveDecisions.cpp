@@ -21,6 +21,7 @@
  * The NewAdaptiveDecisions class is in this file
  */
 
+#include <algorithm>
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
@@ -98,7 +99,7 @@ void NewAdaptiveDecisions::getAvgIPCPerFreq (float *avgIPC)
    std::cout << "Activity level: ";
    for (unsigned int c = 0; c < this->nbCpuIds; c++)
    {
-      std::cout << this->usage[c] << " ";
+      std::cout << this->usage [c] << " ";
    }
    std::cout << std::endl;
 
@@ -121,7 +122,7 @@ void NewAdaptiveDecisions::getAvgIPCPerFreq (float *avgIPC)
 
       if (activeCpus == 0)
       {
-         avgIPC[*it] = 0;
+         avgIPC [*it] = 0;
          continue;
       }
 
@@ -191,12 +192,12 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float targetIP
 
       if (IPCs [*it] < targetIPC)
       {
-         std::cout << "smaller freq: " << *it << " IPC = " << IPCs[*it] << std::endl;
+         std::cout << "smaller freq: " << *it << " IPC = " << IPCs [*it] << std::endl;
          smallerIpc.push_back (info);
       }
       else
       {
-         std::cout << "greater freq: " << *it << " IPC = " << IPCs[*it] << std::endl;
+         std::cout << "greater freq: " << *it << " IPC = " << IPCs [*it] << std::endl;
          greaterIpc.push_back (info);
       }
    }
@@ -217,12 +218,37 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float targetIP
       e_ratios [*it] = (IPCref / IPCi) * (Pi / Pref);
    }
 
+   // only greater freqs? IPC is ensured, whatever we chose, go to the lowest known frequency
+   if (smallerIpc.size () == 0)
+   {
+      FreqChunk step1, step2;
+      // sets are sorted
+      unsigned int minFreq = *this->freqsToEvaluate.begin ();
+
+      step1.freqId = minFreq;
+      step2.freqId = 0;
+      step1.timeRatio = 1;
+      step2.timeRatio = 0;
+
+      FreqChunkCouple couple;
+      couple.step [STEP1] = step1;
+      couple.step [STEP2] = step2;
+
+      if (coupleEnergy != NULL)
+      {
+         *coupleEnergy = e_ratios [minFreq];
+      }
+
+      delete [] e_ratios;
+      return couple;
+   }
+
    // we want min (r_i*e_i/e_ref+r_j*e_j/e_ref) among all couples (f_i, f_j)
    // with r_i and r_j the time ratios for f_i and f_j in the couple
    // and with e_i/e_ref = IPC_ref/IPC_i * W_i/W_ref
    // (as IPC_ref/IPC_i = CPI_i/CPI_ref and CPI_i/CPI_ref = t_i/t_ref)
 
-   FreqChunkCouple bestCouple;
+   FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
    float bestCoupleE = std::numeric_limits<float>::max ();
 
    for (std::vector<CoupleInfo>::iterator sit = smallerIpc.begin ();
@@ -254,6 +280,9 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float targetIP
          float coupleE = step1.timeRatio * e_ratios [smaller.freqId]
             + step2.timeRatio * e_ratios [greater.freqId];
 
+         std::cout << "couple ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio 
+            << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE << std::endl;
+
          if (coupleE < bestCoupleE)
          {
             bestCouple = couple;
@@ -261,6 +290,8 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float targetIP
          }
       }
    }
+
+   assert (bestCoupleE < std::numeric_limits<float>::max ());
 
    delete [] e_ratios;
 
@@ -455,13 +486,13 @@ void NewAdaptiveDecisions::computeSequence ()
    float *IPCs = new float [this->nbFreqs];
    float maxIPC;
    float bestE = std::numeric_limits<float>::max ();
-   FreqChunkCouple bestCouple;
+   FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
    getAvgIPCPerFreq (IPCs);
    maxIPC = getMaxIPC (IPCs);
 
    // test all perfmormance level by steps of 1%
-   for (float d = 0.99; d >= USER_PERF_REQ; d -= 0.01)
+   for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
    {
       float targetIPC = maxIPC * d;
       FreqChunkCouple couple;
@@ -470,7 +501,7 @@ void NewAdaptiveDecisions::computeSequence ()
       couple = getBestCouple (IPCs, targetIPC, &coupleE);
 
       std::cout << "IPC: " << targetIPC
-         << " couple: ((" << couple.step[STEP1].freqId << "," << couple.step[STEP1].timeRatio << "),(" << couple.step[STEP2].freqId << "," << couple.step[STEP2].timeRatio 
+         << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
          << ")) energy: " << coupleE << std::endl;
 
       if (coupleE < bestE)
