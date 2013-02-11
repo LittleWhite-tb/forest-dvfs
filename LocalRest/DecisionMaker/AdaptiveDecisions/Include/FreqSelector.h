@@ -60,6 +60,7 @@ class FreqSelector
        */
       inline void promote (unsigned int freqId, float ratio)
       {
+         std::cout << "promote " << freqId << std::endl;
          assert (freqId < this->nbFreqs);
 
          if (this->coeffs [freqId] + ratio >= FreqSelector::MAX_PROMS)

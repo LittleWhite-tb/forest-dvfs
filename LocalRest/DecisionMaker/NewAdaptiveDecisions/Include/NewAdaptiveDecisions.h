@@ -324,7 +324,7 @@ class NewAdaptiveDecisions : public DecisionMaker
          // NOTE: RDTSC and refCycles run at the same freq
          res = hwc.refCycles / (1. * hwc.time);
 
-         return rest_min(res, 1);
+         return rest_min (res, 1);
       }
 
       /**
