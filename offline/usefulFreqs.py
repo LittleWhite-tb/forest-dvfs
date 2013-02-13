@@ -19,7 +19,7 @@ some frequencies such as TurboBoost lie on the frequency declared to the OS. Dif
 impact the actual frequency applied by TurboBoost.
 """
 
-MLPATH="./microlaunch/"
+MLPATH="/home/users/jphalimi/Programming/microlaunch/"
 
 
 #----------------------------------
@@ -35,10 +35,10 @@ def runBench (nr, cores):
     '''
 
     taskMask = "{" + ",".join([str(c) for c in cores]) + "}"
-
+    #sys.stderr.write ("c" + str(len(cores)) + taskMask)
     cmd = MLPATH + 'microlaunch --kernelname "add.s" --nbprocess ' + str(len(cores)) + ' --cpupin "' + taskMask + '" --repetition ' + str(nr)\
              + ' --metarepetition 5 --basename "add"   --info "raw;raw" --evallib '\
-             + '"{0}Libraries/likwid_power/likwid_energy.so;{0}Libraries/wallclock/wallclock.so"'.format(MLPATH)\
+             + '"{0}Libraries/power_snb_msr/libraries/energy_msr_snb.so;{0}Libraries/wallclock/wallclock.so"'.format(MLPATH)\
              + ' --output-dir "/tmp"'
     #print cmd
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
@@ -49,10 +49,11 @@ def runBench (nr, cores):
     except IOError as e:
        sys.stderr.write ("Error: Cannot launch Microlauncher.\n- Is it cloned at the base of your nfs directory ?\n")
        sys.stderr.write ("- Are you connected to the local network ?\n- Did you modprobe msr and chmod it properly ?\n- Did you chmod cpufreq folder correctly ?\n- Did you echo -1 in the event_paranoid file ?\n- Are you running a SandyBridge or more recent architecture ?\n")
+       sys.stderr.write ("- Command launched : " + cmd + "\n");
        sys.exit (0)
 
     data = []
-    for ln in fd.readlines()[1:]: 
+    for ln in fd.readlines()[1:]:
       ln = ln.split(",")
 
       # error in data file
@@ -77,7 +78,7 @@ def getIdealNIters (t, cores):
 
    nr = 1
    exectime = 0
-   while exectime < t or exectime > 1.5 * t:   
+   while exectime < t or exectime > 1.5 * t:
       r = runBench(nr, cores[:1])
 
       if r is None:
@@ -124,14 +125,14 @@ def getPhysicalCores (cpuid):
    # Retrieve the list of related cores to the given cpuid
    relatedCores = getRelatedCores (cpuid)
 
-   physicalCores = []
+   physicalCores = set()
    # only keep one id per core
    for c in relatedCores:
       fd = open ("/sys/devices/system/cpu/cpu" + str (c) + "/topology/thread_siblings_list")
       data = fd.read ()
       fd.close()
       data = data.split (",")
-      physicalCores.append(int(data[0]))
+      physicalCores.update([int(data[0])])
 
    return physicalCores;
 
@@ -211,6 +212,8 @@ freqs.sort ()
 
 # Get list of related cores (by frequency)
 cores = getPhysicalCores (sys.argv [1])
+# transform set in a list
+cores = list (cores)
 
 # Name of the output configuration file
 configFile = "config_" + sys.argv [1] + "_" + sys.argv [2] + ".cfg"
@@ -227,28 +230,30 @@ if len(freqs) == 1:
 
 sys.stdout.write("Determining optimal Microlaunch configuration")
 sys.stdout.flush()
-if hasTB():
-   # target 1 second for all frequencies but TB
-   nr = []
-   for f in freqs[:-1]:
-      setFreq(f)
-      nr.append(getIdealNIters(1000, cores))
-      sys.stdout.write(".")
-      sys.stdout.flush()
+#if hasTB():
+#   # target 1 second for all frequencies but TB
+#   nr = []
+#   for f in freqs[:-1]:
+#      setFreq(f)
+#      nr.append(getIdealNIters(1000, cores))
+#      sys.stdout.write(".")
+#      sys.stdout.flush()
+#
+#   # target 30 seconds for TurboBoost
+#   setFreq(freqs[-1])
+#   nr.append(getIdealNIters(30000, cores))
+#   sys.stdout.write(".")
+#   sys.stdout.flush()
+#else:
+#   # target 1 second for all frequencies
+#   nr = []
+#   for f in freqs:
+#      setFreq(f)
+#      nr.append(getIdealNIters(1000, cores))
+#      sys.stdout.write(".")
+#      sys.stdout.flush()
 
-   # target 30 seconds for TurboBoost
-   setFreq(freqs[-1])
-   nr.append(getIdealNIters(30000, cores))
-   sys.stdout.write(".")
-   sys.stdout.flush()
-else:
-   # target 1 second for all frequencies
-   nr = []
-   for f in freqs:
-      setFreq(f)
-      nr.append(getIdealNIters(1000, cores))
-      sys.stdout.write(".")
-      sys.stdout.flush()
+nr = [24512, 26016, 29081, 30618, 32144, 33677, 36741, 38274, 39832, 42896, 44398, 45960, 47465, 50530, 52064, 1790525] 
 
 sys.stdout.write(" done " + str(nr) + "\n")
 
