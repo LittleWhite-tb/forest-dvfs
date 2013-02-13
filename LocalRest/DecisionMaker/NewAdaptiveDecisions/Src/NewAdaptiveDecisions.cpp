@@ -371,7 +371,7 @@ Decision NewAdaptiveDecisions::initEvaluation ()
    this->freqsToEvaluate.clear ();
 
    // Computing the new freq window
-   if (this->lastSequence.step [STEP1].timeRatio < this->lastSequence.step [STEP2].timeRatio)
+   if (this->lastSequence.step [STEP1].timeRatio > this->lastSequence.step [STEP2].timeRatio)
    {
       freqWindowCenter = this->lastSequence.step [STEP1].freqId;
    }
