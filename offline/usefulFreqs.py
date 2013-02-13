@@ -133,7 +133,10 @@ def getPhysicalCores (cpuid):
       data = data.split (",")
       physicalCores.append(int(data[0]))
 
-   return physicalCores;
+   physicalCores = list(set(physicalCores))
+   physicalCores.sort()
+
+   return physicalCores
 
 #----------------------------------
 
