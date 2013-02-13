@@ -41,7 +41,7 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    const char * counters [] =
    {
       "INST_RETIRED:ANY_P",
-      "CPU_CLK_UNHALTED:REF_P"
+      "UNHALTED_REFERENCE_CYCLES"
    };
 
    int res;

@@ -163,8 +163,15 @@ class NewAdaptiveDecisions : public DecisionMaker
 
       /**
        * A CPU is active if its usage is above this.
+       *
+       * NOTE: on sandybridge, inactive cores incorrectly report high number
+       * of unhalted core cycles (up to 60% reported activity for an idle core)
        */
+#ifdef ARCH_SNB
+      static const float ACTIVITY_LEVEL = 0.6;
+#else
       static const float ACTIVITY_LEVEL = 0.3;
+#endif
 
       /**
        * Generic method called for the evaluation step
