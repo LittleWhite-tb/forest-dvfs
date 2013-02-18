@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DARCH_SNB -DREST_LOG
+CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DREST_LOG -DARCH_SNB
 CXXFLAGS_DEBUG=-g
 LD=$(CXX)
 LD_FLAGS=

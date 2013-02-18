@@ -112,17 +112,12 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * Time required to evaluate the IPC for one frequency (us).
        */
-      static const unsigned int IPC_EVAL_TIME = 75;
-
-      /**
-       * Threshold under which a logical processing unit is considered as not active
-       */
-      static const unsigned int ACTIVE_THRESHOLD = 30;
+      static const unsigned int IPC_EVAL_TIME = 100;
 
       /**
        * Minimal execution time once a frequency is chosen (us).
        */
-      static const unsigned int MIN_SLEEP_WIN = 1000;
+      static const unsigned int MIN_SLEEP_WIN = 10000;
 
       /**
        * Number of frequencies to consider when computing the stability of the
@@ -146,7 +141,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * at most four frequencies will be evaluated: two just bellow the current
        * one and two just above.
        */
-      static const unsigned int NB_EVAL_NEAR_FREQS = 2;
+      static const unsigned int NB_EVAL_NEAR_FREQS = 1;
 
       /**
        * Number representing the minimum time ratio that can be added in the sequence
@@ -168,7 +163,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * of unhalted core cycles (up to 60% reported activity for an idle core)
        */
 #ifdef ARCH_SNB
-      static const float ACTIVITY_LEVEL = 0.6;
+      static const float ACTIVITY_LEVEL = 0.5;
 #else
       static const float ACTIVITY_LEVEL = 0.3;
 #endif
@@ -328,6 +323,8 @@ class NewAdaptiveDecisions : public DecisionMaker
             return 0;
          }
 
+         //std::cout << "active cycles: " << hwc.refCycles << " rdtsc: " << hwc.time << std::endl;
+
          // NOTE: RDTSC and refCycles run at the same freq
          res = hwc.refCycles / (1. * hwc.time);
 
@@ -432,6 +429,16 @@ class NewAdaptiveDecisions : public DecisionMaker
        * This is typically true if no physical core is active
        */
       bool skipSequenceComputation;
+
+      /**
+       * Predicted IPC for the sequence execution.
+       */
+      float predictedIPC;
+
+      /**
+       * IPC reached during the last execution.
+       */
+      float reachedIPC;
 
 #ifdef REST_LOG
       /**

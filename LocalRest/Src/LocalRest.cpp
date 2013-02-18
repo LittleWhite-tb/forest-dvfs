@@ -89,7 +89,7 @@ int main (int argc, char ** argv)
    std::string energy ("energy");
    std::string performance ("performance");
 
-   if (energy.compare (argv[1]) == 0) {
+   if (energy.compare (argv [1]) == 0) {
       mode = ENERGY_SAVER;
    } else if (performance.compare (argv [1]) == 0) {
       mode = PERFORMANCE;
@@ -195,7 +195,8 @@ static void * thProf (void * arg)
       }
 
       // if needed, wait a bit for the freq to be applied	
-      if (dec.freqApplyDelay != 0) {
+      if (dec.freqApplyDelay != 0)
+      {
          usleep (dec.freqApplyDelay);
          opts->dec->readCounters (); // Reset the counters
       }

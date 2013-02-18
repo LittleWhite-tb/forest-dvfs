@@ -41,7 +41,16 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    const char * counters [] =
    {
       "INST_RETIRED:ANY_P",
+#ifdef ARCH_SNB
       "UNHALTED_REFERENCE_CYCLES"
+#elif ARCH_IVB
+//      "UNHALTED_REFERENCE_CYCLES"
+      "CPU_CLK_UNHALTED:REF_P"
+//      "UNHALTED_CORE_CYCLES"
+#else
+#warning "Unknown micro-architecture! CPU cycle counting may be wrong."
+      "UNHALTED_REFERENCE_CYCLES"
+#endif
    };
 
    int res;
@@ -79,7 +88,7 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
          arg.size = sizeof (arg);
 
          // encode the counter
-         res = pfm_get_os_event_encoding (counters [i], PFM_PLM0 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
+         res = pfm_get_os_event_encoding (counters [i],  PFM_PLM0 | PFM_PLM1 | PFM_PLM2 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
          if (res != PFM_SUCCESS)
          {
             std::cerr << "Failed to get counter " << counters [i] << " on cpu " << cpu << std::endl;
@@ -156,7 +165,8 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
       }
 
       // handle scaling to allow PMU sharing
-      value = (uint64_t)((double) buf [0] * buf [1] / buf [2]);
+      value = (uint64_t)((double) buf [0] * (double) buf [1] / buf [2]);
+      //if (i == 1) std::cout << "value: " << buf [0] << " former: " << this->formerMeasurement [cpu].values [i] <<  std::endl;
       if (this->formerMeasurement [cpu].values [i] <= value)
       {
          hwc.values [i] = value - this->formerMeasurement [cpu].values [i];
