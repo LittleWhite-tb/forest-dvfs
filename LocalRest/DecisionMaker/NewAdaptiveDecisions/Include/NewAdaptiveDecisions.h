@@ -127,7 +127,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * still consider the situation as stable, i.e. the sleep window is 
        * increased.
        */
-      static const unsigned int MAX_FREQ_WINDOW = 1;
+      static const unsigned int MAX_FREQ_WINDOW = 0;
 
       /**
        * Maximal execution time before re-evaluating which frequency to use
@@ -142,13 +142,6 @@ class NewAdaptiveDecisions : public DecisionMaker
        * one and two just above.
        */
       static const unsigned int NB_EVAL_NEAR_FREQS = 1;
-
-      /**
-       * Number representing the minimum time ratio that can be added in the sequence
-       * If the time ratio is less than this number, then the frequency chunk is not added to the sequence
-       * and the time ratio is distributed to the last element in the sequence
-       */
-      static const float MIN_TIME_RATIO = 0.10; 
 
       /**
        * Maximal performance degradation allowed by the user (in % of the
@@ -215,25 +208,23 @@ class NewAdaptiveDecisions : public DecisionMaker
        *
        * @param IPCs an array initialized with the IPC per frequency (one entry
        * per frequency.
-       *
-       * @return The maximal IPC value in the array among the frequencies tested
-       * in the evaluation step.
+       * @param maxIPCs Ouput parameter, the maximal IPC per core. One entry per core.
        */
-      float getMaxIPC (float *IPCs);
+      void getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs);
 
       /**
        * Computes the best frequency couple for achieving the target IPC with
        * the frequencies whose IPC is provided in IPCs.
        *
        * @param IPCs an array of IPC per frequency. On entry per frequency.
-       * @param targetIPC The IPC the couple must achieve.
+       * @param d Current degradation ratio to consider.
        * @param coupleEnergy Output parameter filled with the couple energy
        * estimation (not in J.) if non NULL.
        *
        * @return The frequency couple leading to the minimal energy consumption
        * and achieving the targetIPC.
        */
-      FreqChunkCouple getBestCouple (float *IPCs, float targetIPC, float *coupleEnergy);
+      FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy);
 
       /**
        * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
@@ -429,16 +420,6 @@ class NewAdaptiveDecisions : public DecisionMaker
        * This is typically true if no physical core is active
        */
       bool skipSequenceComputation;
-
-      /**
-       * Predicted IPC for the sequence execution.
-       */
-      float predictedIPC;
-
-      /**
-       * IPC reached during the last execution.
-       */
-      float reachedIPC;
 
 #ifdef REST_LOG
       /**
