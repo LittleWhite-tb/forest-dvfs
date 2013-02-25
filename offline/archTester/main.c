@@ -1,4 +1,23 @@
+/*
+ * archTester - CPUID Tester
+ * Copyright (C) 2013 Universite de Versailles
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
+#include <stdlib.h>
 
 // This code is based of CPUID from Todd Allen : http://www.etallen.com/cpuid.html
 
@@ -79,19 +98,19 @@ int main(void)
            (model == 10 || model == 13) )
       {
          printf("It's a sandy bridge\n");
-         return 1;
+         return EXIT_SUCCESS;
       }
       else
       {
          printf("You CPU is not a sandy bridge\n");
-         return 0;
+         return EXIT_FAILURE;
       }
    }
    else
    {
       printf("This test is only to detect Intel micro architecture\n");
-      return 0;
+      return EXIT_FAILURE;
    }
 
-   return 0;
+   return EXIT_FAILURE;
 }
