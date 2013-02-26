@@ -204,8 +204,8 @@ def hasTB():
 #----------------------------------
 # Main
 
-if len (sys.argv) != 3:
-   print sys.argv[0] + " {cpuid} {configFileExtension}"
+if len (sys.argv) != 2:
+   print sys.argv[0] + " {cpuid}"
    sys.exit (0)
 
 # Get list of frequencies and sort'em
@@ -216,7 +216,7 @@ freqs.sort ()
 cores = getPhysicalCores (sys.argv [1])
 
 # Name of the output configuration file
-configFile = "config_" + sys.argv [1] + "_" + sys.argv [2] + ".cfg"
+configFile = "power_" + sys.argv [1] + ".cfg"
 
 # special case of 1 available frequency
 if len(freqs) == 1:
@@ -314,26 +314,16 @@ for i in range(len(freqs)):
 sys.stdout.write("done\n")
 
 # Energy configuration file generation
-fdEnergy = open ("energy_" + configFile, 'w')
-fdPerf = open ("performance_" + configFile, 'w')
+fdPerf = open (configFile, 'w')
 highestFreq = 0
 for i in range(len(freqs)):
-   if not freqsToDelete [i]:
-      fdEnergy.write (str (freqs [i]) + " ")
-      highestFreq = i
    fdPerf.write (str (freqs [i]) + " ")
-fdEnergy.write ("\n")
 fdPerf.write ("\n")
 
 for i in cores:
    for j in range(len(freqs)):
-      if not freqsToDelete [j]:
-         fdEnergy.write (str (res[j][i][1]) + " ")
       fdPerf.write (str (res [j][i][1]) + " ")
-   fdEnergy.write ("\n")
    fdPerf.write ("\n")
-fdEnergy.flush()
-fdEnergy.close ()
 fdPerf.flush()
 fdPerf.close ()
 
