@@ -55,9 +55,13 @@ class DecisionMaker
    public:
 
       /**
-       * Constructor
+       * Genenerates a new decision maker in charge of the given
+       * dvfs unit and targeting the given mode.
+       *
+       * @param dvfsUnit The DVFS unit this decision maker is in charge of.
+       * @param mode Run mode (energy or performance).
        */
-      DecisionMaker (const DVFSUnit& dvfsUnit);
+      DecisionMaker (const DVFSUnit& dvfsUnit, const Mode runMode);
 
       /**
        * Destructor
@@ -90,10 +94,16 @@ class DecisionMaker
       }
 
    protected:
+
       /**
        * Which DVFS unit we are handling.
        */
       const DVFSUnit& unit;
+
+      /**
+       * What mode are we currently achieving.
+       */
+      const Mode mode;
 
       /**
        * Profiler used to read  

@@ -47,9 +47,10 @@ struct CoupleInfo {
 };
 
 
-NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit) :
-   DecisionMaker (unit),
+NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mode) :
+   DecisionMaker (unit, mode),
    timeProfiler (),
+   USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
    freqSelector (unit.getNbFreqs ())
 {
    this->curRuntimeState = EVALUATION;
@@ -467,9 +468,9 @@ Decision NewAdaptiveDecisions::initEvaluation ()
 
    // request evaluation of all close frequencies
    unsigned int minFreqId = rest_max (0, 
-      (int) freqWindowCenter - (int) NewAdaptiveDecisions::NB_EVAL_NEAR_FREQS);
+      (int) freqWindowCenter - (int) NewAdaptiveDecisions::FREQ_WINDOW_SZ);
    unsigned int maxFreqId = rest_min (this->nbFreqs - 1,
-      freqWindowCenter + NewAdaptiveDecisions::NB_EVAL_NEAR_FREQS);
+      freqWindowCenter + NewAdaptiveDecisions::FREQ_WINDOW_SZ);
 
    for (unsigned int i = minFreqId; i <= maxFreqId; i++)
    {
@@ -632,9 +633,9 @@ void NewAdaptiveDecisions::computeSequence ()
    else
    {
 		unsigned int minFreqWindow = rest_max ((int) this->oldMaxFreqId -
-                      (const int) NewAdaptiveDecisions::MAX_FREQ_WINDOW, 0);
+                      (const int) NewAdaptiveDecisions::STABILITY_WINDOW_SZ, 0);
 		unsigned int maxFreqWindow =
-         this->oldMaxFreqId + NewAdaptiveDecisions::MAX_FREQ_WINDOW;
+         this->oldMaxFreqId + NewAdaptiveDecisions::STABILITY_WINDOW_SZ;
 		
 		if (maxRatioFreqId < minFreqWindow || maxRatioFreqId > maxFreqWindow)
       {

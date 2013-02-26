@@ -31,7 +31,7 @@
 #include "CPUInfo.h"
 #include "Common.h"
 
-CPUInfo::CPUInfo (unsigned mode)
+CPUInfo::CPUInfo ()
 {
    std::ostringstream oss;
 
@@ -63,7 +63,7 @@ CPUInfo::CPUInfo (unsigned mode)
       }
 
       // create the dvfs unit 
-      DVFSUnit *newDVFS = new DVFSUnit (j++, i, mode);
+      DVFSUnit *newDVFS = new DVFSUnit (j++, i);
       handleAllocation (newDVFS);
       this->DVFSUnits.push_back (newDVFS);
 

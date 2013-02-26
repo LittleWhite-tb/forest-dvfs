@@ -81,24 +81,29 @@ int main (int argc, char ** argv)
 	(void)(argv);
 
    if (argc != 2) {
-      std::cerr << argv [0] << " {energy,performance}" << std::endl;
+      std::cerr << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
       exit (EXIT_FAILURE);
    }
 
-   unsigned mode;
+   Mode mode;
    std::string energy ("energy");
    std::string performance ("performance");
 
-   if (energy.compare (argv [1]) == 0) {
-      mode = ENERGY_SAVER;
-   } else if (performance.compare (argv [1]) == 0) {
-      mode = PERFORMANCE;
-   } else {
-      std::cerr << "Error: Unknown/Unsupported runtime mode" << std::endl;
+   if (energy.compare (argv [1]) == 0)
+   {
+      mode = MODE_ENERGY;
+   }
+   else if (performance.compare (argv [1]) == 0)
+   {
+      mode = MODE_PERFORMANCE;
+   }
+   else
+   {
+      std::cerr << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
       exit (EXIT_FAILURE);
    }
 
-   restCtx.cnfo = new CPUInfo (mode);
+   restCtx.cnfo = new CPUInfo ();
 
 	unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
 
@@ -115,7 +120,7 @@ int main (int argc, char ** argv)
 		// initialize options	
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
-		opts.dec = new NewAdaptiveDecisions (unit);
+		opts.dec = new NewAdaptiveDecisions (unit, mode);
 		handleAllocation (opts.dec);
 		opts.prof = new PfmProfiler (unit);
 		handleAllocation (opts.dec);
@@ -133,7 +138,7 @@ int main (int argc, char ** argv)
 	DVFSUnit& unit0 = restCtx.cnfo->getDVFSUnit (0);
 	thOpts& opts = restCtx.thdCtx [0].opts;
 	opts.id = 0;
-	opts.dec = new NewAdaptiveDecisions (unit0);
+	opts.dec = new NewAdaptiveDecisions (unit0, mode);
 	handleAllocation (opts.dec);
 	opts.prof = new PfmProfiler (unit0);
 	handleAllocation (opts.dec);

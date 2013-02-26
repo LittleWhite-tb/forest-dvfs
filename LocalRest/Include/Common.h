@@ -51,7 +51,10 @@ typedef union
 #define NB_HW_COUNTERS ((sizeof(HWCounters) / sizeof(uint64_t)) - 1)
 
 /* Defines the runtime mode */
-enum {ENERGY_SAVER = 0, PERFORMANCE};
+enum Mode {
+   MODE_ENERGY,
+   MODE_PERFORMANCE
+};
 
 /* Defines a cpu couple */
 struct CPUCouple {

@@ -77,10 +77,16 @@ struct DecisionCouple
 class NewAdaptiveDecisions : public DecisionMaker
 {
    public:
+
       /**
-       * Constructor
+       * Genenerates a new decision maker in charge of the given
+       * dvfs unit and targeting the given mode.
+       *
+       * @param dvfsUnit The DVFS unit this decision maker is in charge of.
+       * @param mode Run mode (energy or performance).
        */
-      NewAdaptiveDecisions (const DVFSUnit& dvfsUnit);
+      NewAdaptiveDecisions (const DVFSUnit& dvfsUnit, const Mode mode);
+
       /**
        * Destructor
        */
@@ -95,8 +101,6 @@ class NewAdaptiveDecisions : public DecisionMaker
        * window is given.
        */
       Decision takeDecision ();
-
-
 
    private:
 
@@ -120,16 +124,6 @@ class NewAdaptiveDecisions : public DecisionMaker
       static const unsigned int MIN_SLEEP_WIN = 10000;
 
       /**
-       * Number of frequencies to consider when computing the stability of the
-       * successive choices. If this value is 1 for instance, the new frequency
-       * applied can be the most representative frequency among those applied
-       * during the last sequence, the one above, or the one below while we
-       * still consider the situation as stable, i.e. the sleep window is 
-       * increased.
-       */
-      static const unsigned int MAX_FREQ_WINDOW = 0;
-
-      /**
        * Maximal execution time before re-evaluating which frequency to use
        * (us).
        */
@@ -138,10 +132,20 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * Number of frequencies we consider bellow and above the current
        * frequency during the evaluation of frequencies. 2 here means that
-       * at most four frequencies will be evaluated: two just bellow the current
+       * at most five frequencies will be evaluated: two just bellow the current
        * one and two just above.
        */
-      static const unsigned int NB_EVAL_NEAR_FREQS = 1;
+      static const unsigned int FREQ_WINDOW_SZ = 1;
+
+      /**
+       * Number of frequencies to consider as similar regarding stability.
+       * If this value is 1 for instance, the new frequency
+       * applied can be the most representative frequency among those applied
+       * during the last sequence, the one above, or the one below while we
+       * still consider the situation as stable, i.e. the sleep window is 
+       * increased.
+       */
+      static const unsigned int STABILITY_WINDOW_SZ = 0;
 
       /**
        * Approximate system power.
@@ -150,13 +154,20 @@ class NewAdaptiveDecisions : public DecisionMaker
 
       /**
        * Minimal performance requested by the user (in % of the max performance)
+       * in the "performance" mode.
        */
-      static const float USER_PERF_REQ = 0.95;
+      static const float USER_PERF_REQ_PERF = 0.95;
+
+      /**
+       * Minimal performance requested by the user (in % of the max performance)
+       * in the "energy" mode.
+       */
+      static const float USER_PERF_REQ_ENERGY = 0.50;
 
       /**
        * A CPU is active if its usage is above this.
        *
-       * NOTE: on sandybridge, inactive cores incorrectly report high number
+       * NOTE: on SandyBridge, inactive cores incorrectly report high number
        * of unhalted core cycles (up to 50% reported activity for an idle core)
        */
 #ifdef ARCH_SNB
@@ -340,6 +351,11 @@ class NewAdaptiveDecisions : public DecisionMaker
 
       // TODO Comment
       TimeProfiler timeProfiler;
+
+      /**
+       * Allowed performance slowdown currently requested by the user.
+       */
+      const float USER_PERF_REQ;
 
       /**
        * The current state of the decision maker
