@@ -56,9 +56,9 @@ def runBench (nr, cores):
     taskMask = ";".join([str(c) for c in cores])
 
     cmd = LPP_PATH + 'lPowerProbe -r 5 -d ' + str(len(cores)) + ' -p "' + taskMask + '" ./add ' + str(nr)
-    #print cmd
+    print cmd
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
-    ex.communicate() [0]
+    ex.communicate()[0]
 
     if ex.returncode != 0:
       sys.exit (0)
