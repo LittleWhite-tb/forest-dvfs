@@ -28,8 +28,8 @@
 
 #include "NaiveDecisions.h"
 
-NaiveDecisions::NaiveDecisions (const DVFSUnit & unit) :
-   DecisionMaker (unit)
+NaiveDecisions::NaiveDecisions (const DVFSUnit & unit, const Mode mode) :
+   DecisionMaker (unit, mode)
 {
 
 }

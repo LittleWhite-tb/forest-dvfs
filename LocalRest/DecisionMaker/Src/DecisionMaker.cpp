@@ -28,6 +28,7 @@
 
 #include "DecisionMaker.h"
 
-DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit) : unit (dvfsUnit) {}
+DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode runMode)
+      : unit (dvfsUnit), mode(runMode) {}
 DecisionMaker::~DecisionMaker (void) {}
 

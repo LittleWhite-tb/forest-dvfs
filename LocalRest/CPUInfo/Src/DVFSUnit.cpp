@@ -34,7 +34,7 @@
 
 #include "DVFSUnit.h"
 
-DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
+DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
 {
    std::ostringstream oss;
    std::ifstream ifs;
@@ -56,15 +56,7 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid, int mode)
    ifs.close ();
 
    // retrieve the available frequencies
-   oss.str (std::string (""));
-   if (mode == ENERGY_SAVER) {
-      oss << "offline/energy_config_" << cpuid << "_500.cfg";
-   } else if (mode == PERFORMANCE) {
-      oss << "offline/performance_config_" << cpuid << "_500.cfg";
-   } else {
-      std::cerr << "Error: Unknown runtime mode. Try {energy, performance}" << std::endl;
-      exit (EXIT_FAILURE);
-   } 
+   oss << "offline/power_" << cpuid << ".cfg";
    
    ifs.open (oss.str ().c_str ());
    if (!ifs) {

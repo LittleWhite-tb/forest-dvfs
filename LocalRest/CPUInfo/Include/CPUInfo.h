@@ -39,9 +39,8 @@ class CPUInfo
    public:
       /**
        * Constructor
-       * The mode represents the type of algorithm the runtime is going to use
        */
-      CPUInfo (unsigned mode);
+      CPUInfo ();
 
       /**
        * Destructor

@@ -78,10 +78,16 @@ struct DecisionCouple
 class NewAdaptiveDecisions : public DecisionMaker
 {
    public:
+
       /**
-       * Constructor
+       * Genenerates a new decision maker in charge of the given
+       * dvfs unit and targeting the given mode.
+       *
+       * @param dvfsUnit The DVFS unit this decision maker is in charge of.
+       * @param mode Run mode (energy or performance).
        */
-      NewAdaptiveDecisions (const DVFSUnit& dvfsUnit);
+      NewAdaptiveDecisions (const DVFSUnit& dvfsUnit, const Mode mode);
+
       /**
        * Destructor
        */
@@ -96,8 +102,6 @@ class NewAdaptiveDecisions : public DecisionMaker
        * window is given.
        */
       Decision takeDecision ();
-
-
 
    private:
 
@@ -121,16 +125,6 @@ class NewAdaptiveDecisions : public DecisionMaker
       static const unsigned int MIN_SLEEP_WIN = 10000;
 
       /**
-       * Number of frequencies to consider when computing the stability of the
-       * successive choices. If this value is 1 for instance, the new frequency
-       * applied can be the most representative frequency among those applied
-       * during the last sequence, the one above, or the one below while we
-       * still consider the situation as stable, i.e. the sleep window is 
-       * increased.
-       */
-      static const unsigned int MAX_FREQ_WINDOW = 1;
-
-      /**
        * Maximal execution time before re-evaluating which frequency to use
        * (us).
        */
@@ -139,29 +133,43 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * Number of frequencies we consider bellow and above the current
        * frequency during the evaluation of frequencies. 2 here means that
-       * at most four frequencies will be evaluated: two just bellow the current
+       * at most five frequencies will be evaluated: two just bellow the current
        * one and two just above.
        */
-      static const unsigned int NB_EVAL_NEAR_FREQS = 1;
+      static const unsigned int FREQ_WINDOW_SZ = 1;
 
       /**
-       * Number representing the minimum time ratio that can be added in the sequence
-       * If the time ratio is less than this number, then the frequency chunk is not added to the sequence
-       * and the time ratio is distributed to the last element in the sequence
+       * Number of frequencies to consider as similar regarding stability.
+       * If this value is 1 for instance, the new frequency
+       * applied can be the most representative frequency among those applied
+       * during the last sequence, the one above, or the one below while we
+       * still consider the situation as stable, i.e. the sleep window is 
+       * increased.
        */
-      static const float MIN_TIME_RATIO = 0.10; 
+      static const unsigned int STABILITY_WINDOW_SZ = 0;
 
       /**
-       * Maximal performance degradation allowed by the user (in % of the
-       * max performance).
+       * Approximate system power.
        */
-      static const float USER_PERF_REQ = 0.95;
+      static const float SYS_POWER = 50;
+
+      /**
+       * Minimal performance requested by the user (in % of the max performance)
+       * in the "performance" mode.
+       */
+      static const float USER_PERF_REQ_PERF = 0.95;
+
+      /**
+       * Minimal performance requested by the user (in % of the max performance)
+       * in the "energy" mode.
+       */
+      static const float USER_PERF_REQ_ENERGY = 0.50;
 
       /**
        * A CPU is active if its usage is above this.
        *
-       * NOTE: on sandybridge, inactive cores incorrectly report high number
-       * of unhalted core cycles (up to 60% reported activity for an idle core)
+       * NOTE: on SandyBridge, inactive cores incorrectly report high number
+       * of unhalted core cycles (up to 50% reported activity for an idle core)
        */
 #ifdef ARCH_SNB
       static const float ACTIVITY_LEVEL = 0.5;
@@ -216,25 +224,23 @@ class NewAdaptiveDecisions : public DecisionMaker
        *
        * @param IPCs an array initialized with the IPC per frequency (one entry
        * per frequency.
-       *
-       * @return The maximal IPC value in the array among the frequencies tested
-       * in the evaluation step.
+       * @param maxIPCs Ouput parameter, the maximal IPC per core. One entry per core.
        */
-      float getMaxIPC (float *IPCs);
+      void getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs);
 
       /**
        * Computes the best frequency couple for achieving the target IPC with
        * the frequencies whose IPC is provided in IPCs.
        *
        * @param IPCs an array of IPC per frequency. On entry per frequency.
-       * @param targetIPC The IPC the couple must achieve.
+       * @param d Current degradation ratio to consider.
        * @param coupleEnergy Output parameter filled with the couple energy
        * estimation (not in J.) if non NULL.
        *
        * @return The frequency couple leading to the minimal energy consumption
        * and achieving the targetIPC.
        */
-      FreqChunkCouple getBestCouple (float *IPCs, float targetIPC, float *coupleEnergy);
+      FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy);
 
       /**
        * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
@@ -348,6 +354,11 @@ class NewAdaptiveDecisions : public DecisionMaker
       TimeProfiler timeProfiler;
 
       /**
+       * Allowed performance slowdown currently requested by the user.
+       */
+      const float USER_PERF_REQ;
+
+      /**
        * The current state of the decision maker
        */
       State curRuntimeState;
@@ -430,16 +441,6 @@ class NewAdaptiveDecisions : public DecisionMaker
        * This is typically true if no physical core is active
        */
       bool skipSequenceComputation;
-
-      /**
-       * Predicted IPC for the sequence execution.
-       */
-      float predictedIPC;
-
-      /**
-       * IPC reached during the last execution.
-       */
-      float reachedIPC;
 
 #ifdef REST_LOG
       /**
