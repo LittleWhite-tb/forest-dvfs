@@ -55,11 +55,12 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    ifs.close ();
 
    // retrieve the available frequencies
+   oss.str(""); // Remove previous use
    oss << "offline/power_" << cpuid << ".cfg";
    
    ifs.open (oss.str ().c_str ());
    if (!ifs) {
-      std::cerr << "Error: Failed to fetch FoREST configuration file for cpuid #"
+      std::cerr << "Error: Failed to fetch FoREST configuration file '" << oss.str() << "' for cpuid #"
       << cpuid << ". You must run the offline script before using FoREST"
       << std::endl;
       exit (EXIT_FAILURE);
