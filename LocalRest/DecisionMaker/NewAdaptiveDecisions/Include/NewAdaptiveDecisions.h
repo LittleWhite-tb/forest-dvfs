@@ -144,8 +144,12 @@ class NewAdaptiveDecisions : public DecisionMaker
       static const unsigned int NB_EVAL_NEAR_FREQS = 1;
 
       /**
-       * Maximal performance degradation allowed by the user (in % of the
-       * max performance).
+       * Approximate system power.
+       */
+      static const float SYS_POWER = 50;
+
+      /**
+       * Minimal performance requested by the user (in % of the max performance)
        */
       static const float USER_PERF_REQ = 0.95;
 
@@ -153,7 +157,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * A CPU is active if its usage is above this.
        *
        * NOTE: on sandybridge, inactive cores incorrectly report high number
-       * of unhalted core cycles (up to 60% reported activity for an idle core)
+       * of unhalted core cycles (up to 50% reported activity for an idle core)
        */
 #ifdef ARCH_SNB
       static const float ACTIVITY_LEVEL = 0.5;

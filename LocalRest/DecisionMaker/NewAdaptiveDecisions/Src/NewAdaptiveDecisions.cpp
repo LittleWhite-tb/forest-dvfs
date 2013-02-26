@@ -135,7 +135,7 @@ void NewAdaptiveDecisions::getAvgIPCPerFreq (float *avgIPC)
 
 void NewAdaptiveDecisions::getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs)
 {
-   maxIPCs.clear();
+   maxIPCs.clear ();
 
    for (unsigned int c = 0; c < this->nbCpuIds; c++)
    {
@@ -148,7 +148,7 @@ void NewAdaptiveDecisions::getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs
          maxIPC = rest_max (maxIPC, IPCs [*it * this->nbCpuIds + c]);
       }
 
-      maxIPCs.push_back(maxIPC);
+      maxIPCs.push_back (maxIPC);
    }
 }
 
@@ -192,7 +192,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
    }
 
    // compute max IPC per core
-   getMaxIPCs(IPCs, maxIPCs);
+   getMaxIPCs (IPCs, maxIPCs);
 
    // split frequencies depending on their IPCs
    for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
@@ -209,7 +209,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
          {
             //std::cout << IPCs [*it * this->nbCpuIds + c] << " ";
 
-            if (IPCs [*it * this->nbCpuIds + c] < d * maxIPCs[c])
+            if (IPCs [*it * this->nbCpuIds + c] < d * maxIPCs [c])
             {
                isHigher = false;
             }
@@ -236,7 +236,8 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
    float *e_ratios = new float [this->nbFreqs];
-   float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), activeCpus);
+   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), activeCpus);
+   const float Psys = NewAdaptiveDecisions::SYS_POWER;
    e_ratios [*this->freqsToEvaluate.begin ()] = activeCpus;
 
    for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ()++;
@@ -254,7 +255,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
             float IPCref = IPCs [*this->freqsToEvaluate.begin () * this->nbCpuIds + c];
             float IPCi = IPCs [*it * this->nbCpuIds + c];
 
-            e_ratios [*it] += (IPCref / IPCi) * (Pi / Pref);
+            e_ratios [*it] += (IPCref / IPCi) * ((Pi + Psys) / (Pref + Psys));
          }
       }
    }
@@ -277,7 +278,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
 
       if (coupleEnergy != NULL)
       {
-         *coupleEnergy = e_ratios[minFreq];
+         *coupleEnergy = e_ratios [minFreq];
       }
 
       //std::cout << "No smaller freqs, choosing " << minFreq << std::endl;
@@ -305,7 +306,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
 
       if (coupleEnergy != NULL)
       {
-         *coupleEnergy = e_ratios[maxFreq];
+         *coupleEnergy = e_ratios [maxFreq];
       }
 
       //std::cout << "No greater freqs, choosing " << maxFreq << std::endl;
@@ -346,9 +347,9 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
          {
             if (this->usage [c] >= ACTIVITY_LEVEL)
             {
-               minRatio = rest_min(minRatio, 
-                  (IPCs[greater * this->nbCpuIds + c] - d * maxIPCs[c])
-                  / (IPCs[greater * this->nbCpuIds + c] - IPCs[smaller * this->nbCpuIds + c]));
+               minRatio = rest_min (minRatio, 
+                  (IPCs [greater * this->nbCpuIds + c] - d * maxIPCs [c])
+                  / (IPCs [greater * this->nbCpuIds + c] - IPCs [smaller * this->nbCpuIds + c]));
             }
          }
 
