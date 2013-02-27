@@ -63,9 +63,9 @@ class DVFSUnit
          return this->cpuIds [idx].logicalId;
       }
 
-			inline unsigned int getId () const {
-				return id;
-			}
+      inline unsigned int getId () const {
+         return id;
+      }
 
       inline unsigned int getNbCpuIds () const{
             return this->cpuIds.size ();
@@ -78,7 +78,7 @@ class DVFSUnit
        */
       inline unsigned int getNbFreqs () const
       {
-         return this->nbFreqs;
+         return this->freqs.size();
       }
 
       /**
@@ -90,7 +90,7 @@ class DVFSUnit
        */
       inline unsigned int getFrequency (unsigned int freqId) const
       {
-         assert (freqId < this->nbFreqs);
+         assert (freqId < this->freqs.size());
 
          return this->freqs [freqId];
       }
@@ -146,7 +146,7 @@ class DVFSUnit
        */
       inline float getPowerAt (unsigned int freqId, unsigned int nbCoresOn) const
       {
-         assert (freqId < this->nbFreqs);
+         assert (freqId < this->freqs.size());
          assert (nbCoresOn <= this->nbPhysicalCores);
 
          if (nbCoresOn == 0)
@@ -154,30 +154,28 @@ class DVFSUnit
             return 0;
          }
 
-         return this->power [(nbCoresOn - 1) * this->nbFreqs + freqId];
+         return this->power [(nbCoresOn - 1) * this->freqs.size() + freqId];
       }
 
    private:
-		/**
-         * Add a core id in the list of cpus of the dvfs unit
-         * Replaces its corresponding governor by userspace,
-         * saving its former governor to be able to restore it
-         * afterwards
-         */
-     void addCpuId (unsigned int cpuId);
-     
-     // TODO comment
-	 		unsigned int id;
       /**
-       * The number of frequencies which this unit can use.
+       * Add a core id in the list of cpus of the dvfs unit
+       * Replaces its corresponding governor by userspace,
+       * saving its former governor to be able to restore it
+       * afterwards
        */
-      unsigned int nbFreqs;
-
+      void addCpuId (unsigned int cpuId);
+     
+     /**
+      * Identifier for this unit
+      */
+      unsigned int id;
+      
       /**
        * All the possible frequencies this thread can use. Array of size
        * nbFreqs, sorted in increasing order.
        */
-      unsigned int * freqs;
+      std::vector<unsigned int> freqs;
 
       /**
        * Id of the current frequency in use.
@@ -187,12 +185,12 @@ class DVFSUnit
       /**
        * Governor in use before we take control of the DVFS unit.
        */
-			std::vector<std::string> formerGov;
+      std::vector<std::string> formerGov;
 
       /**
        * File where to write to set the frequency.
        */
-			std::vector<std::ofstream*> freqFs;
+      std::vector<std::ofstream*> freqFs;
 
       /**
        * Latency imposed to switch the frequency (nanoseconds).
