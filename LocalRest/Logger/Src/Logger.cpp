@@ -46,11 +46,11 @@ void Logger::initLog (unsigned int nbTh)
 }
 void Logger::destroyLog (void)
 {
-	for(int i=0;i<(int)Logger::logList.size();i++)
+	for(size_t i=0 ; i < Logger::logList.size() ; i++)
 	{
 		delete Logger::logList[i];
 	}
-	
+	Logger::logList.clear();
 }
 
 Logger *Logger::getLog (unsigned int id) {
@@ -81,6 +81,9 @@ Logger::~Logger (void)
 
 void Logger::logOut (const char *logString) {
 	struct timespec ts;
+   
+   assert(logString);
+   
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	this->switchOFS << (ts.tv_nsec + ts.tv_sec * 1000000000)
 									<< " " << logString << std::endl;
