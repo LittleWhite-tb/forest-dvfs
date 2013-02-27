@@ -102,13 +102,13 @@ int main(void)
       }
       else
       {
-         printf("You CPU is not a sandy bridge\n");
+         printf("The only architecture supported yet is Sandy Bridge, sorry.\n");
          return EXIT_FAILURE;
       }
    }
    else
    {
-      printf("This test is only to detect Intel micro architecture\n");
+      printf("The only architecture supported yet is Intel, sorry.\n");
       return EXIT_FAILURE;
    }
 
