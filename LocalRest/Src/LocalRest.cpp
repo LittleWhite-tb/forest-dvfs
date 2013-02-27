@@ -24,13 +24,9 @@
  */
 
 #include <cstdlib>
-#include <cerrno>
-#include <cstring>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <errno.h>
-#include <cstring>
 #include <sstream>
 
 #include "Common.h"
