@@ -27,7 +27,6 @@
 
 #include "DVFSUnit.h"
 
-#include <cassert>
 #include <vector>
 
 /**

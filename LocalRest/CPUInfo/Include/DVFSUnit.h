@@ -26,11 +26,6 @@
 #define H_DVFSUNIT
 
 #include <cassert>
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <stdint.h>
-#include <iostream>
 #include <vector>
 
 #include "Common.h"
