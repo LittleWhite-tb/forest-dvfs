@@ -210,7 +210,7 @@ class DVFSUnit
        * 1st dimension : dvfsunit workload (in number of actives physical cores)
        * 2nd dimension : available frequencies
        */
-      float *power;
+      std::vector<float> power;
 };
 
 

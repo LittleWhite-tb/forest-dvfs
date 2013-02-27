@@ -137,7 +137,7 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    hwloc_topology_destroy (topology);
 
    /* Now we want to take all the power economy ratio information from the config file */
-   this->power = new float [this->nbPhysicalCores * this->freqs.size()];
+   this->power.resize(this->nbPhysicalCores * this->freqs.size(),0);
   
    // Go through all the other lines
    float ratio;
@@ -173,8 +173,6 @@ DVFSUnit::~DVFSUnit ()
 		this->freqFs [i]->close ();
 		delete this->freqFs [i];
 	}
-   // cleanup memory
-   delete [] this->power;
 }
 
 const std::vector<CPUCouple>& DVFSUnit::getCpuIdList () const{
