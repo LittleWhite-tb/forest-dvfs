@@ -19,11 +19,13 @@
 
 /**
  * @file LocalRest.cpp
- * The LocalRest class is in this file. This is the main file for the local rest
- * server.
+ * Entry point for LocalRest. A thread will be started for each unit.
+ * Main thread will handle the unit 0.
  */
 
 #include <cstdlib>
+#include <cassert>
+
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -151,7 +153,9 @@ int main (int argc, char ** argv)
 
 static void * thProf (void * arg)
 {
-	thOpts * opts = (thOpts *) arg;
+   assert(arg);
+   
+	thOpts * opts = reinterpret_cast<thOpts*>(arg);
 	Decision dec;
 
    // default initialization for the first decision
