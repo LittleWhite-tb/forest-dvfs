@@ -34,63 +34,66 @@
 
 #include "DVFSUnit.h"
 #include "PathBuilder.h"
+#include "DataFileReader.h"
 
 DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
-   :nbCpuIds(0)
+                // default under linux, if it may help
+   :latency(10000),nbCpuIds(0)
 {
-   std::ostringstream oss;
    std::ifstream ifs;
    std::ofstream ofs;   
-   unsigned int tmp;  // multi-purpose int
 
    // get the latency of this unit
-   ifs.open (PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,PathCache>::buildPath(id).c_str());
-   if (!ifs)
    {
-      std::cerr << "Failed to fetch the latency for cpu " << cpuid << std::endl;
-      // default under linux, if it may help
-      this->latency = 10000;
+      DataFileReader reader(PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,PathCache>::buildPath(id));
+      if ( reader.isOpen() )
+      {
+         if ( reader.read(this->latency) == false )
+         {
+            std::cerr << "Failed to read latency for cpu " << cpuid << std::endl;
+         }
+      }
+      else
+      {
+         std::cerr << "Failed to fetch the latency for cpu " << cpuid << std::endl;
+      }
    }
-   ifs >> this->latency;
-   ifs.close ();
 
    // retrieve the available frequencies
-   ifs.open (PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(cpuid).c_str ());
-   if (!ifs) {
-      std::cerr << "Error: Failed to fetch FoREST configuration file '" << oss.str() << "' for cpuid #"
-      << cpuid << ". You must run the offline script before using FoREST"
-      << std::endl;
-      exit (EXIT_FAILURE);
-   } 
+   {
+      DataFileReader reader(PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(cpuid));
+      if (!reader.isOpen()) 
+      {
+         std::cerr << "Error: Failed to fetch FoREST configuration file '" << PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(cpuid) << "' for cpuid #"
+         << cpuid << ". You must run the offline script before using FoREST"
+         << std::endl;
+         exit (EXIT_FAILURE);
+      } 
 
-   /* Read config file first line */
-   std::string line;
-   std::getline (ifs, line, '\n');
-   std::istringstream iss(line);
-   while (iss >> tmp) {
-      assert (!iss.fail ());
-      this->freqs.push_back (tmp);
-   } 
+      reader.readLine<unsigned int>(this->freqs);
+   }
 
    // Add the current cpu as the first cpu id in the DVFS list
 	this->addCpuId (cpuid); 
 
-  // Retrieve all the cores that are linked to the main cpuid by frequency
-   std::ifstream relIfs;
-   relIfs.open (PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath(cpuid).c_str ());
-   if (!relIfs) {
-      std::cerr << "Error: Failed to open topology information for cpu " << cpuid << std::endl;
-      exit (EXIT_FAILURE);
-   }
+   // Retrieve all the cores that are linked to the main cpuid by frequency
+   {
+      DataFileReader reader(PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath(cpuid));
+      if (!reader.isOpen()) {
+         std::cerr << "Error: Failed to open topology information for cpu " << cpuid << std::endl;
+         exit (EXIT_FAILURE);
+      }
 
-   unsigned int subCpuId;
-   // Add all others cpu ids in the DVFS list as related cpus
-   while (relIfs >> subCpuId) {
-      if (subCpuId != cpuid) {
-         this->addCpuId (subCpuId); 
+      unsigned int subCpuId;
+      // Add all others cpu ids in the DVFS list as related cpus
+      while (reader.read(subCpuId)) 
+      {
+         if (subCpuId != cpuid) 
+         {
+            this->addCpuId (subCpuId); 
+         }
       }
    }
-   relIfs.close ();
 
    /* Go fetch physical core information and store it in this->cores eventually */
    hwloc_topology_t topology;
@@ -134,15 +137,33 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    /* Now we want to take all the power economy ratio information from the config file */
    this->power.resize(this->nbPhysicalCores * this->freqs.size(),0);
   
-   // Go through all the other lines
-   float ratio;
-   unsigned int i = 0;
-   while (ifs >> ratio) { 
-      assert (i < this->nbPhysicalCores * this->freqs.size());
-      this->power [i++] = ratio;
-      assert (!ifs.fail ());
+   {
+      DataFileReader reader(PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(cpuid));
+      if (!reader.isOpen()) 
+      {
+         std::cerr << "Error: Failed to fetch FoREST configuration file '" << PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(cpuid) << "' for cpuid #"
+         << cpuid << ". You must run the offline script before using FoREST"
+         << std::endl;
+         exit (EXIT_FAILURE);
+      } 
+
+      std::vector<float> datas;
+      reader.readLine(datas);
+      
+      float ratio;
+      unsigned int i = 0;
+      while (reader.read(ratio))
+      {
+         assert (i < this->nbPhysicalCores * this->freqs.size());
+         this->power [i++] = ratio;
+      }
+      
+      if ( i != (this->nbPhysicalCores * this->freqs.size()))
+      {
+         std::cerr << "Something goes wrong reading the FoREST configuration file" << std::endl;
+         std::cerr << "Some values are missing" << std::endl;
+      }
    }
-   ifs.close ();
 	
    this->id = id;
 }
