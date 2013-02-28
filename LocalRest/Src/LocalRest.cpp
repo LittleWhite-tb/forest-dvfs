@@ -19,18 +19,16 @@
 
 /**
  * @file LocalRest.cpp
- * The LocalRest class is in this file. This is the main file for the local rest
- * server.
+ * Entry point for LocalRest. A thread will be started for each unit.
+ * Main thread will handle the unit 0.
  */
 
 #include <cstdlib>
-#include <cerrno>
-#include <cstring>
+#include <cassert>
+
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <errno.h>
-#include <cstring>
 #include <sstream>
 
 #include "Common.h"
@@ -115,7 +113,7 @@ int main (int argc, char ** argv)
 	handleAllocation (restCtx.thdCtx);
 	
 	// launch threads
-	for (unsigned int i = 1; i < nbDVFSUnits; i++)
+	for (unsigned int i = 0; i < nbDVFSUnits; i++)
 	{
 		DVFSUnit& unit = restCtx.cnfo->getDVFSUnit (i);
 		// initialize options	
@@ -127,23 +125,17 @@ int main (int argc, char ** argv)
 		handleAllocation (opts.dec);
 		opts.unit = &unit;
 
-		// run thread
-		if (pthread_create (&restCtx.thdCtx [i].pid, NULL, thProf, &opts) != 0)
-		{
-			std::cerr << "Error: Failed to create profiler thread" << std::endl;
-			return EXIT_FAILURE;
-		}
+		// The unit 0 will use the current application thread. Others need
+      // a thread to run
+      if ( i != 0 )
+      {
+         if (pthread_create (&restCtx.thdCtx [i].pid, NULL, thProf, &opts) != 0)
+         {
+            std::cerr << "Error: Failed to create profiler thread" << std::endl;
+            return EXIT_FAILURE;
+         }
+      }
 	}
-
-	// the main process is the main profiler
-	DVFSUnit& unit0 = restCtx.cnfo->getDVFSUnit (0);
-	thOpts& opts = restCtx.thdCtx [0].opts;
-	opts.id = 0;
-	opts.dec = new NewAdaptiveDecisions (unit0, mode);
-	handleAllocation (opts.dec);
-	opts.prof = new PfmProfiler (unit0);
-	handleAllocation (opts.dec);
-	opts.unit = &unit0;
 
 	// cleanup stuff when exiting
 #ifdef REST_LOG
@@ -153,7 +145,7 @@ int main (int argc, char ** argv)
 	atexit (exitCleanup);
 
 	// Launch the function for main thread
-	thProf (&opts);
+	thProf (&restCtx.thdCtx[0].opts);
 
 	// never reached
 	return EXIT_SUCCESS;
@@ -161,7 +153,9 @@ int main (int argc, char ** argv)
 
 static void * thProf (void * arg)
 {
-	thOpts * opts = (thOpts *) arg;
+   assert(arg);
+   
+	thOpts * opts = reinterpret_cast<thOpts*>(arg);
 	Decision dec;
 
    // default initialization for the first decision

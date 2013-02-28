@@ -24,7 +24,6 @@
 #ifndef H_PROFILER
 #define H_PROFILER
 
-#include "Common.h"
 #include "DVFSUnit.h"
 
 /**

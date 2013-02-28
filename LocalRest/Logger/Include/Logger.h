@@ -23,24 +23,68 @@
 #include <fstream>
 #include <vector>
 
+/**
+ * Logger class based on Singleton pattern and allowing to handle N logs
+ * The number of logs is determined at the construction
+ * \todo this class should be split with a second class "Log"
+ */
 class Logger
 {
 	public:
-		static std::vector<Logger *> logList;
+		
+      /**
+       * Init the logs
+       * \param nbTh number of logs to create
+       */
 		static void initLog (unsigned int nbTh);
-		static void destroyLog (void);	
+      
+      /**
+       * Free all logs
+       * This function has to be called at program's end
+       */
+		static void destroyLog (void);
+      
+      /**
+       * Get a specific log
+       * \param id identifier to the log to get
+       * \return pointer to the logger
+       */
 		static Logger *getLog (unsigned int id);
 
+      /**
+       * Write in the log
+       * \param str string to log
+       */
 		void logOut (const char *str);
+      
+      /**
+       * Write in the log
+       * \param oss stream to log
+       */
 		void logOut (std::ostringstream& oss);
 			
+      /**
+       * Write block ender
+       */
 		void endBlock (void);
- 		Logger(unsigned int id);
-		~Logger ();
+ 		
+		
 
 	private:
-		std::ofstream switchOFS;
-		unsigned int thId;
+      static std::vector<Logger *> logList;  /*!< Logs container */
+   
+		std::ofstream switchOFS;   /*!< log file handler */
+		unsigned int thId;         /*!< log id */
+      
+      /**
+       * \param id identifier to use for the new log
+       */
+      Logger(unsigned int id);
+      
+      /**
+       * Close the log
+       */
+      ~Logger ();
 	
 };
 #endif

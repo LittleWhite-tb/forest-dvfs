@@ -40,7 +40,6 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    std::ifstream ifs;
    std::ofstream ofs;   
    unsigned int tmp;  // multi-purpose int
-   std::vector<int> tmpAllFreqs; // to temporarily store frequencies 
 
    // get the latency of this unit
    oss.str (std::string (""));
@@ -73,13 +72,7 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    std::istringstream iss(line);
    while (iss >> tmp) {
       assert (!iss.fail ());
-      tmpAllFreqs.push_back (tmp);
-   } 
-   this->nbFreqs = tmpAllFreqs.size ();
-
-   this->freqs = new unsigned int [this->nbFreqs];
-   for (unsigned int i = 0; i < this->nbFreqs; i++) {
-      this->freqs [i] = tmpAllFreqs [i];
+      this->freqs.push_back (tmp);
    } 
 
    // Add the current cpu as the first cpu id in the DVFS list
@@ -144,13 +137,13 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    hwloc_topology_destroy (topology);
 
    /* Now we want to take all the power economy ratio information from the config file */
-   this->power = new float [this->nbPhysicalCores * this->nbFreqs];
+   this->power.resize(this->nbPhysicalCores * this->freqs.size(),0);
   
    // Go through all the other lines
    float ratio;
    unsigned int i = 0;
    while (ifs >> ratio) { 
-      assert (i < this->nbPhysicalCores * this->nbFreqs);
+      assert (i < this->nbPhysicalCores * this->freqs.size());
       this->power [i++] = ratio;
       assert (!ifs.fail ());
    }
@@ -165,24 +158,21 @@ DVFSUnit::~DVFSUnit ()
    std::ofstream ofs;
 
    // restore the former governor for each CPU
-	 size_t i, size = this->cpuIds.size ();
+   size_t i, size = this->cpuIds.size ();
 	for (i = 0; i < size; i++) {
 		oss << "/sys/devices/system/cpu/cpu" << this->cpuIds [i].logicalId << "/cpufreq/scaling_governor";
-  	ofs.open (oss.str ().c_str ());
+      ofs.open (oss.str ().c_str ());
 
 		if (ofs != 0 && ofs.is_open ()) {
-  		ofs << this->formerGov [i];
- 	 		ofs.flush ();
-			ofs.close ();
+         ofs << this->formerGov [i];
+         ofs.flush ();
+         ofs.close ();
 		}
 		oss.str (std::string (""));
 
 		this->freqFs [i]->close ();
 		delete this->freqFs [i];
 	}
-   // cleanup memory
-   delete [] this->power;
-   delete [] this->freqs;
 }
 
 const std::vector<CPUCouple>& DVFSUnit::getCpuIdList () const{
@@ -232,7 +222,7 @@ void DVFSUnit::addCpuId (unsigned int cpuId) {
    	exit (EXIT_FAILURE);
 	}
 
-   assert (this->freqs != NULL);
+   assert (this->freqs.size() != 0);
 	*freqFs << this->freqs [0];
 	freqFs->flush ();
 	this->curFreqId = 0;
@@ -244,7 +234,7 @@ void DVFSUnit::addCpuId (unsigned int cpuId) {
 
 void DVFSUnit::setFrequency (unsigned int freqId)
 { 
-   assert (freqId < this->nbFreqs);
+   assert (freqId < this->freqs.size());
 
    //std::ostringstream oss;
 		

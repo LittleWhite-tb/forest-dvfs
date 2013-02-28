@@ -69,9 +69,13 @@ struct CPUCouple {
 #define rest_abs(a) ((a) < 0 ? -(a) : (a))
 
 
-// TODO comment
-inline void handleAllocation (void *toTest) {
-	if (toTest == 0) {
+/**
+ * Check if the pointer is not null
+ * If it is, the program will kit with a error message
+ * \param pPointer the pointer to check
+ */
+inline void handleAllocation (void *pPointer) {
+	if (pPointer == 0) {
 		std::cerr << "Error: One resource couldn't be allocated." << std::endl;
 		exit (EXIT_FAILURE);
 	}
