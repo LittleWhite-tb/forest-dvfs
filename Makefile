@@ -46,7 +46,7 @@ all: check-arch offline debug
 check-arch:
 	@echo "=== Testing CPU architecture ==="
 	make -C ./offline/archTester
-	./offline/archTester/archTester
+	#./offline/archTester/archTester
 
 offline:
 	make -C ./offline/lPowerProbe/

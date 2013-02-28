@@ -164,6 +164,11 @@ class NewAdaptiveDecisions : public DecisionMaker
        * in the "energy" mode.
        */
       static const float USER_PERF_REQ_ENERGY = 0.50;
+/**
+       * Allowed performance slowdown currently requested by the user.
+       */
+      const float USER_PERF_REQ;
+
 
       /**
        * A CPU is active if its usage is above this.
@@ -177,7 +182,7 @@ class NewAdaptiveDecisions : public DecisionMaker
       static const float ACTIVITY_LEVEL = 0.3;
 #endif
 
-      /**
+            /**
        * Generic method called for the evaluation step
        * Does several steps:
        * - Evaluation Init (see initEvaluation)
@@ -217,7 +222,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @param avgIPC Output parameter. Must be an allocated array able to
        * contain at least as many entries as the number of frequencies.
        */
-      void getAvgIPCPerFreq (float *avgIPC);
+      // void getAvgIPCPerFreq (float *avgIPC);
 
       /**
        * Returns the maximal IPC in the array of IPCs per frequency.
@@ -240,11 +245,12 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @return The frequency couple leading to the minimal energy consumption
        * and achieving the targetIPC.
        */
-      FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy);
+      FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy,
+                                     unsigned int activeCpus);
 
       /**
-       * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
-       *
+       * Compute the sequence corresponding to the aggregation of the 2-steps
+       * computation of all the cores previously computed
        */
       void computeSequence ();
 
@@ -254,9 +260,11 @@ class NewAdaptiveDecisions : public DecisionMaker
       Decision executeSequence ();
 
       /**
-       * Is useful to check whether we have to read the counters or not (it's not necessary in the execution state)
+       * Is useful to check whether we have to read the counters or not
+       * (it's not necessary in the execution state)
        *
-       * @return Whether the runtime is currently evaluating or executing the frequency sequence
+       * @return Whether the runtime is currently evaluating or executing
+       * the frequency sequence
        */
       inline bool isEvaluating () const{
          return this->curRuntimeState == EVALUATION;
@@ -303,12 +311,6 @@ class NewAdaptiveDecisions : public DecisionMaker
             std::cerr << "no time elapsed since last measurement" << std::endl;
             return 0;
          }
-
-         /*std::cerr << "hwc.cycles = " << hwc.cycles
-           << " hwc.retired = " << hwc.retired << std::endl;
-           std::cerr << "getFreq (0) = " << this->unit.getFrequency (0)
-           << " getCurFreq () = " << this->unit.getCurFreq () << std::endl;*/
-
          return hwc.retired / (1. * hwc.time);
       }
 
@@ -330,7 +332,7 @@ class NewAdaptiveDecisions : public DecisionMaker
             return 0;
          }
 
-         //std::cout << "active cycles: " << hwc.refCycles << " rdtsc: " << hwc.time << std::endl;
+         std::cout << "active cycles: " << hwc.refCycles << " rdtsc: " << hwc.time << std::endl;
 
          // NOTE: RDTSC and refCycles run at the same freq
          res = hwc.refCycles / (1. * hwc.time);
@@ -347,16 +349,18 @@ class NewAdaptiveDecisions : public DecisionMaker
        */
       FreqChunkCouple getVirtualFreq (float degradedIPC, unsigned int cpu, unsigned int activeCpus) const;
 
-      // TODO comment
+      /**
+       * Reads the counters needed for the evaluation process on all the cores
+       * corresponding to our DVFS Unit, e.g. sharing the same frequency
+       * transition.
+       */
       void readCounters ();
 
-      // TODO Comment
-      TimeProfiler timeProfiler;
-
       /**
-       * Allowed performance slowdown currently requested by the user.
+       * The timeProfiler is a way to keep track of the overhead of the
+       * different steps in our evaluation and execution processes.
        */
-      const float USER_PERF_REQ;
+      TimeProfiler timeProfiler;
 
       /**
        * The current state of the decision maker
@@ -370,7 +374,7 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * The current frequency chunk we are executing (in the runtime execution step)
        */
-      unsigned int currentSeqChunk;
+      unsigned int curExecStep;
 
       /**
        * Number of cpuIds that are handled by the Decision Maker
@@ -400,7 +404,7 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * The current sequence
        */
-      std::vector<FreqChunk> sequence;
+      FreqChunkCouple sequence;
 
       /**
        * Maximum freq id used in the former sequence for stability evaluation.

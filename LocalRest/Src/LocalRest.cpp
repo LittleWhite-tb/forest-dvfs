@@ -184,7 +184,8 @@ static void * thProf (void * arg)
 	}
 
    // do it as long as we are not getting killed by a signal
-   while (true) {
+  unsigned int i = 0; 
+	while (true) {
       // If the runtime's decision is to skip the sleeping time, we obey it !!
       // wait for a while	
       if (dec.sleepWin > 0)
@@ -206,6 +207,9 @@ static void * thProf (void * arg)
          usleep (dec.freqApplyDelay);
          opts->dec->readCounters (); // Reset the counters
       }
+			if (i++ > 15) {
+				break;
+			}
    }
 
 	// pacify compiler but we never get out of while loop

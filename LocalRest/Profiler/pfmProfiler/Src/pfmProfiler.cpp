@@ -45,8 +45,8 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 #ifdef ARCH_SNB
       "UNHALTED_REFERENCE_CYCLES"
 #elif ARCH_IVB
-//      "UNHALTED_REFERENCE_CYCLES"
-      "CPU_CLK_UNHALTED:REF_P"
+      "UNHALTED_REFERENCE_CYCLES"
+//      "CPU_CLK_UNHALTED:REF_P"
 //      "UNHALTED_CORE_CYCLES"
 #else
 #warning "Unknown micro-architecture! CPU cycle counting may be wrong."
