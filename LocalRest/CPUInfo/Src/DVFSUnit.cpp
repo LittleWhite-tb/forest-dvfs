@@ -33,8 +33,10 @@
 #include <hwloc.h>
 
 #include "DVFSUnit.h"
+#include "PathBuilder.h"
 
 DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
+   :nbCpuIds(0)
 {
    std::ostringstream oss;
    std::ifstream ifs;
@@ -42,9 +44,7 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    unsigned int tmp;  // multi-purpose int
 
    // get the latency of this unit
-   oss.str (std::string (""));
-   oss << "/sys/devices/system/cpu/cpu" << cpuid << "/cpufreq/cpuinfo_transition_latency";
-   ifs.open (oss.str ().c_str ());
+   ifs.open (PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,PathCache>::buildPath(id).c_str());
    if (!ifs)
    {
       std::cerr << "Failed to fetch the latency for cpu " << cpuid << std::endl;
@@ -55,10 +55,7 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
    ifs.close ();
 
    // retrieve the available frequencies
-   oss.str(""); // Remove previous use
-   oss << "offline/power_" << cpuid << ".cfg";
-   
-   ifs.open (oss.str ().c_str ());
+   ifs.open (PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(cpuid).c_str ());
    if (!ifs) {
       std::cerr << "Error: Failed to fetch FoREST configuration file '" << oss.str() << "' for cpuid #"
       << cpuid << ". You must run the offline script before using FoREST"
@@ -79,10 +76,8 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
 	this->addCpuId (cpuid); 
 
   // Retrieve all the cores that are linked to the main cpuid by frequency
-   std::ostringstream rel;
-   rel << "/sys/devices/system/cpu/cpu" << cpuid << "/cpufreq/related_cpus";
    std::ifstream relIfs;
-   relIfs.open (rel.str ().c_str ());
+   relIfs.open (PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath(cpuid).c_str ());
    if (!relIfs) {
       std::cerr << "Error: Failed to open topology information for cpu " << cpuid << std::endl;
       exit (EXIT_FAILURE);
@@ -154,21 +149,18 @@ DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
 
 DVFSUnit::~DVFSUnit ()
 {
-   std::ostringstream oss;
    std::ofstream ofs;
 
    // restore the former governor for each CPU
    size_t i, size = this->cpuIds.size ();
 	for (i = 0; i < size; i++) {
-		oss << "/sys/devices/system/cpu/cpu" << this->cpuIds [i].logicalId << "/cpufreq/scaling_governor";
-      ofs.open (oss.str ().c_str ());
+      ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(this->cpuIds [i].logicalId).c_str ());
 
 		if (ofs != 0 && ofs.is_open ()) {
          ofs << this->formerGov [i];
          ofs.flush ();
          ofs.close ();
 		}
-		oss.str (std::string (""));
 
 		this->freqFs [i]->close ();
 		delete this->freqFs [i];
@@ -181,14 +173,11 @@ const std::vector<CPUCouple>& DVFSUnit::getCpuIdList () const{
 
 void DVFSUnit::addCpuId (unsigned int cpuId) {
 	assert (this->cpuIds.size () == this->formerGov.size ());
-	std::ostringstream oss;
 	std::ifstream ifs;
 	std::ofstream ofs;
 
 	// We also store the former governor of this processor to restore it when DVFSUnit object is destroyed
-	oss << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/scaling_governor";
-
-	ifs.open (oss.str ().c_str ());
+	ifs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(cpuId).c_str ());
 
 	if (ifs == 0 || !ifs.is_open ()) {
 		std::cerr << "Error: Cannot retrieve current governor for cpu id #" << cpuId << std::endl;
@@ -202,7 +191,7 @@ void DVFSUnit::addCpuId (unsigned int cpuId) {
 	this->formerGov.push_back (governor);
 
 	// Replace the current governor by userspace
-	ofs.open (oss.str ().c_str ());
+	ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(cpuId).c_str ());
 	ofs << "userspace";
 	ofs.flush ();
 	ofs.close ();
@@ -210,15 +199,13 @@ void DVFSUnit::addCpuId (unsigned int cpuId) {
 	// If it is the first cpu id to be added, then 
 	// it represents the id we'll write into	
   // open the file in wich we have to write to set a frequency
-	oss.str (std::string (""));
-	oss << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/scaling_setspeed";
 	std::ofstream *freqFs = new std::ofstream ();
 	handleAllocation (freqFs);
-	freqFs->open (oss.str ().c_str ());
+	freqFs->open (PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath(cpuId).c_str ());
 	if (!freqFs->is_open ()) {
    	std::cerr << "Error: Cannot open frequency file setter. Are you root and running Linux ?" << std::endl;
    	std::cerr << "Technical Info:" << std::endl << "- DVFSunit id: " << cpuId << std::endl;
-   	std::cerr << "- File path: " << oss.str () << std::endl;
+   	std::cerr << "- File path: " << PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath(cpuId).c_str() << std::endl;
    	exit (EXIT_FAILURE);
 	}
 
