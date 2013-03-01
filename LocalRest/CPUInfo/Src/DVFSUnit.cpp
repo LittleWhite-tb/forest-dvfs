@@ -194,19 +194,25 @@ const std::vector<CPUCouple>& DVFSUnit::getCpuIdList () const{
 
 void DVFSUnit::addCpuId (unsigned int cpuId) {
 	assert (this->cpuIds.size () == this->formerGov.size ());
-	std::ifstream ifs;
+	
+   std::string governor;
 	std::ofstream ofs;
 
 	// We also store the former governor of this processor to restore it when DVFSUnit object is destroyed
-	ifs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(cpuId).c_str ());
+   {
+      DataFileReader governorReader(PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(cpuId));
 
-	if (ifs == 0 || !ifs.is_open ()) {
-		std::cerr << "Error: Cannot retrieve current governor for cpu id #" << cpuId << std::endl;
-		exit (EXIT_FAILURE);
-	}
+      if (!governorReader.isOpen()) {
+         std::cerr << "Error: Cannot retrieve current governor for cpu id #" << cpuId << std::endl;
+         exit (EXIT_FAILURE);
+      }
 
-	std::string governor;
-	ifs >> governor;
+      if ( governorReader.read<std::string>(governor) == false )
+      {
+         std::cerr << "Error: fail to read current governor for cpu id #" << cpuId << std::endl;
+         exit (EXIT_FAILURE);
+      }
+   }
 
 	// Push back in the list
 	this->formerGov.push_back (governor);
