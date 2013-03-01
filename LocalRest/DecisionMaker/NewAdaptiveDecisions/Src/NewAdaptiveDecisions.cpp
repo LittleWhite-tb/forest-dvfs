@@ -47,6 +47,17 @@ struct CoupleInfo {
    unsigned int freqId;
 };
 
+// Static declarations
+#ifdef ARCH_SNB
+      const float NewAdaptiveDecisions::ACTIVITY_LEVEL = 0.5f;
+#else
+      const float NewAdaptiveDecisions::ACTIVITY_LEVEL = 0.3f;
+#endif
+
+const float NewAdaptiveDecisions::SYS_POWER = 50.f;
+const float NewAdaptiveDecisions::USER_PERF_REQ_PERF = 0.95f;
+const float NewAdaptiveDecisions::USER_PERF_REQ_ENERGY = 0.50f;
+
 
 NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mode) :
    DecisionMaker (unit, mode),
@@ -85,6 +96,8 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mod
    this->lastSequence.step [STEP1].timeRatio = 0;
    this->lastSequence.step [STEP2].freqId = 0;
    this->lastSequence.step [STEP2].timeRatio = 0;
+   
+   activeLogicalCPUs.reserve(nbCpuIds);
 }
 
 NewAdaptiveDecisions::~NewAdaptiveDecisions (void)
@@ -154,12 +167,12 @@ void NewAdaptiveDecisions::getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs
 }
 
 FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
-                                                     float *coupleEnergy,
-                                                     unsigned int activeCpus)
+                                                     float *coupleEnergy)
 {
    std::vector<unsigned int> smallerIpc;
    std::vector<unsigned int> greaterIpc;
    std::vector<float> maxIPCs;
+   size_t activeCpus = activeLogicalCPUs.size();
    
    // no active cores?
    if (activeCpus == 0)
@@ -229,7 +242,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
    std::vector<float> e_ratios (this->nbFreqs);
-   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), activeCpus);
+   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), activeLogicalCPUs);
    const float Psys = NewAdaptiveDecisions::SYS_POWER;
    e_ratios [*this->freqsToEvaluate.begin ()] = activeCpus;
 
@@ -237,7 +250,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
         it != this->freqsToEvaluate.end ();
         it++)
    {
-      float Pi = this->unit.getPowerAt (*it, activeCpus);
+      float Pi = this->unit.getPowerAt (*it, activeLogicalCPUs);
 
       e_ratios [*it] = 0;
 
@@ -519,16 +532,16 @@ void NewAdaptiveDecisions::computeSequence ()
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
    // Compute the number of active cpus
-   unsigned int activeCpus = 0;
+   activeLogicalCPUs.clear();
    for (unsigned int c = 0; c < this->nbCpuIds; c++)
    {
       if (this->usage [c] >= ACTIVITY_LEVEL)
       {
-         activeCpus++;
+         activeLogicalCPUs.push_back(c);
       }
    }
 
-   if (activeCpus == 0) {
+   if (activeLogicalCPUs.size() == 0) {
       std::cerr << "No active cpus" << std::endl;
    }
 
@@ -538,7 +551,7 @@ void NewAdaptiveDecisions::computeSequence ()
       FreqChunkCouple couple;
       float coupleE;
 
-      couple = getBestCouple (this->ipcEval, d, &coupleE, activeCpus);
+      couple = getBestCouple (this->ipcEval, d, &coupleE);
 
       //std::cout << "IPC: " << targetIPC
       //   << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 

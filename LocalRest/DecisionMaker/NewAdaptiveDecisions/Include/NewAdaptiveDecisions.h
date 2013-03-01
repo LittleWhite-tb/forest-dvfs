@@ -151,20 +151,21 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * Approximate system power.
        */
-      static const float SYS_POWER = 50;
+      static const float SYS_POWER;
 
       /**
        * Minimal performance requested by the user (in % of the max performance)
        * in the "performance" mode.
        */
-      static const float USER_PERF_REQ_PERF = 0.95;
+      static const float USER_PERF_REQ_PERF;
 
       /**
        * Minimal performance requested by the user (in % of the max performance)
        * in the "energy" mode.
        */
-      static const float USER_PERF_REQ_ENERGY = 0.50;
-/**
+      static const float USER_PERF_REQ_ENERGY;
+      
+      /**
        * Allowed performance slowdown currently requested by the user.
        */
       const float USER_PERF_REQ;
@@ -176,11 +177,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * NOTE: on SandyBridge, inactive cores incorrectly report high number
        * of unhalted core cycles (up to 50% reported activity for an idle core)
        */
-#ifdef ARCH_SNB
-      static const float ACTIVITY_LEVEL = 0.5;
-#else
-      static const float ACTIVITY_LEVEL = 0.3;
-#endif
+      static const float ACTIVITY_LEVEL;
 
             /**
        * Generic method called for the evaluation step
@@ -245,8 +242,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @return The frequency couple leading to the minimal energy consumption
        * and achieving the targetIPC.
        */
-      FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy,
-                                     unsigned int activeCpus);
+      FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy);
 
       /**
        * Compute the sequence corresponding to the aggregation of the 2-steps
@@ -452,6 +448,13 @@ class NewAdaptiveDecisions : public DecisionMaker
        */
       Logger *log;
 #endif
+
+      /**
+       * Keeps a list of active logical CPU ID
+       * An active CPU is a core having an activity higher than threshold \a ACTIVITY_LEVEL
+       */
+      std::vector<unsigned int>activeLogicalCPUs;
+      
 
 };
 

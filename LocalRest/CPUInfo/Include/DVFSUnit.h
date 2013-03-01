@@ -26,6 +26,7 @@
 #define H_DVFSUNIT
 
 #include <cassert>
+#include <algorithm>
 #include <vector>
 
 #include "Common.h"
@@ -139,22 +140,25 @@ class DVFSUnit
        * given frequency with the given number of active cores.
        *
        * @param freqId The frequency whose power is requested for.
-       * @param nbCoresOn The number of active cores.
+       * @param activesLogicalCPUs list of actived logical CPU ID
        *
        * @return The power consumption of the offline benchmark in the
        * environment defined by the given parameters.
        */
-      inline float getPowerAt (unsigned int freqId, unsigned int nbCoresOn) const
+      inline float getPowerAt (unsigned int freqId, const std::vector<unsigned int>& activeLogicalCPUs) const
       {
          assert (freqId < this->freqs.size());
-         assert (nbCoresOn <= this->nbPhysicalCores);
-
-         if (nbCoresOn == 0)
+         if ( activeLogicalCPUs.size() == 0 )
          {
             return 0;
          }
+         
+         
+         unsigned int nbPhysicalCoresOn = countPhysicalCores(activeLogicalCPUs);
 
-         return this->power [(nbCoresOn - 1) * this->freqs.size() + freqId];
+         assert(nbPhysicalCoresOn <= this->nbPhysicalCores);
+         
+         return this->power [(nbPhysicalCoresOn - 1) * this->freqs.size() + freqId];
       }
 
    private:
@@ -211,6 +215,33 @@ class DVFSUnit
        * 2nd dimension : available frequencies
        */
       std::vector<float> power;
+      
+      
+      /**
+       * From the physical CPU ids determines the numbers of logical ID active
+       * \param activesLogicalCPUs the list of actived logical ids
+       * \return number of actived physical CPU id
+       */
+      unsigned int countPhysicalCores(const std::vector<unsigned int>& activeLogicalCPUs)const
+      {
+         static std::vector<unsigned int>activePhysicalCPUs;
+         static bool doInit = true;
+         if ( doInit )
+         {
+            activePhysicalCPUs.reserve(nbCpuIds);
+         }
+         
+         activePhysicalCPUs.clear();
+         for ( size_t i = 0 ; i < activeLogicalCPUs.size() ; i++ )
+         {
+            if ( std::find(activePhysicalCPUs.begin(),activePhysicalCPUs.end(),this->cpuIds[i].physicalId) == activePhysicalCPUs.end() )
+            {
+               activePhysicalCPUs.push_back(this->cpuIds[i].physicalId);
+            }
+         }
+         
+         return activePhysicalCPUs.size();
+      }
 };
 
 
