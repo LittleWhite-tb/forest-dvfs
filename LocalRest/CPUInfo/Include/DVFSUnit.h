@@ -42,8 +42,8 @@ class DVFSUnit
       /**
        * Constructor
        *
-       * @param id The id of the processor for the OS
-       * @param useTB Do we consider the TurboBoost frequency or ignore it.
+       * @param id An unique identifier for this DVFS unit
+       * @param cpuid The id of the processor for the OS
        */
       DVFSUnit (unsigned int id, unsigned int cpuid);
 
@@ -64,10 +64,20 @@ class DVFSUnit
          return this->cpuIds [idx].logicalId;
       }
 
+      /**
+       * Returns the ID of this DVFS unit.
+       *
+       * @return A unique ID for this instance.
+       */
       inline unsigned int getId () const {
          return id;
       }
 
+      /**
+       * Returns the number of cpus under responsability of this DVFS unit.
+       *
+       * @return The number of cpus managed by this DVFS unit.
+       */
       inline unsigned int getNbCpuIds () const{
             return this->cpuIds.size ();
       }
@@ -79,7 +89,7 @@ class DVFSUnit
        */
       inline unsigned int getNbFreqs () const
       {
-         return this->freqs.size();
+         return this->freqs.size ();
       }
 
       /**
@@ -91,7 +101,7 @@ class DVFSUnit
        */
       inline unsigned int getFrequency (unsigned int freqId) const
       {
-         assert (freqId < this->freqs.size());
+         assert (freqId < this->freqs.size ());
 
          return this->freqs [freqId];
       }
@@ -106,6 +116,11 @@ class DVFSUnit
          return this->curFreqId;
       }
       
+      /**
+       * Returns the current frequency used.
+       *
+       * @return The current frequency requested for the whole DVFS unit.
+       */
       inline unsigned int getCurFreq () const{
       	return this->freqs [this->curFreqId];
       }
@@ -128,9 +143,18 @@ class DVFSUnit
          return this->latency;
       }
 
-      // TODO comment
+      /**
+       * Returns the list of CPU ids managed by the unit.
+       *
+       * @return The ID list of managed CPUs.
+       */
       const std::vector<CPUCouple>& getCpuIdList () const;
 
+      /**
+       * Returns the number of physical cores.
+       *
+       * @return The number of physical cores managed by the unit.
+       */
       inline unsigned int getNbPhysicalCores () const {
          return this->nbPhysicalCores;
       }
@@ -147,18 +171,18 @@ class DVFSUnit
        */
       inline float getPowerAt (unsigned int freqId, const std::vector<unsigned int>& activeLogicalCPUs) const
       {
-         assert (freqId < this->freqs.size());
-         if ( activeLogicalCPUs.size() == 0 )
+         assert (freqId < this->freqs.size ());
+         if ( activeLogicalCPUs.size () == 0 )
          {
             return 0;
          }
          
          
-         unsigned int nbPhysicalCoresOn = countPhysicalCores(activeLogicalCPUs);
+         unsigned int nbPhysicalCoresOn = countPhysicalCores (activeLogicalCPUs);
 
-         assert(nbPhysicalCoresOn <= this->nbPhysicalCores);
+         assert (nbPhysicalCoresOn <= this->nbPhysicalCores);
          
-         return this->power [(nbPhysicalCoresOn - 1) * this->freqs.size() + freqId];
+         return this->power [(nbPhysicalCoresOn - 1) * this->freqs.size () + freqId];
       }
 
    private:
@@ -206,7 +230,15 @@ class DVFSUnit
        * and handled by it 
        */
       std::vector<CPUCouple> cpuIds;
+
+      /**
+       * Number of managed CPU ids
+       */
 		unsigned int nbCpuIds;
+
+      /**
+       * Number of physical cores treated by the unit.
+       */
       unsigned int nbPhysicalCores;
       
       /**
@@ -222,25 +254,25 @@ class DVFSUnit
        * \param activesLogicalCPUs the list of actived logical ids
        * \return number of actived physical CPU id
        */
-      unsigned int countPhysicalCores(const std::vector<unsigned int>& activeLogicalCPUs)const
+      unsigned int countPhysicalCores (const std::vector<unsigned int>& activeLogicalCPUs)const
       {
          static std::vector<unsigned int>activePhysicalCPUs;
          static bool doInit = true;
          if ( doInit )
          {
-            activePhysicalCPUs.reserve(nbCpuIds);
+            activePhysicalCPUs.reserve (nbCpuIds);
          }
          
-         activePhysicalCPUs.clear();
-         for ( size_t i = 0 ; i < activeLogicalCPUs.size() ; i++ )
+         activePhysicalCPUs.clear ();
+         for ( size_t i = 0 ; i < activeLogicalCPUs.size () ; i++ )
          {
-            if ( std::find(activePhysicalCPUs.begin(),activePhysicalCPUs.end(),this->cpuIds[i].physicalId) == activePhysicalCPUs.end() )
+            if ( std::find (activePhysicalCPUs.begin (),activePhysicalCPUs.end (),this->cpuIds [i].physicalId) == activePhysicalCPUs.end ())
             {
-               activePhysicalCPUs.push_back(this->cpuIds[i].physicalId);
+               activePhysicalCPUs.push_back (this->cpuIds [i].physicalId);
             }
          }
          
-         return activePhysicalCPUs.size();
+         return activePhysicalCPUs.size ();
       }
 };
 
