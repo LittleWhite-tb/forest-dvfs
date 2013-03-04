@@ -39,6 +39,7 @@ impact the actual frequency applied by TurboBoost.
 """
 
 LPP_PATH="./lPowerProbe/"
+RESULT_FILE="/tmp/output.csv"
 
 
 #----------------------------------
@@ -55,8 +56,8 @@ def runBench (nr, cores):
 
     taskMask = ";".join([str(c) for c in cores])
 
-    cmd = LPP_PATH + 'lPowerProbe -r 5 -d ' + str(len(cores)) + ' -p "' + taskMask + '" ./add ' + str(nr)
-    #print cmd
+    cmd = LPP_PATH + 'lPowerProbe -r 5 -d ' + str(len(cores)) + ' -p "' + taskMask + '" -o ' + RESULT_FILE + ' ./add ' + str(nr)
+    print cmd
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
     ex.communicate()[0]
 
@@ -64,7 +65,7 @@ def runBench (nr, cores):
       sys.exit (0)
 
     try:
-      fd = open("./output.csv")
+      fd = open(RESULT_FILE)
     except IOError as e:
       sys.stderr.write ("Error: Cannot launch lPowerProbe.\n- Is it cloned at the base of your nfs directory ?\n")
       sys.stderr.write ("- Are you connected to the local network ?\n- Did you modprobe msr and chmod it properly ?\n- Did you chmod cpufreq folder correctly ?\n- Did you echo -1 in the event_paranoid file ?\n- Are you running a SandyBridge or more recent architecture ?\n")
@@ -83,7 +84,7 @@ def runBench (nr, cores):
     fd.close()
     data.sort()
     
-    os.remove("./output.csv")
+    os.remove(RESULT_FILE)
 
     return data[len(data) / 2]
 
