@@ -160,7 +160,6 @@ static void * thProf (void * arg)
 
    // default initialization for the first decision
    dec.freqId = 0;
-   dec.cpuId = opts->unit->getOSId ();
    dec.sleepWin = 0;
    dec.freqApplyDelay = 0;
 

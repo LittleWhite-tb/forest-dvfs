@@ -41,7 +41,6 @@
 typedef struct
 {
    unsigned int freqId;    // new frequency to use
-   unsigned int cpuId;		// the current cpu to apply the decision to
    unsigned int sleepWin;  // new sleep window to use (usec)
    unsigned int freqApplyDelay;   // amount of time to wait before reseting the counters (in usec)
 } Decision;

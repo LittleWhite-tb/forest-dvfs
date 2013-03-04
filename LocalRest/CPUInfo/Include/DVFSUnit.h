@@ -19,14 +19,17 @@
 
 /**
  * @file DVFSUnit.h
- * The DVFSUnit class header is in this file
+ * The DVFSUnit class reprensents all the cores sharing the same frequency 
+ * setting.
  */
 
 #ifndef H_DVFSUNIT
 #define H_DVFSUNIT
 
-#include <cassert>
 #include <algorithm>
+#include <cassert>
+#include <map>
+#include <set>
 #include <vector>
 
 #include "Common.h"
@@ -42,10 +45,11 @@ class DVFSUnit
       /**
        * Constructor
        *
-       * @param id An unique identifier for this DVFS unit
-       * @param cpuid The id of the processor for the OS
+       * @param id The unique ID for this unit. Must be the same as the id 
+       *  used when the offline power information was generated.
+       * @param cpuIds Set of CPU ids handled by this unit.
        */
-      DVFSUnit (unsigned int id, unsigned int cpuid);
+      DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds);
 
       /**
        * Destructor
@@ -53,33 +57,23 @@ class DVFSUnit
       ~DVFSUnit ();
 
       /**
-       * Returns the unit identifier (name) for the OS. This is typically a
-       * logical processor number.
+       * Returns the id of this DVFS unit.
        *
-       * @return The unit number defined by the underlying OS.
+       * @return The unique ID for this DVFS unit.
        */
-      inline unsigned int getOSId (unsigned idx = 0) const
+      inline unsigned int getId() const
       {
-         assert (idx < this->cpuIds.size ());
-         return this->cpuIds [idx].logicalId;
+         return this->id;
       }
 
       /**
-       * Returns the ID of this DVFS unit.
+       * Returns the set of CPUs under our control.
        *
-       * @return A unique ID for this instance.
+       * @return The IDs of the threads this instance controls.
        */
-      inline unsigned int getId () const {
-         return id;
-      }
-
-      /**
-       * Returns the number of cpus under responsability of this DVFS unit.
-       *
-       * @return The number of cpus managed by this DVFS unit.
-       */
-      inline unsigned int getNbCpuIds () const{
-            return this->cpuIds.size ();
+      inline const std::set<unsigned int> getThreads() const
+      {
+         return this->cpuIds;
       }
 
       /**
@@ -144,64 +138,42 @@ class DVFSUnit
       }
 
       /**
-       * Returns the list of CPU ids managed by the unit.
-       *
-       * @return The ID list of managed CPUs.
-       */
-      const std::vector<CPUCouple>& getCpuIdList () const;
-
-      /**
-       * Returns the number of physical cores.
-       *
-       * @return The number of physical cores managed by the unit.
-       */
-      inline unsigned int getNbPhysicalCores () const {
-         return this->nbPhysicalCores;
-      }
-
-      /**
        * Return the power measurement obtained during the offline step for the
        * given frequency with the given number of active cores.
        *
        * @param freqId The frequency whose power is requested for.
-       * @param activesLogicalCPUs list of actived logical CPU ID
+       * @param nbCoresOn How many physical CPU cores are active
        *
        * @return The power consumption of the offline benchmark in the
        * environment defined by the given parameters.
        */
-      inline float getPowerAt (unsigned int freqId, const std::vector<unsigned int>& activeLogicalCPUs) const
+      inline float getPowerAt (unsigned int freqId, unsigned int nbCoresOn) const
       {
          assert (freqId < this->freqs.size ());
-         if ( activeLogicalCPUs.size () == 0 )
+
+         if (nbCoresOn == 0)
          {
             return 0;
          }
          
-         
-         unsigned int nbPhysicalCoresOn = countPhysicalCores (activeLogicalCPUs);
-
-         assert (nbPhysicalCoresOn <= this->nbPhysicalCores);
-         
-         return this->power [(nbPhysicalCoresOn - 1) * this->freqs.size () + freqId];
+         return this->power [(nbCoresOn - 1) * this->freqs.size () + freqId];
       }
 
    private:
+
       /**
-       * Add a core id in the list of cpus of the dvfs unit
-       * Replaces its corresponding governor by userspace,
-       * saving its former governor to be able to restore it
-       * afterwards
+       * DVFS unit id.
        */
-      void addCpuId (unsigned int cpuId);
-     
-     /**
-      * Identifier for this unit
-      */
       unsigned int id;
-      
+
       /**
-       * All the possible frequencies this thread can use. Array of size
-       * nbFreqs, sorted in increasing order.
+       * The set of CPU ids under our control.
+       */
+      std::set<unsigned int> cpuIds;
+
+      /**
+       * All the possible frequencies this unit can use.
+       * Sorted in increasing order.
        */
       std::vector<unsigned int> freqs;
 
@@ -213,7 +185,7 @@ class DVFSUnit
       /**
        * Governor in use before we take control of the DVFS unit.
        */
-      std::vector<std::string> formerGov;
+      std::map<unsigned int, std::string> formerGov;
 
       /**
        * File where to write to set the frequency.
@@ -226,54 +198,21 @@ class DVFSUnit
       unsigned int latency;
 
       /**
-       * List of cores that are linked to the DVFS Unit by frequency
-       * and handled by it 
-       */
-      std::vector<CPUCouple> cpuIds;
-
-      /**
-       * Number of managed CPU ids
-       */
-		unsigned int nbCpuIds;
-
-      /**
-       * Number of physical cores treated by the unit.
-       */
-      unsigned int nbPhysicalCores;
-      
-      /**
        * Flattened 2d array of power per given dvfsunit workload and per freq
-       * 1st dimension : dvfsunit workload (in number of actives physical cores)
+       * 1st dimension : dvfsunit workload (in number of active physical cores)
        * 2nd dimension : available frequencies
+       * 
+       * To access the power consumption for A active cores at frequency F,
+       * reach power[A * nbFreqs + F]
        */
       std::vector<float> power;
-      
-      
+
       /**
-       * From the physical CPU ids determines the numbers of logical ID active
-       * \param activesLogicalCPUs the list of actived logical ids
-       * \return number of actived physical CPU id
+       * Initializes the given CPUs to begin controlling them.
+       *
+       * @param cpuIds The CPUs to control.
        */
-      unsigned int countPhysicalCores (const std::vector<unsigned int>& activeLogicalCPUs)const
-      {
-         static std::vector<unsigned int>activePhysicalCPUs;
-         static bool doInit = true;
-         if ( doInit )
-         {
-            activePhysicalCPUs.reserve (nbCpuIds);
-         }
-         
-         activePhysicalCPUs.clear ();
-         for ( size_t i = 0 ; i < activeLogicalCPUs.size () ; i++ )
-         {
-            if ( std::find (activePhysicalCPUs.begin (),activePhysicalCPUs.end (),this->cpuIds [i].physicalId) == activePhysicalCPUs.end ())
-            {
-               activePhysicalCPUs.push_back (this->cpuIds [i].physicalId);
-            }
-         }
-         
-         return activePhysicalCPUs.size ();
-      }
+      void takeControl (const std::set<unsigned int> &cpuIds);
 };
 
 

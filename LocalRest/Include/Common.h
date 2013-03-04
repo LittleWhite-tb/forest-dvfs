@@ -57,12 +57,6 @@ enum Mode {
    MODE_PERFORMANCE
 };
 
-/* Defines a cpu couple */
-struct CPUCouple {
-  unsigned int physicalId;
-  unsigned int logicalId; 
-};
-
 // a few utility functions which may be useful at some point
 #define rest_max(a, b) ((a) > (b) ? (a) : (b))
 #define rest_min(a, b) ((a) < (b) ? (a) : (b))

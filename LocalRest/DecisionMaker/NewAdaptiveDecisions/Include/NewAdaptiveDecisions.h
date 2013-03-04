@@ -271,7 +271,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        */
       inline void debug (const char *str) {
 #ifndef NDEBUG
-         if (NewAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0) {
+         if (NewAdaptiveDecisions::VERBOSE && *(this->unit.getThreads().begin()) == 0) {
             std::cerr << "DEBUG:: " << str << std::endl;
          }
 #endif
@@ -450,10 +450,10 @@ class NewAdaptiveDecisions : public DecisionMaker
 #endif
 
       /**
-       * Keeps a list of active logical CPU ID
+       * Set of active cores.
        * An active CPU is a core having an activity higher than threshold \a ACTIVITY_LEVEL
        */
-      std::vector<unsigned int>activeLogicalCPUs;
+      std::set<unsigned int>activeCores;
       
 
 };

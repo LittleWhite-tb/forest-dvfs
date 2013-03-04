@@ -22,7 +22,7 @@ CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DREST_LOG -DARCH_SNB
 CXXFLAGS_DEBUG=-g
 LD=$(CXX)
 LD_FLAGS=
-LIBS=-lpthread -lrt -lhwloc
+LIBS=-lpthread -lrt
 CXXFLAGS_RELEASE=-DNDEBUG
 
 LIBPFM_VER=4.3.0

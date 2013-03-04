@@ -32,67 +32,70 @@
 #include "CPUInfo.h"
 #include "Common.h"
 
+std::map<unsigned int, unsigned int> CPUInfo::threadToCore;
+
 CPUInfo::CPUInfo ()
 {
+   unsigned int DVFSid = 0;
    std::ostringstream oss;
 
    // the cores which are handled in a DVFS unit
-   std::set<unsigned int> treatedCores;
+   std::set<unsigned int> allCores;
    std::set<unsigned int>::iterator it;
 
    // number of plugged processors
    unsigned int nbCores = sysconf (_SC_NPROCESSORS_ONLN);
 
-   // create the unique DVFS units
-	 unsigned int j = 0;
+   // set of all the cores
    for (unsigned int i = 0; i < nbCores; i++)
    {
-      // a dvfs unit already handle this processor?
-      bool coreIsAlreadyHandled = false;
+      allCores.insert(i);
+   }
 
-      // We loop through the structure containing all the cores already treated
-      for (it = treatedCores.begin (); it != treatedCores.end (); it++) {
-          if (*it == i) {
-            coreIsAlreadyHandled = true;
-            break;
-          }
-      }
+   // until we manage all the cores
+   while (allCores.size() > 0)
+   {
+      std::set<unsigned int> related;
+      unsigned int cpuId = *allCores.begin();
 
-      // Core already handled -> go to the next iteration
-      if (coreIsAlreadyHandled) {
-        continue;
-      }
+      this->getRelatedCores(cpuId, related);
 
-      // create the dvfs unit 
-      DVFSUnit *newDVFS = new DVFSUnit (j++, i);
-      handleAllocation (newDVFS);
+      // create the unique DVFS unit
+      DVFSUnit *newDVFS = new DVFSUnit (DVFSid++, related);
       this->DVFSUnits.push_back (newDVFS);
 
-      // Get all the cpu handled by the new dvfs unit to avoid creating other useless ones
-      const std::vector<CPUCouple>& cpuIds = newDVFS->getCpuIdList ();
-      std::vector<CPUCouple>::const_iterator it; 
-
-      // Insert all of them in the treatedCores vector
-      for (it = cpuIds.begin (); it != cpuIds.end (); it++) {
-         unsigned int cpuid = (*it).logicalId;
-         treatedCores.insert (cpuid);
-      }
-
-      // early exit if we have handled all the cores
-      if (treatedCores.size () == nbCores)
+      // remove the related cores from the list of cores
+      for (std::set<unsigned int>::iterator it = related.begin();
+           it != related.end();
+           it++)
       {
-         break;
+         allCores.erase(*it);
       }
-   } 
+   }
 
    this->nbDVFSUnits = this->DVFSUnits.size ();  
 }
 
 CPUInfo::~CPUInfo ()
 {
-   for (unsigned int i = 0; i < this->nbDVFSUnits; i++)
+   for (std::vector<DVFSUnit *>::iterator it = this->DVFSUnits.begin();
+         it != this->DVFSUnits.end();
+         it++)
    {
-      delete this->DVFSUnits [i];
+      delete *it;
    }
 }
+
+void CPUInfo::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &related)
+{
+   unsigned int val;
+
+   DataFileReader reader(PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath(cpuId));
+
+   while (reader.isOpen() && reader.read(val))
+   {
+      related.insert(val);
+   }
+}
+
 

@@ -27,6 +27,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <cstdlib>
+#include <math.h>
 #include <vector>
 #include <stdint.h>
 #include <cassert>
@@ -34,7 +35,7 @@
 
 #include "NewAdaptiveDecisions.h"
 #include "Common.h"
-#include <math.h>
+#include "CPUInfo.h"
 #include "FreqSelector.h"
 
 #ifdef REST_LOG
@@ -76,7 +77,7 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mod
    this->log = Logger::getLog (this->unit.getId ());
 #endif
 
-   this->nbCpuIds = unit.getNbCpuIds ();
+   this->nbCpuIds = unit.getThreads().size();
    this->nbFreqs = unit.getNbFreqs ();
    assert (this->nbCpuIds != 0);
    assert (this->nbFreqs != 0);
@@ -96,8 +97,6 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mod
    this->lastSequence.step [STEP1].timeRatio = 0;
    this->lastSequence.step [STEP2].freqId = 0;
    this->lastSequence.step [STEP2].timeRatio = 0;
-   
-   activeLogicalCPUs.reserve(nbCpuIds);
 }
 
 NewAdaptiveDecisions::~NewAdaptiveDecisions (void)
@@ -172,10 +171,10 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
    std::vector<unsigned int> smallerIpc;
    std::vector<unsigned int> greaterIpc;
    std::vector<float> maxIPCs;
-   size_t activeCpus = activeLogicalCPUs.size();
+   unsigned int nbActiveCores = this->activeCores.size();
    
    // no active cores?
-   if (activeCpus == 0)
+   if (nbActiveCores == 0)
    {
       FreqChunk step1, step2;
 
@@ -242,15 +241,15 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
    std::vector<float> e_ratios (this->nbFreqs);
-   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), activeLogicalCPUs);
+   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), nbActiveCores);
    const float Psys = NewAdaptiveDecisions::SYS_POWER;
-   e_ratios [*this->freqsToEvaluate.begin ()] = activeCpus;
+   e_ratios [*this->freqsToEvaluate.begin ()] = nbActiveCores;
 
    for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ()++;
         it != this->freqsToEvaluate.end ();
         it++)
    {
-      float Pi = this->unit.getPowerAt (*it, activeLogicalCPUs);
+      float Pi = this->unit.getPowerAt (*it, nbActiveCores);
 
       e_ratios [*it] = 0;
 
@@ -450,7 +449,6 @@ Decision NewAdaptiveDecisions::initEvaluation ()
    // computed frequency window
    this->currentEvalFreqId = this->freqsToEvaluate.begin ();
    res.freqId = *this->currentEvalFreqId;
-   res.cpuId = this->unit.getOSId ();
    res.sleepWin = NewAdaptiveDecisions::IPC_EVAL_TIME;	
    res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
 
@@ -505,7 +503,6 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 
       // do nothing here and immediately get back to the next step
       res.freqId = 0;
-      res.cpuId = this->unit.getOSId ();
       res.sleepWin = 0;
       res.freqApplyDelay = 0;
 
@@ -514,7 +511,6 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 
    // evaluate the next frequency
    res.freqId = *this->currentEvalFreqId;
-   res.cpuId = this->unit.getOSId ();
    res.sleepWin = NewAdaptiveDecisions::IPC_EVAL_TIME;
    res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
 
@@ -532,18 +528,15 @@ void NewAdaptiveDecisions::computeSequence ()
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
    // Compute the number of active cpus
-   activeLogicalCPUs.clear();
+   std::set<unsigned int> activeThreads;
    for (unsigned int c = 0; c < this->nbCpuIds; c++)
    {
       if (this->usage [c] >= ACTIVITY_LEVEL)
       {
-         activeLogicalCPUs.push_back(c);
+         activeThreads.insert(c);
       }
    }
-
-   if (activeLogicalCPUs.size() == 0) {
-      std::cerr << "No active cpus" << std::endl;
-   }
+   CPUInfo::threadIdsToCoreIds(activeThreads, this->activeCores);
 
    // test all perfmormance level by steps of 1%
    for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
@@ -649,7 +642,6 @@ Decision NewAdaptiveDecisions::evaluate ()
 			
          // do nothing and go to the next step
          res.freqId = 0;
-         res.cpuId = this->unit.getOSId ();
          res.sleepWin = 0;
          res.freqApplyDelay = 0;
 
@@ -669,7 +661,6 @@ Decision NewAdaptiveDecisions::executeSequence ()
       Decision res;
 
 		res.freqId = this->sequence.step [this->curExecStep].freqId;
-		res.cpuId = this->unit.getOSId ();
       res.sleepWin =	this->sequence.step [this->curExecStep].timeRatio * this->totalSleepWin;
       res.freqApplyDelay = 0;
       
@@ -710,7 +701,6 @@ Decision NewAdaptiveDecisions::executeSequence ()
 
    // do nothing and go to the next step
    res.freqId = 0;
-   res.cpuId = this->unit.getOSId ();
    res.sleepWin = 0;
    res.freqApplyDelay = 0;
 

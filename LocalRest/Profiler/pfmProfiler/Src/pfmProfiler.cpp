@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <sys/ioctl.h>
+#include <set>
 #include <stdint.h>
 #include <string.h>
 
@@ -54,11 +55,12 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 #endif
    };
 
+   const std::set<unsigned int> threads = this->unit.getThreads();
    int res;
 
    // libpfm init
    PfmProfiler::pfmInit (); 
-   this->nbCpuIds = this->unit.getNbCpuIds ();
+   this->nbCpuIds = threads.size();
 
    //   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
 
@@ -69,8 +71,10 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    handleAllocation (this->formerMeasurement);
 
    // For each CPU in the DVFSUnit
-   for (unsigned int cpu = 0; cpu < nbCpuIds; cpu++) {
-      unsigned int cpuId = this->unit.getOSId (cpu);
+   std::set<unsigned int>::iterator it = threads.begin();
+   for (unsigned int cpu = 0; cpu < nbCpuIds; cpu++, it++)
+   {
+      unsigned int cpuId = *it;
 
       // Offset in the pfmFds array because flattened 2D array
       unsigned baseIdx = cpu*NB_HW_COUNTERS;
