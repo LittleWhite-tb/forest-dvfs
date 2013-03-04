@@ -42,12 +42,12 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
    this->id = id;
 
    // pick one arbitrary cpu id to represent the unit
-   const unsigned int cpuID = *cpuIds.begin();
+   const unsigned int cpuID = *cpuIds.begin ();
 
    // get the latency of this unit
    {
-      DataFileReader reader(PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,PathCache>::buildPath(cpuID));
-      if ( !reader.isOpen() || !reader.read(this->latency) )
+      DataFileReader reader (PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,PathCache>::buildPath (cpuID));
+      if ( !reader.isOpen () || !reader.read (this->latency))
       {
          std::cerr << "Failed to fetch the latency for cpu " << cpuID
             << std::endl;
@@ -59,11 +59,11 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
 
    // retrieve the available frequencies
    {
-      DataFileReader reader(PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS, PathCache>::buildPath(cpuID));
-      if (!reader.isOpen()) 
+      DataFileReader reader (PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS, PathCache>::buildPath (cpuID));
+      if (!reader.isOpen ()) 
       {
          std::cerr << "Error: Failed to read frequency list '"
-         << PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS,PathCache>::buildPath(cpuID)
+         << PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS,PathCache>::buildPath (cpuID)
          << "' for cpu #" << cpuID
          << std::endl;
 
@@ -74,16 +74,16 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
    }
 
    // initialize all the cores under our control
-   this->takeControl(cpuIds);
+   this->takeControl (cpuIds);
 
    /* Now we want to take all the power economy ratio information from the
     * config file */
    {
-      DataFileReader reader(PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(id));
-      if (!reader.isOpen()) 
+      DataFileReader reader (PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath (id));
+      if (!reader.isOpen ()) 
       {
          std::cerr << "Error: Failed to fetch FoREST configuration file '" 
-         << PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath(id) 
+         << PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath (id) 
          << "' for DVFS unit #" << id
          << ". You must run the offline script before using FoREST"
          << std::endl;
@@ -93,30 +93,39 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
 
       // skip the first line
       std::vector<float> data;
-      reader.readLine(data);
+      reader.readLine (data);
+      data.clear();
       
-      while (reader.readLine(data))
+      while (reader.readLine (data))
       {
-         for (std::vector<float>::iterator it = data.begin();
-              it != data.end();
-              it++)
+         // skip empty lines
+         if (data.size() == 0)
          {
-            this->power.push_back(*it);
+            continue;
          }
 
-         if (data.size() != this->freqs.size())
+         for (std::vector<float>::iterator it = data.begin ();
+              it != data.end ();
+              it++)
+         {
+            this->power.push_back (*it);
+         }
+
+         if (data.size () != this->freqs.size ())
          {
             std::cerr << "Corrupted power configuration file. Consider running again the offline power measurement"
                << std::endl;
 
-            exit(EXIT_FAILURE);
+            exit (EXIT_FAILURE);
          }
+
+         data.clear();
       }
    }
 
    // init the status of the unit
    this->curFreqId = 0;
-   this->setFrequency(0);
+   this->setFrequency (0);
 }
 
 DVFSUnit::~DVFSUnit ()
@@ -124,11 +133,11 @@ DVFSUnit::~DVFSUnit ()
    std::ofstream ofs;
 
    // restore the former governor for each CPU
-   for (std::set<unsigned int>::iterator it = this->cpuIds.begin();
-        it != this->cpuIds.end();
+   for (std::set<unsigned int>::iterator it = this->cpuIds.begin ();
+        it != this->cpuIds.end ();
         it++)
    {
-      ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(*it).c_str ());
+      ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it).c_str ());
 
 		if (ofs != 0 && ofs.is_open ()) {
          ofs << this->formerGov [*it];
@@ -138,7 +147,7 @@ DVFSUnit::~DVFSUnit ()
    }
 
    // close files
-   for (unsigned int i = 0; i < this->cpuIds.size(); i++)
+   for (unsigned int i = 0; i < this->cpuIds.size (); i++)
    {
 		this->freqFs [i]->close ();
 		delete this->freqFs [i];
@@ -147,8 +156,8 @@ DVFSUnit::~DVFSUnit ()
 
 void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
 {
-   for (std::set<unsigned int>::iterator it = cpuIds.begin();
-        it != cpuIds.end();
+   for (std::set<unsigned int>::iterator it = cpuIds.begin ();
+        it != cpuIds.end ();
         it++)
    {
       std::string governor;
@@ -157,10 +166,10 @@ void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
       // We store the former governor of this processor to restore it when
       // DVFSUnit object is destroyed
       {
-         DataFileReader governorReader(PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(*it));
+         DataFileReader governorReader (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it));
 
-         if (!governorReader.isOpen() 
-             || !governorReader.read<std::string>(governor) )
+         if (!governorReader.isOpen () 
+             || !governorReader.read<std::string>(governor))
          {
             std::cerr << "Error: fail to read current governor for cpu id #" 
                << *it << std::endl;
@@ -169,23 +178,23 @@ void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
          }
       }
 
-      this->formerGov[*it] = governor;
+      this->formerGov [*it] = governor;
 
 	   // Replace the current governor by userspace
-   	ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath(*it).c_str ());
+   	ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it).c_str ());
 	   ofs << "userspace";
    	ofs.flush ();
 	   ofs.close ();
 
       // open the file in wich we have to write to set a frequency
    	std::ofstream *freqFs = new std::ofstream ();
-   	freqFs->open (PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath(*it).c_str ());
+   	freqFs->open (PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath (*it).c_str ());
 
    	if (!freqFs->is_open ()) {
    	   std::cerr << "Error: Cannot open frequency file setter for writting." << std::endl;
       	std::cerr << "Technical Info:" << std::endl << "- DVFSunit id: "
             << *it << std::endl << "- File path: "
-            << PathBuilder<PT_CPUINFO_SCALING_SETSPEED, PathCache>::buildPath(*it).c_str()
+            << PathBuilder<PT_CPUINFO_SCALING_SETSPEED, PathCache>::buildPath (*it).c_str ()
             << std::endl;
 
    	   exit (EXIT_FAILURE);
@@ -197,15 +206,15 @@ void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
 
 void DVFSUnit::setFrequency (unsigned int freqId)
 { 
-   assert (freqId < this->freqs.size());
+   assert (freqId < this->freqs.size ());
 
    // nothing to do?
    if (freqId == this->curFreqId) {
       return;
    }
 
-	for (std::vector<std::ofstream *>::iterator it = this->freqFs.begin();
-        it != this->freqFs.end();
+	for (std::vector<std::ofstream *>::iterator it = this->freqFs.begin ();
+        it != this->freqFs.end ();
         it++)
    {
 		// write the correct frequency in the file

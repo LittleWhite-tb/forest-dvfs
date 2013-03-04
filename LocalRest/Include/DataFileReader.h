@@ -39,7 +39,7 @@ public:
    bool readLine(std::vector<T>& data)
    {
       std::string line;
-      std::getline (m_file, line, '\n');
+      std::getline (this->m_file, line, '\n');
       std::istringstream iss(line);
       T tmp = T();
       
@@ -48,7 +48,7 @@ public:
          data.push_back(tmp);
       }
       
-      return true;
+      return this->m_file;
    }
    
    template<typename T>

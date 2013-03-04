@@ -40,7 +40,7 @@ template<PathType PT,typename CachingMethod>
 class PathBuilder
 {   
 public:
-   static std::string buildPath(const unsigned int cpuID);
+   static std::string buildPath (const unsigned int cpuID);
 };
 
 template <typename CachingMethod>
@@ -50,19 +50,19 @@ private:
    static CachingMethod m_cache;
    
 public:
-   static std::string buildPath(const unsigned int cpuID)
+   static std::string buildPath (const unsigned int cpuID)
    {
       std::string path;
-      if ( m_cache.get(cpuID,path) )
+      if ( m_cache.get (cpuID,path))
       {
       }
       else
       {
          std::ostringstream oss;
          oss << "/sys/devices/system/cpu/cpu" << cpuID << "/cpufreq/cpuinfo_transition_latency";
-         return oss.str();
+         return oss.str ();
          
-         m_cache.store(cpuID,path);
+         m_cache.store (cpuID,path);
       }
       return path;
    }
@@ -75,19 +75,19 @@ private:
    static CachingMethod m_cache;
    
 public:
-   static std::string buildPath(const unsigned int cpuID)
+   static std::string buildPath (const unsigned int cpuID)
    {
       std::string path;
-      if ( m_cache.get(cpuID,path) )
+      if ( m_cache.get (cpuID,path))
       {
       }
       else
       {
          std::ostringstream oss;
          oss << "/sys/devices/system/cpu/cpu" << cpuID << "/cpufreq/related_cpus";
-         path = oss.str();
+         path = oss.str ();
          
-         m_cache.store(cpuID,path);
+         m_cache.store (cpuID,path);
       }
       return path;
    }
@@ -100,19 +100,19 @@ private:
    static CachingMethod m_cache;
    
 public:
-   static std::string buildPath(const unsigned int cpuID)
+   static std::string buildPath (const unsigned int cpuID)
    {
       std::string path;
-      if ( m_cache.get(cpuID,path) )
+      if ( m_cache.get (cpuID,path))
       {
       }
       else
       {
          std::ostringstream oss;
          oss << "/sys/devices/system/cpu/cpu" << cpuID << "/cpufreq/scaling_available_frequencies";
-         path = oss.str();
+         path = oss.str ();
          
-         m_cache.store(cpuID,path);
+         m_cache.store (cpuID,path);
       }
       return path;
    }
@@ -125,19 +125,19 @@ private:
    static CachingMethod m_cache;
    
 public:
-   static std::string buildPath(const unsigned int cpuID)
+   static std::string buildPath (const unsigned int cpuID)
    {
       std::string path;
-      if ( m_cache.get(cpuID,path) )
+      if ( m_cache.get (cpuID,path))
       {
       }
       else
       {
          std::ostringstream oss;
          oss << "/sys/devices/system/cpu/cpu" << cpuID << "/cpufreq/scaling_governor";
-         path = oss.str();
+         path = oss.str ();
          
-         m_cache.store(cpuID,path);
+         m_cache.store (cpuID,path);
       }
       return path;
    }
@@ -150,19 +150,19 @@ private:
    static CachingMethod m_cache;
    
 public:
-   static std::string buildPath(const unsigned int cpuID)
+   static std::string buildPath (const unsigned int cpuID)
    {
       std::string path;
-      if ( m_cache.get(cpuID,path) )
+      if ( m_cache.get (cpuID,path))
       {
       }
       else
       {
          std::ostringstream oss;
          oss << "/sys/devices/system/cpu/cpu" << cpuID << "/cpufreq/scaling_setspeed";
-         path = oss.str();
+         path = oss.str ();
          
-         m_cache.store(cpuID,path);
+         m_cache.store (cpuID,path);
       }
       return path;
    }
@@ -175,19 +175,19 @@ private:
    static CachingMethod m_cache;
    
 public:
-   static std::string buildPath(const unsigned int cpuID)
+   static std::string buildPath (const unsigned int cpuID)
    {
       std::string path;
-      if ( m_cache.get(cpuID,path) )
+      if ( m_cache.get (cpuID,path))
       {
       }
       else
       {
          std::ostringstream oss;
          oss << "/sys/devices/system/cpu/cpu" << cpuID << "/topology/physical_package_id";
-         path = oss.str();
+         path = oss.str ();
          
-         m_cache.store(cpuID,path);
+         m_cache.store (cpuID,path);
       }
       return path;
    }
@@ -201,19 +201,19 @@ private:
    static CachingMethod m_cache;
    
 public:
-   static std::string buildPath(const unsigned int cpuID)
+   static std::string buildPath (const unsigned int cpuID)
    {
       std::string path;
-      if ( m_cache.get(cpuID,path) )
+      if ( m_cache.get (cpuID,path))
       {
       }
       else
       {
          std::ostringstream oss;
          oss << "offline/power_" << cpuID << ".cfg";
-         path = oss.str();
+         path = oss.str ();
          
-         m_cache.store(cpuID,path);
+         m_cache.store (cpuID,path);
       }
       return path;
    }
@@ -221,18 +221,18 @@ public:
 
 // Static declaration
 template <typename CachingMethod>
-CachingMethod PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,CachingMethod>::m_cache=CachingMethod();
+CachingMethod PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
-CachingMethod PathBuilder<PT_CPUINFO_RELATED_CPU,CachingMethod>::m_cache=CachingMethod();
+CachingMethod PathBuilder<PT_CPUINFO_RELATED_CPU,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
-CachingMethod PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS,CachingMethod>::m_cache=CachingMethod();
+CachingMethod PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
-CachingMethod PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,CachingMethod>::m_cache=CachingMethod();
+CachingMethod PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
-CachingMethod PathBuilder<PT_CPUINFO_SCALING_SETSPEED,CachingMethod>::m_cache=CachingMethod();
+CachingMethod PathBuilder<PT_CPUINFO_SCALING_SETSPEED,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
-CachingMethod PathBuilder<PT_TOPOLOGY_PKG_ID,CachingMethod>::m_cache=CachingMethod();
+CachingMethod PathBuilder<PT_TOPOLOGY_PKG_ID,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
-CachingMethod PathBuilder<PT_POWER_CONFIG,CachingMethod>::m_cache=CachingMethod();
+CachingMethod PathBuilder<PT_POWER_CONFIG,CachingMethod>::m_cache=CachingMethod ();
 
 #endif

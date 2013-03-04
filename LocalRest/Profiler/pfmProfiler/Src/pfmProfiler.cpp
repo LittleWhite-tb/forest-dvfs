@@ -55,12 +55,12 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 #endif
    };
 
-   const std::set<unsigned int> threads = this->unit.getThreads();
+   const std::set<unsigned int> threads = this->unit.getThreads ();
    int res;
 
    // libpfm init
    PfmProfiler::pfmInit (); 
-   this->nbCpuIds = threads.size();
+   this->nbCpuIds = threads.size ();
 
    //   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
 
@@ -71,7 +71,7 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    handleAllocation (this->formerMeasurement);
 
    // For each CPU in the DVFSUnit
-   std::set<unsigned int>::iterator it = threads.begin();
+   std::set<unsigned int>::iterator it = threads.begin ();
    for (unsigned int cpu = 0; cpu < nbCpuIds; cpu++, it++)
    {
       unsigned int cpuId = *it;

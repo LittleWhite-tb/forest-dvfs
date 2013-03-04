@@ -61,7 +61,7 @@ class DVFSUnit
        *
        * @return The unique ID for this DVFS unit.
        */
-      inline unsigned int getId() const
+      inline unsigned int getId () const
       {
          return this->id;
       }
@@ -71,7 +71,7 @@ class DVFSUnit
        *
        * @return The IDs of the threads this instance controls.
        */
-      inline const std::set<unsigned int> getThreads() const
+      inline const std::set<unsigned int> getThreads () const
       {
          return this->cpuIds;
       }
@@ -203,7 +203,7 @@ class DVFSUnit
        * 2nd dimension : available frequencies
        * 
        * To access the power consumption for A active cores at frequency F,
-       * reach power[A * nbFreqs + F]
+       * reach power [A * nbFreqs + F]
        */
       std::vector<float> power;
 

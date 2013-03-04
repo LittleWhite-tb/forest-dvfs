@@ -49,27 +49,27 @@ CPUInfo::CPUInfo ()
    // set of all the cores
    for (unsigned int i = 0; i < nbCores; i++)
    {
-      allCores.insert(i);
+      allCores.insert (i);
    }
 
    // until we manage all the cores
-   while (allCores.size() > 0)
+   while (allCores.size () > 0)
    {
       std::set<unsigned int> related;
-      unsigned int cpuId = *allCores.begin();
+      unsigned int cpuId = *allCores.begin ();
 
-      this->getRelatedCores(cpuId, related);
+      this->getRelatedCores (cpuId, related);
 
       // create the unique DVFS unit
       DVFSUnit *newDVFS = new DVFSUnit (DVFSid++, related);
       this->DVFSUnits.push_back (newDVFS);
 
       // remove the related cores from the list of cores
-      for (std::set<unsigned int>::iterator it = related.begin();
-           it != related.end();
+      for (std::set<unsigned int>::iterator it = related.begin ();
+           it != related.end ();
            it++)
       {
-         allCores.erase(*it);
+         allCores.erase (*it);
       }
    }
 
@@ -78,8 +78,8 @@ CPUInfo::CPUInfo ()
 
 CPUInfo::~CPUInfo ()
 {
-   for (std::vector<DVFSUnit *>::iterator it = this->DVFSUnits.begin();
-         it != this->DVFSUnits.end();
+   for (std::vector<DVFSUnit *>::iterator it = this->DVFSUnits.begin ();
+         it != this->DVFSUnits.end ();
          it++)
    {
       delete *it;
@@ -90,11 +90,11 @@ void CPUInfo::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &relat
 {
    unsigned int val;
 
-   DataFileReader reader(PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath(cpuId));
+   DataFileReader reader (PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath (cpuId));
 
-   while (reader.isOpen() && reader.read(val))
+   while (reader.isOpen () && reader.read (val))
    {
-      related.insert(val);
+      related.insert (val);
    }
 }
 

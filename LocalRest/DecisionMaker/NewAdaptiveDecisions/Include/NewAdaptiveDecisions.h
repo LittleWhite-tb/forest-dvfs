@@ -271,7 +271,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        */
       inline void debug (const char *str) {
 #ifndef NDEBUG
-         if (NewAdaptiveDecisions::VERBOSE && *(this->unit.getThreads().begin()) == 0) {
+         if (NewAdaptiveDecisions::VERBOSE && *(this->unit.getThreads ().begin ()) == 0) {
             std::cerr << "DEBUG:: " << str << std::endl;
          }
 #endif

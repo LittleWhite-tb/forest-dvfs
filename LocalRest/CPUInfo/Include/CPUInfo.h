@@ -76,25 +76,25 @@ class CPUInfo
        * @param thId The thread ID to convert.
        * @return The core ID of the thread.
        */
-      static unsigned int threadIdToCoreId(unsigned int thId)
+      static unsigned int threadIdToCoreId (unsigned int thId)
       {
          std::map<unsigned int, unsigned int>::iterator it = 
-            CPUInfo::threadToCore.find(thId);
+            CPUInfo::threadToCore.find (thId);
 
-         if (it == CPUInfo::threadToCore.end())
+         if (it == CPUInfo::threadToCore.end ())
          {
             unsigned int pkgId;
-            DataFileReader reader(PathBuilder<PT_TOPOLOGY_PKG_ID,PathCache>::buildPath(thId));
+            DataFileReader reader (PathBuilder<PT_TOPOLOGY_PKG_ID,PathCache>::buildPath (thId));
 
-            if (!reader.isOpen() || !reader.read(pkgId))
+            if (!reader.isOpen () || !reader.read (pkgId))
             {
                std::cerr << "Cannot detect which core own the thread " << thId << std::endl;
 
-               exit(EXIT_FAILURE);
+               exit (EXIT_FAILURE);
             }
 
-            CPUInfo::threadToCore[thId] = pkgId;
-            it = CPUInfo::threadToCore.find(thId);
+            CPUInfo::threadToCore [thId] = pkgId;
+            it = CPUInfo::threadToCore.find (thId);
          }
 
          return it->second;
@@ -107,14 +107,14 @@ class CPUInfo
        * @param coreIds Ouput parameter, filled with the list of cores to which
        *  the threads are associated.
        */
-      static void threadIdsToCoreIds(const std::set<unsigned int> &thIds,
+      static void threadIdsToCoreIds (const std::set<unsigned int> &thIds,
                                      std::set<unsigned int> &coreIds)
       {
-         for (std::set<unsigned int>::iterator it = thIds.begin();
-              it != thIds.end();
+         for (std::set<unsigned int>::iterator it = thIds.begin ();
+              it != thIds.end ();
               it++)
          {
-            coreIds.insert(CPUInfo::threadIdToCoreId(*it));
+            coreIds.insert (CPUInfo::threadIdToCoreId (*it));
          }
       }
       

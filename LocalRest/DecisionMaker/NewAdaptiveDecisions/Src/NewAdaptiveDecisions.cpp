@@ -77,7 +77,7 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mod
    this->log = Logger::getLog (this->unit.getId ());
 #endif
 
-   this->nbCpuIds = unit.getThreads().size();
+   this->nbCpuIds = unit.getThreads ().size ();
    this->nbFreqs = unit.getNbFreqs ();
    assert (this->nbCpuIds != 0);
    assert (this->nbFreqs != 0);
@@ -171,7 +171,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
    std::vector<unsigned int> smallerIpc;
    std::vector<unsigned int> greaterIpc;
    std::vector<float> maxIPCs;
-   unsigned int nbActiveCores = this->activeCores.size();
+   unsigned int nbActiveCores = this->activeCores.size ();
    
    // no active cores?
    if (nbActiveCores == 0)
@@ -533,10 +533,10 @@ void NewAdaptiveDecisions::computeSequence ()
    {
       if (this->usage [c] >= ACTIVITY_LEVEL)
       {
-         activeThreads.insert(c);
+         activeThreads.insert (c);
       }
    }
-   CPUInfo::threadIdsToCoreIds(activeThreads, this->activeCores);
+   CPUInfo::threadIdsToCoreIds (activeThreads, this->activeCores);
 
    // test all perfmormance level by steps of 1%
    for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)

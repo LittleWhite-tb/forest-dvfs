@@ -145,7 +145,7 @@ int main (int argc, char ** argv)
 	atexit (exitCleanup);
 
 	// Launch the function for main thread
-	thProf (&restCtx.thdCtx[0].opts);
+	thProf (&restCtx.thdCtx [0].opts);
 
 	// never reached
 	return EXIT_SUCCESS;
@@ -153,7 +153,7 @@ int main (int argc, char ** argv)
 
 static void * thProf (void * arg)
 {
-   assert(arg);
+   assert (arg);
    
 	thOpts * opts = reinterpret_cast<thOpts*>(arg);
 	Decision dec;
