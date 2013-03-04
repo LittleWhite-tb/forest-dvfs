@@ -94,12 +94,12 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
       // skip the first line
       std::vector<float> data;
       reader.readLine (data);
-      data.clear();
+      data.clear ();
       
       while (reader.readLine (data))
       {
          // skip empty lines
-         if (data.size() == 0)
+         if (data.size () == 0)
          {
             continue;
          }
@@ -119,7 +119,7 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
             exit (EXIT_FAILURE);
          }
 
-         data.clear();
+         data.clear ();
       }
    }
 

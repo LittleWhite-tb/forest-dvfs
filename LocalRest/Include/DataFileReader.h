@@ -30,29 +30,29 @@ private:
    std::ifstream m_file;
 
 public:
-   DataFileReader(const std::string& filePath);
-   ~DataFileReader();
+   DataFileReader (const std::string& filePath);
+   ~DataFileReader ();
    
-   bool isOpen()const;
+   bool isOpen ()const;
    
    template<typename T>
-   bool readLine(std::vector<T>& data)
+   bool readLine (std::vector<T>& data)
    {
       std::string line;
       std::getline (this->m_file, line, '\n');
-      std::istringstream iss(line);
-      T tmp = T();
+      std::istringstream iss (line);
+      T tmp = T ();
       
       while (iss >> tmp) 
       {
-         data.push_back(tmp);
+         data.push_back (tmp);
       }
       
       return this->m_file;
    }
    
    template<typename T>
-   bool read(T& data)
+   bool read (T& data)
    {
       m_file >> data;
       return m_file;
