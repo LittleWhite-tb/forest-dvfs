@@ -136,7 +136,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * at most five frequencies will be evaluated: two just bellow the current
        * one and two just above.
        */
-      static const unsigned int FREQ_WINDOW_SZ = 1;
+      static const unsigned int FREQ_WINDOW_SZ = 2;
 
       /**
        * Number of frequencies to consider as similar regarding stability.
@@ -169,7 +169,6 @@ class NewAdaptiveDecisions : public DecisionMaker
        * Allowed performance slowdown currently requested by the user.
        */
       const float USER_PERF_REQ;
-
 
       /**
        * A CPU is active if its usage is above this.

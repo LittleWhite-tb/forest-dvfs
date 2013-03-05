@@ -22,6 +22,7 @@
  * The DVFSUnit class is in this file
  */
 
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
@@ -71,6 +72,7 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
       }
 
       reader.readLine<unsigned int>(this->freqs);
+      std::sort(this->freqs.begin(), this->freqs.end());
    }
 
    // initialize all the cores under our control

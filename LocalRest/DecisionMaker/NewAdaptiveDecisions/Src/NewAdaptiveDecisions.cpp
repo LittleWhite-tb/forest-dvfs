@@ -50,6 +50,7 @@ struct CoupleInfo {
 
 // Static declarations
 #ifdef ARCH_SNB
+      // SandyBridge hw counters report incorrect activity for low activity
       const float NewAdaptiveDecisions::ACTIVITY_LEVEL = 0.5f;
 #else
       const float NewAdaptiveDecisions::ACTIVITY_LEVEL = 0.3f;
@@ -88,10 +89,6 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mod
    this->ipcEval = new float [this->ipcEvalSize];
    this->usage = new float [this->nbCpuIds];
 
-   // Check that allocation was successful
-   handleAllocation (this->ipcEval);
-   handleAllocation (this->usage);
-
    // setup an initial state for the decision
    this->lastSequence.step [STEP1].freqId = 0;
    this->lastSequence.step [STEP1].timeRatio = 0;
@@ -104,47 +101,6 @@ NewAdaptiveDecisions::~NewAdaptiveDecisions (void)
    delete [] this->ipcEval;
    delete [] this->usage;
 }
-
-#if 0
-void NewAdaptiveDecisions::getAvgIPCPerFreq (float *avgIPC)
-{
-   /*std::cout << "Activity level: ";
-   for (unsigned int c = 0; c < this->nbCpuIds; c++)
-   {
-      std::cout << this->usage [c] << " ";
-   }
-   std::cout << std::endl;*/
-
-
-   for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
-      it != this->freqsToEvaluate.end ();
-      it++)
-   {
-      unsigned int activeCpus = 0;
-      float ipc = 0;
-
-      for (unsigned int c = 0; c < this->nbCpuIds; c++)
-      {
-         if (this->usage [c] >= ACTIVITY_LEVEL)
-         {
-            ipc += this->ipcEval [*it * this->nbCpuIds + c];
-            activeCpus++;
-         }
-      }
-
-      if (activeCpus == 0)
-      {
-         avgIPC [*it] = 0;
-         continue;
-      }
-
-      ipc = ipc / activeCpus;
-      avgIPC [*it] = ipc;
-
-      std::cout << "IPC for freq " << *it << " = " << ipc << std::endl;
-   }
-}
-#endif
 
 void NewAdaptiveDecisions::getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs)
 {
@@ -207,7 +163,6 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
       bool isLower = true, isHigher = true;
 
       //std::cout << "Freq " << *it << ": ";
-
       for (unsigned int c = 0; c < this->nbCpuIds; c++)
       {
          if (this->usage [c] >= ACTIVITY_LEVEL)
@@ -224,7 +179,6 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
             }
          }
       }
-
       //std::cout << std::endl;
 
       if (isLower)
@@ -286,7 +240,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
          *coupleEnergy = e_ratios [minFreq];
       }
 
-      //std::cout << "No smaller freqs, choosing " << minFreq << std::endl;
+      //std::cout << "No smaller freqs, choosing " << minFreq << " e = " << *coupleEnergy <<  std::endl;
  
       return couple;
    }
@@ -313,11 +267,10 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
          *coupleEnergy = e_ratios [maxFreq];
       }
 
-      //std::cout << "No greater freqs, choosing " << maxFreq << std::endl;
+      //std::cout << "No greater freqs, choosing " << maxFreq << " e = " << *coupleEnergy << std::endl;
 
       return couple;
    }
-
 
    // we want min (r_i*e_i/e_ref+r_j*e_j/e_ref) among all couples (f_i, f_j)
    // with r_i and r_j the time ratios for f_i and f_j in the couple
@@ -368,8 +321,8 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
 
          float coupleE = step1.timeRatio * e_ratios [smaller] + step2.timeRatio * e_ratios [greater];
 
-         //std::cout << "couple ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio 
-         //   << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE << std::endl;
+         std::cout << "couple ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio 
+            << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE << std::endl;
 
          if (coupleE < bestCoupleE)
          {
@@ -527,7 +480,7 @@ void NewAdaptiveDecisions::computeSequence ()
    float bestD = 0;
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
-   // Compute the number of active cpus
+   // active cpus
    std::set<unsigned int> activeThreads;
    for (unsigned int c = 0; c < this->nbCpuIds; c++)
    {
@@ -536,6 +489,7 @@ void NewAdaptiveDecisions::computeSequence ()
          activeThreads.insert (c);
       }
    }
+   this->activeCores.clear();
    CPUInfo::threadIdsToCoreIds (activeThreads, this->activeCores);
 
    // test all perfmormance level by steps of 1%

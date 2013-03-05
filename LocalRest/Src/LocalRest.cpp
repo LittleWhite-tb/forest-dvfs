@@ -110,7 +110,6 @@ int main (int argc, char ** argv)
 	Logger::initLog (nbDVFSUnits);
 #endif
 	restCtx.thdCtx = new ThreadContext [nbDVFSUnits];
-	handleAllocation (restCtx.thdCtx);
 	
 	// launch threads
 	for (unsigned int i = 0; i < nbDVFSUnits; i++)
@@ -120,9 +119,7 @@ int main (int argc, char ** argv)
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
 		opts.dec = new NewAdaptiveDecisions (unit, mode);
-		handleAllocation (opts.dec);
 		opts.prof = new PfmProfiler (unit);
-		handleAllocation (opts.dec);
 		opts.unit = &unit;
 
 		// The unit 0 will use the current application thread. Others need

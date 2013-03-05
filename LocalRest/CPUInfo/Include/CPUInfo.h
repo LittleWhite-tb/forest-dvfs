@@ -84,7 +84,7 @@ class CPUInfo
          if (it == CPUInfo::threadToCore.end ())
          {
             unsigned int pkgId;
-            DataFileReader reader (PathBuilder<PT_TOPOLOGY_PKG_ID,PathCache>::buildPath (thId));
+            DataFileReader reader (PathBuilder<PT_TOPOLOGY_CORE_ID,PathCache>::buildPath (thId));
 
             if (!reader.isOpen () || !reader.read (pkgId))
             {

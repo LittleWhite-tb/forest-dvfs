@@ -32,6 +32,7 @@ enum PathType
    PT_CPUINFO_SCALING_AVAIL_FREQS,
    PT_CPUINFO_SCALING_GOVERNOR,
    PT_CPUINFO_SCALING_SETSPEED,
+   PT_TOPOLOGY_CORE_ID,
    PT_TOPOLOGY_PKG_ID,
    PT_POWER_CONFIG,
 };
@@ -169,6 +170,32 @@ public:
 };
 
 template <typename CachingMethod>
+class PathBuilder<PT_TOPOLOGY_CORE_ID,CachingMethod>
+{
+private:
+   static CachingMethod m_cache;
+   
+public:
+   static std::string buildPath (const unsigned int cpuID)
+   {
+      std::string path;
+      if ( m_cache.get (cpuID,path))
+      {
+      }
+      else
+      {
+         std::ostringstream oss;
+         oss << "/sys/devices/system/cpu/cpu" << cpuID << "/topology/core_id";
+         path = oss.str ();
+         
+         m_cache.store (cpuID,path);
+      }
+      return path;
+   }
+};
+
+
+template <typename CachingMethod>
 class PathBuilder<PT_TOPOLOGY_PKG_ID,CachingMethod>
 {
 private:
@@ -230,6 +257,8 @@ template <typename CachingMethod>
 CachingMethod PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
 CachingMethod PathBuilder<PT_CPUINFO_SCALING_SETSPEED,CachingMethod>::m_cache=CachingMethod ();
+template <typename CachingMethod>
+CachingMethod PathBuilder<PT_TOPOLOGY_CORE_ID,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>
 CachingMethod PathBuilder<PT_TOPOLOGY_PKG_ID,CachingMethod>::m_cache=CachingMethod ();
 template <typename CachingMethod>

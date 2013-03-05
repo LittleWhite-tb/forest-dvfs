@@ -19,9 +19,10 @@
 #ifndef DATAFILEREADER_HPP
 #define DATAFILEREADER_HPP
 
+#include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
-#include <fstream>
 
 class DataFileReader
 {

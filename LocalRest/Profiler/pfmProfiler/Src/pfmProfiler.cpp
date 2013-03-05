@@ -65,10 +65,8 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    //   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
 
    this->pfmFds = new int [NB_HW_COUNTERS*nbCpuIds];
-   handleAllocation (this->pfmFds);
 
    this->formerMeasurement = new HWCounters [nbCpuIds];
-   handleAllocation (this->formerMeasurement);
 
    // For each CPU in the DVFSUnit
    std::set<unsigned int>::iterator it = threads.begin ();
