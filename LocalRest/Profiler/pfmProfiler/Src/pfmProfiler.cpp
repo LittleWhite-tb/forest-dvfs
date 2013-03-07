@@ -33,6 +33,7 @@
 #include "pfmProfiler.h"
 #include "perfmon/perf_event.h"
 #include "perfmon/pfmlib_perf_event.h"
+#include "glog/logging.h"
 
 // definition of the static fields
 pthread_mutex_t PfmProfiler::pfmInitMtx = PTHREAD_MUTEX_INITIALIZER;
@@ -62,8 +63,6 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
    PfmProfiler::pfmInit (); 
    this->nbCpuIds = threads.size ();
 
-   //   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
-
    this->pfmFds = new int [NB_HW_COUNTERS*nbCpuIds];
 
    this->formerMeasurement = new HWCounters [nbCpuIds];
@@ -92,29 +91,21 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 
          // encode the counter
          res = pfm_get_os_event_encoding (counters [i],  PFM_PLM0 | PFM_PLM1 | PFM_PLM2 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
-         if (res != PFM_SUCCESS)
-         {
-            std::cerr << "Failed to get counter " << counters [i] << " on cpu " << cpu << std::endl;
-            exit (EXIT_FAILURE);
-         }
+         CHECK (res == PFM_SUCCESS) << "Failed to get counter " << counters [i]
+            << " on cpu " << cpu << std::endl;
 
          // request scaling in case of shared counters
          arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
          // open the corresponding file on the system
          this->pfmFds [baseIdx + i] = perf_event_open (arg.attr, -1, cpuId, -1, 0);
-         if (this->pfmFds [baseIdx + i] == -1)
-         {
-            std::cerr << "Cannot open counter " << counters [i] << " on cpu " << cpuId << std::endl;
-            exit (EXIT_FAILURE);
-         }
+         CHECK (this->pfmFds [baseIdx + i] != -1) << "Cannot open counter "
+            << counters [i] << " on cpu " << cpuId << std::endl;
 
          // Activate the counter
-         if (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0))
-         {
-            std::cerr << "Cannot enable event " << counters [i] << " on cpu " << cpuId << std::endl;
-            exit (EXIT_FAILURE);
-         }
+         CHECK (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0) == 0)
+            << "Cannot enable event " << counters [i] << " on cpu " << cpuId
+            << std::endl;
       }
    }
 
@@ -142,7 +133,7 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
    assert (cpu < this->nbCpuIds);
    int res;
 
-   //std::cerr << "reading hwc for cpu " << cpu << std::endl;
+   //DLOG (INFO) << "reading hwc for cpu " << cpu << std::endl;
    
    // specific case of the time stamp counter
    uint32_t tsa, tsd;
@@ -164,12 +155,11 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
       res = ::read (this->pfmFds [baseIdx + i], buf, sizeof (buf));
       if (res != sizeof (buf))
       {
-         std::cerr << "Failed to read counter #" << i << std::endl;
+         LOG (ERROR) << "Failed to read counter #" << i << std::endl;
       }
 
       // handle scaling to allow PMU sharing
       value = (uint64_t)((double) buf [0] * (double) buf [1] / buf [2]);
-      //if (i == 1) std::cout << "value: " << buf [0] << " former: " << this->formerMeasurement [cpu].values [i] <<  std::endl;
       if (this->formerMeasurement [cpu].values [i] <= value)
       {
          hwc.values [i] = value - this->formerMeasurement [cpu].values [i];

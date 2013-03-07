@@ -18,17 +18,19 @@
  
 #include "PathCache.h"
 
+#include "glog/logging.h"
+
 #include <iostream>
 
-bool PathCache::exists(const unsigned int key)const
+bool PathCache::exists (const unsigned int key)const
 {
-   return m_cache.find(key) != m_cache.end();
+   return m_cache.find (key) != m_cache.end ();
 }
 
-bool PathCache::get(const unsigned int key, std::string& path)const
+bool PathCache::get (const unsigned int key, std::string& path)const
 {
-   CacheType::const_iterator itElem = m_cache.find(key);
-   if ( itElem != m_cache.end() )
+   CacheType::const_iterator itElem = m_cache.find (key);
+   if ( itElem != m_cache.end ())
    {
       path = itElem->second;
       return true;
@@ -36,12 +38,13 @@ bool PathCache::get(const unsigned int key, std::string& path)const
    return false;
 }
 
-void PathCache::store(const unsigned int key, const std::string& path)
+void PathCache::store (const unsigned int key, const std::string& path)
 {
-   if ( exists(key) )
+   if ( exists (key))
    {
-      std::cerr << "WARNING : PathCache have already cached a path for key " << key << " (overwritting)" << std::endl;
+      LOG (WARNING) << "PathCache have already cached a path for key " << key
+         << " (overwritting)" << std::endl;
    }
    
-   m_cache[key]=path;
+   m_cache [key]=path;
 }

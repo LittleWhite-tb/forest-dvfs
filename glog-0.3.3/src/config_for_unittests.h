@@ -46,8 +46,8 @@
 //
 // The reason we need this extra GOOGLE_GLOG_DLL_DECL_FOR_UNITTESTS
 // variable is in case people want to set GOOGLE_GLOG_DLL_DECL explicitly
-// to something other than __declspec(dllexport).  In that case, they
-// may want to use something other than __declspec(dllimport) for the
+// to something other than __declspec (dllexport).  In that case, they
+// may want to use something other than __declspec (dllimport) for the
 // unittest case.  For that, we allow folks to define both
 // GOOGLE_GLOG_DLL_DECL and GOOGLE_GLOG_DLL_DECL_FOR_UNITTESTS explicitly.
 //

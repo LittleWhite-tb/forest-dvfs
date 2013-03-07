@@ -33,6 +33,8 @@
 #include <vector>
 #include <hwloc.h>
 
+#include "glog/logging.h"
+
 #include "DVFSUnit.h"
 #include "PathBuilder.h"
 #include "DataFileReader.h"
@@ -50,7 +52,7 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
       DataFileReader reader (PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,PathCache>::buildPath (cpuID));
       if ( !reader.isOpen () || !reader.read (this->latency))
       {
-         std::cerr << "Failed to fetch the latency for cpu " << cpuID
+         LOG (WARNING) << "Failed to fetch the latency for cpu " << cpuID
             << std::endl;
 
          // default under linux, if it may help
@@ -63,16 +65,14 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
       DataFileReader reader (PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS, PathCache>::buildPath (cpuID));
       if (!reader.isOpen ()) 
       {
-         std::cerr << "Error: Failed to read frequency list '"
+         LOG (FATAL) << "Failed to read frequency list '"
          << PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS,PathCache>::buildPath (cpuID)
          << "' for cpu #" << cpuID
          << std::endl;
-
-         exit (EXIT_FAILURE);
       }
 
       reader.readLine<unsigned int>(this->freqs);
-      std::sort(this->freqs.begin(), this->freqs.end());
+      std::sort (this->freqs.begin (), this->freqs.end ());
    }
 
    // initialize all the cores under our control
@@ -84,13 +84,11 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
       DataFileReader reader (PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath (id));
       if (!reader.isOpen ()) 
       {
-         std::cerr << "Error: Failed to fetch FoREST configuration file '" 
+         LOG (FATAL) << "Failed to fetch FoREST configuration file '" 
          << PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath (id) 
          << "' for DVFS unit #" << id
          << ". You must run the offline script before using FoREST"
          << std::endl;
-
-         exit (EXIT_FAILURE);
       } 
 
       // skip the first line
@@ -115,10 +113,8 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
 
          if (data.size () != this->freqs.size ())
          {
-            std::cerr << "Corrupted power configuration file. Consider running again the offline power measurement"
+            LOG (FATAL) << "Corrupted power configuration file. Consider running again the offline power measurement"
                << std::endl;
-
-            exit (EXIT_FAILURE);
          }
 
          data.clear ();
@@ -173,7 +169,7 @@ void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
          if (!governorReader.isOpen () 
              || !governorReader.read<std::string>(governor))
          {
-            std::cerr << "Error: fail to read current governor for cpu id #" 
+            LOG (WARNING) << "Failed to read current governor for cpu id #" 
                << *it << std::endl;
 
             governor = "ondemand";
@@ -193,13 +189,12 @@ void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
    	freqFs->open (PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath (*it).c_str ());
 
    	if (!freqFs->is_open ()) {
-   	   std::cerr << "Error: Cannot open frequency file setter for writting." << std::endl;
-      	std::cerr << "Technical Info:" << std::endl << "- DVFSunit id: "
+   	   LOG (FATAL) << "Error: Cannot open frequency file setter for writting."
+            << std::endl
+            << "Technical Info:" << std::endl << "- DVFSunit id: "
             << *it << std::endl << "- File path: "
             << PathBuilder<PT_CPUINFO_SCALING_SETSPEED, PathCache>::buildPath (*it).c_str ()
             << std::endl;
-
-   	   exit (EXIT_FAILURE);
       }
 
 	   this->freqFs.push_back (freqFs);

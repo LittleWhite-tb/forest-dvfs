@@ -52,12 +52,12 @@
 #include <windows.h>
 #include <winsock.h>         /* for gethostname */
 #include <io.h>              /* because we so often use open/close/etc */
-#include <direct.h>          /* for _getcwd() */
-#include <process.h>         /* for _getpid() */
+#include <direct.h>          /* for _getcwd () */
+#include <process.h>         /* for _getpid () */
 #include <stdio.h>           /* read in vsnprintf decl. before redifining it */
 #include <stdarg.h>          /* template_dictionary.cc uses va_copy */
-#include <string.h>          /* for _strnicmp(), strerror_s() */
-#include <time.h>            /* for localtime_s() */
+#include <string.h>          /* for _strnicmp (), strerror_s () */
+#include <time.h>            /* for localtime_s () */
 /* Note: the C++ #includes are all together at the bottom.  This file is
  * used by both C and C++ code, so we put all the C++ together.
  */
@@ -65,11 +65,11 @@
 /* 4244: otherwise we get problems when substracting two size_t's to an int
  * 4251: it's complaining about a private struct I've chosen not to dllexport
  * 4355: we use this in a constructor, but we do it safely
- * 4715: for some reason VC++ stopped realizing you can't return after abort()
+ * 4715: for some reason VC++ stopped realizing you can't return after abort ()
  * 4800: we know we're casting ints/char*'s to bools, and we're ok with that
- * 4996: Yes, we're ok using "unsafe" functions like fopen() and strerror()
+ * 4996: Yes, we're ok using "unsafe" functions like fopen () and strerror ()
  */
-#pragma warning(disable:4244 4251 4355 4715 4800 4996)
+#pragma warning (disable:4244 4251 4355 4715 4800 4996)
 
 /* file I/O */
 #define PATH_MAX 1024
@@ -98,7 +98,7 @@ enum { STDIN_FILENO = 0, STDOUT_FILENO = 1, STDERR_FILENO = 2 };
 
 /* In windows-land, hash<> is called hash_compare<> (from xhash.h) */
 /* VC11 provides std::hash */
-#if defined(_MSC_VER) && (_MSC_VER < 1700)
+#if defined (_MSC_VER) && (_MSC_VER < 1700)
 #define hash  hash_compare
 #endif
 
@@ -109,9 +109,9 @@ enum { STDIN_FILENO = 0, STDOUT_FILENO = 1, STDERR_FILENO = 2 };
  * because they don't always NUL-terminate. :-(  We also can't use the
  * name vsnprintf, since windows defines that (but not snprintf (!)).
  */
-extern int snprintf(char *str, size_t size,
+extern int snprintf (char *str, size_t size,
                                        const char *format, ...);
-extern int safe_vsnprintf(char *str, size_t size,
+extern int safe_vsnprintf (char *str, size_t size,
                           const char *format, va_list ap);
 #define vsnprintf(str, size, format, ap)  safe_vsnprintf(str, size, format, ap)
 #define va_copy(dst, src)  (dst) = (src)
@@ -135,13 +135,13 @@ enum { PTHREAD_ONCE_INIT = 0 };   // important that this be 0! for SpinLock
 #define pthread_self  GetCurrentThreadId
 #define pthread_equal(pthread_t_1, pthread_t_2)  ((pthread_t_1)==(pthread_t_2))
 
-inline struct tm* localtime_r(const time_t* timep, struct tm* result) {
-  localtime_s(result, timep);
+inline struct tm* localtime_r (const time_t* timep, struct tm* result) {
+  localtime_s (result, timep);
   return result;
 }
 
-inline char* strerror_r(int errnum, char* buf, size_t buflen) {
-  strerror_s(buf, buflen, errnum);
+inline char* strerror_r (int errnum, char* buf, size_t buflen) {
+  strerror_s (buf, buflen, errnum);
   return buf;
 }
 

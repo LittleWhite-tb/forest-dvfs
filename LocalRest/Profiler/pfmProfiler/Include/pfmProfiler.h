@@ -27,6 +27,7 @@
 #include <iostream>
 #include <pthread.h>
 #include "perfmon/pfmlib.h"
+#include "glog/logging.h"
 
 #include "Profiler.h"
 
@@ -73,7 +74,7 @@ class PfmProfiler : public Profiler
          {
             if ((res = pfm_initialize ()) != PFM_SUCCESS)
             {
-               std::cerr << "Failed to initialize libpfm: " << pfm_strerror (res) << std::endl;
+               LOG (FATAL) << "Failed to initialize libpfm: " << pfm_strerror (res) << std::endl;
             }
          }
 

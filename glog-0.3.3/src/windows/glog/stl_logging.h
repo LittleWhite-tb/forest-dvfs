@@ -35,9 +35,9 @@
 // Inclusion of this file lets you do:
 //
 // list<string> x;
-// LOG(INFO) << "data: " << x;
+// LOG (INFO) << "data: " << x;
 // vector<int> v1, v2;
-// CHECK_EQ(v1, v2);
+// CHECK_EQ (v1, v2);
 
 #ifndef UTIL_GTL_STL_LOGGING_INL_H_
 #define UTIL_GTL_STL_LOGGING_INL_H_
@@ -69,7 +69,7 @@ std::ostream& operator<<(std::ostream& out, const std::pair<First, Second>& p);
 namespace google {
 
 template<class Iter>
-void PrintSequence(std::ostream& out, Iter begin, Iter end);
+void PrintSequence (std::ostream& out, Iter begin, Iter end);
 
 }
 
@@ -77,15 +77,15 @@ void PrintSequence(std::ostream& out, Iter begin, Iter end);
 template<class T1, class T2> \
 inline std::ostream& operator<<(std::ostream& out, \
                                 const Sequence<T1, T2>& seq) { \
-  google::PrintSequence(out, seq.begin(), seq.end()); \
+  google::PrintSequence (out, seq.begin (), seq.end ()); \
   return out; \
 }
 
-OUTPUT_TWO_ARG_CONTAINER(std::vector)
-OUTPUT_TWO_ARG_CONTAINER(std::deque)
-OUTPUT_TWO_ARG_CONTAINER(std::list)
+OUTPUT_TWO_ARG_CONTAINER (std::vector)
+OUTPUT_TWO_ARG_CONTAINER (std::deque)
+OUTPUT_TWO_ARG_CONTAINER (std::list)
 #ifdef __GNUC__
-OUTPUT_TWO_ARG_CONTAINER(__gnu_cxx::slist)
+OUTPUT_TWO_ARG_CONTAINER (__gnu_cxx::slist)
 #endif
 
 #undef OUTPUT_TWO_ARG_CONTAINER
@@ -94,12 +94,12 @@ OUTPUT_TWO_ARG_CONTAINER(__gnu_cxx::slist)
 template<class T1, class T2, class T3> \
 inline std::ostream& operator<<(std::ostream& out, \
                                 const Sequence<T1, T2, T3>& seq) { \
-  google::PrintSequence(out, seq.begin(), seq.end()); \
+  google::PrintSequence (out, seq.begin (), seq.end ()); \
   return out; \
 }
 
-OUTPUT_THREE_ARG_CONTAINER(std::set)
-OUTPUT_THREE_ARG_CONTAINER(std::multiset)
+OUTPUT_THREE_ARG_CONTAINER (std::set)
+OUTPUT_THREE_ARG_CONTAINER (std::multiset)
 
 #undef OUTPUT_THREE_ARG_CONTAINER
 
@@ -107,15 +107,15 @@ OUTPUT_THREE_ARG_CONTAINER(std::multiset)
 template<class T1, class T2, class T3, class T4> \
 inline std::ostream& operator<<(std::ostream& out, \
                                 const Sequence<T1, T2, T3, T4>& seq) { \
-  google::PrintSequence(out, seq.begin(), seq.end()); \
+  google::PrintSequence (out, seq.begin (), seq.end ()); \
   return out; \
 }
 
-OUTPUT_FOUR_ARG_CONTAINER(std::map)
-OUTPUT_FOUR_ARG_CONTAINER(std::multimap)
+OUTPUT_FOUR_ARG_CONTAINER (std::map)
+OUTPUT_FOUR_ARG_CONTAINER (std::multimap)
 #ifdef __GNUC__
-OUTPUT_FOUR_ARG_CONTAINER(__gnu_cxx::hash_set)
-OUTPUT_FOUR_ARG_CONTAINER(__gnu_cxx::hash_multiset)
+OUTPUT_FOUR_ARG_CONTAINER (__gnu_cxx::hash_set)
+OUTPUT_FOUR_ARG_CONTAINER (__gnu_cxx::hash_multiset)
 #endif
 
 #undef OUTPUT_FOUR_ARG_CONTAINER
@@ -124,13 +124,13 @@ OUTPUT_FOUR_ARG_CONTAINER(__gnu_cxx::hash_multiset)
 template<class T1, class T2, class T3, class T4, class T5> \
 inline std::ostream& operator<<(std::ostream& out, \
                                 const Sequence<T1, T2, T3, T4, T5>& seq) { \
-  google::PrintSequence(out, seq.begin(), seq.end()); \
+  google::PrintSequence (out, seq.begin (), seq.end ()); \
   return out; \
 }
 
 #ifdef __GNUC__
-OUTPUT_FIVE_ARG_CONTAINER(__gnu_cxx::hash_map)
-OUTPUT_FIVE_ARG_CONTAINER(__gnu_cxx::hash_multimap)
+OUTPUT_FIVE_ARG_CONTAINER (__gnu_cxx::hash_map)
+OUTPUT_FIVE_ARG_CONTAINER (__gnu_cxx::hash_multimap)
 #endif
 
 #undef OUTPUT_FIVE_ARG_CONTAINER
@@ -145,7 +145,7 @@ inline std::ostream& operator<<(std::ostream& out,
 namespace google {
 
 template<class Iter>
-inline void PrintSequence(std::ostream& out, Iter begin, Iter end) {
+inline void PrintSequence (std::ostream& out, Iter begin, Iter end) {
   // Output at most 100 elements -- appropriate if used for logging.
   for (int i = 0; begin != end && i < 100; ++i, ++begin) {
     if (i > 0) out << ' ';
@@ -166,14 +166,14 @@ inline void PrintSequence(std::ostream& out, Iter begin, Iter end) {
 // this header to be included before apparently independent other headers.
 //
 // For example, base/logging.h defines various template functions to implement
-// CHECK_EQ(x, y) and stream x and y into the log in the event the check fails.
+// CHECK_EQ (x, y) and stream x and y into the log in the event the check fails.
 // It does so via the function template MakeCheckOpValueString:
 //   template<class T>
-//   void MakeCheckOpValueString(strstream* ss, const T& v) {
+//   void MakeCheckOpValueString (strstream* ss, const T& v) {
 //     (*ss) << v;
 //   }
 // Because 'glog/logging.h' is included before 'glog/stl_logging.h',
-// subsequent CHECK_EQ(v1, v2) for vector<...> typed variable v1 and v2 can only
+// subsequent CHECK_EQ (v1, v2) for vector<...> typed variable v1 and v2 can only
 // find these operator definitions via ADL.
 //
 // Even this solution has problems -- it may pull unintended operators into the

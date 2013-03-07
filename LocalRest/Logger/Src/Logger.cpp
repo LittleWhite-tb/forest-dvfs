@@ -31,31 +31,33 @@
 #include <vector>
 #include <cstdlib>
 
+#include "glog/logging.h"
+
 #include "Logger.h"
 
 std::vector<Logger *>Logger::logList;
 
 void Logger::initLog (unsigned int nbTh)
 {
-	for(unsigned int i=0;i<nbTh;i++)
+	for (unsigned int i=0;i<nbTh;i++)
 	{
       Logger *nlog = new Logger (i);
       assert (nlog != NULL);
-		Logger::logList.push_back(nlog);
+		Logger::logList.push_back (nlog);
 	} 
 }
 void Logger::destroyLog (void)
 {
-	for(size_t i=0 ; i < Logger::logList.size() ; i++)
+	for (size_t i=0 ; i < Logger::logList.size () ; i++)
 	{
-		delete Logger::logList[i];
+		delete Logger::logList [i];
 	}
-	Logger::logList.clear();
+	Logger::logList.clear ();
 }
 
 Logger *Logger::getLog (unsigned int id) {
 	assert (id < Logger::logList.size ());
-	return Logger::logList[id];
+	return Logger::logList [id];
 }
 
 Logger::Logger (unsigned int id)
@@ -68,8 +70,7 @@ Logger::Logger (unsigned int id)
 	this->switchOFS.open (oss.str ().c_str (), std::ofstream::out | std::ofstream::trunc); 
 	if (!this->switchOFS)
 	{
-		std::cerr << "Failed to open the log file for DVFS unit " << this->thId << std::endl;
-      exit (EXIT_FAILURE);
+		LOG (FATAL) << "Failed to open the log file for DVFS unit " << this->thId << std::endl;
 	}
 }
 
@@ -82,9 +83,9 @@ Logger::~Logger (void)
 void Logger::logOut (const char *logString) {
 	struct timespec ts;
    
-   assert(logString);
+   assert (logString);
    
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	clock_gettime (CLOCK_MONOTONIC, &ts);
 	this->switchOFS << (ts.tv_nsec + ts.tv_sec * 1000000000)
 									<< " " << logString << std::endl;
 }

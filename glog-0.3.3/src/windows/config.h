@@ -125,7 +125,7 @@
 #define _START_GOOGLE_NAMESPACE_ namespace google {
 
 /* Always the empty-string on non-windows systems. On windows, should be
-   "__declspec(dllexport)". This way, when we compile the dll, we export our
+   "__declspec (dllexport)". This way, when we compile the dll, we export our
    functions/classes. It's safe to define this here because config.h is only
    used internally, to compile the DLL, and every DLL source file #includes
    "config.h" before anything else. */

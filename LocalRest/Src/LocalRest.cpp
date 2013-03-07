@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 #include <sstream>
 
+#include "glog/logging.h"
+
 #include "Common.h"
 #include "LocalRest.h"
 #include "CPUInfo.h"
@@ -72,6 +74,17 @@ struct RESTContext
 static RESTContext restCtx;
 
 /**
+ * Early entry point to ensure GLOG is initialized when static class instances
+ * are created. GCC specific for now.
+ */
+__attribute__ ((constructor (101)))
+static void pre_main ()
+{
+   google::InitGoogleLogging ("");
+   google::LogToStderr ();
+}
+
+/**
  * Rest entry point.
  */
 int main (int argc, char ** argv)
@@ -80,7 +93,7 @@ int main (int argc, char ** argv)
 	(void)(argv);
 
    if (argc != 2) {
-      std::cerr << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
+      LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
       exit (EXIT_FAILURE);
    }
 
@@ -98,8 +111,7 @@ int main (int argc, char ** argv)
    }
    else
    {
-      std::cerr << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
-      exit (EXIT_FAILURE);
+      LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
    }
 
    restCtx.cnfo = new CPUInfo ();
@@ -128,8 +140,7 @@ int main (int argc, char ** argv)
       {
          if (pthread_create (&restCtx.thdCtx [i].pid, NULL, thProf, &opts) != 0)
          {
-            std::cerr << "Error: Failed to create profiler thread" << std::endl;
-            return EXIT_FAILURE;
+            LOG (FATAL) << "Error: Failed to create profiler thread" << std::endl;
          }
       }
 	}
@@ -217,7 +228,7 @@ static void sigHandler (int nsig)
 			#endif
 			break;
 	default:
-			std::cerr << "Received signal #" << nsig << std::endl;
+			LOG (INFO) << "Received signal #" << nsig << std::endl;
 	};
 }
 

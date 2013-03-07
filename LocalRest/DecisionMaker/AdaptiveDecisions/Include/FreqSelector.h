@@ -61,7 +61,6 @@ class FreqSelector
        */
       inline void promote (unsigned int freqId, float ratio)
       {
-         std::cout << "promote " << freqId << std::endl;
          assert (freqId < this->nbFreqs);
 
          if (this->coeffs [freqId] + ratio >= FreqSelector::MAX_PROMS)
@@ -136,16 +135,6 @@ class FreqSelector
          assert (freqId < this->nbFreqs);
 
          return this->coeffs [freqId];
-      }
-
-      /**
-       * Debug print function.
-       */
-      inline void print () {
-         for (unsigned int i = 0; i < this->nbFreqs; i++) {
-            std::cerr << std::setw (10) << this->coeffs [i] << " ";
-         }
-         std::cerr << std::endl;
       }
 
    private:

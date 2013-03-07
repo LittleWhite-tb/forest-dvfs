@@ -68,22 +68,22 @@
   using fL##shorttype::FLAGS_##name
 #define DEFINE_VARIABLE(type, shorttype, name, value, meaning, tn)      \
   namespace fL##shorttype {                                             \
-    GOOGLE_GLOG_DLL_DECL type FLAGS_##name(value);                      \
+    GOOGLE_GLOG_DLL_DECL type FLAGS_##name (value);                      \
     char FLAGS_no##name;                                                \
   }                                                                     \
   using fL##shorttype::FLAGS_##name
 
 // bool specialization
 #define DECLARE_bool(name) \
-  DECLARE_VARIABLE(bool, B, name, bool)
+  DECLARE_VARIABLE (bool, B, name, bool)
 #define DEFINE_bool(name, value, meaning) \
-  DEFINE_VARIABLE(bool, B, name, value, meaning, bool)
+  DEFINE_VARIABLE (bool, B, name, value, meaning, bool)
 
 // int32 specialization
 #define DECLARE_int32(name) \
-  DECLARE_VARIABLE(GOOGLE_NAMESPACE::int32, I, name, int32)
+  DECLARE_VARIABLE (GOOGLE_NAMESPACE::int32, I, name, int32)
 #define DEFINE_int32(name, value, meaning) \
-  DEFINE_VARIABLE(GOOGLE_NAMESPACE::int32, I, name, value, meaning, int32)
+  DEFINE_VARIABLE (GOOGLE_NAMESPACE::int32, I, name, value, meaning, int32)
 
 // Special case for string, because we have to specify the namespace
 // std::string, which doesn't play nicely with our FLAG__namespace hackery.
@@ -94,7 +94,7 @@
   using fLS::FLAGS_##name
 #define DEFINE_string(name, value, meaning)                             \
   namespace fLS {                                                       \
-    std::string FLAGS_##name##_buf(value);                              \
+    std::string FLAGS_##name##_buf (value);                              \
     GOOGLE_GLOG_DLL_DECL std::string& FLAGS_##name = FLAGS_##name##_buf; \
     char FLAGS_no##name;                                                \
   }                                                                     \
@@ -110,24 +110,24 @@
 // verbosity will be 1, not 0.
 
 #define GLOG_DEFINE_bool(name, value, meaning) \
-  DEFINE_bool(name, EnvToBool("GLOG_" #name, value), meaning)
+  DEFINE_bool (name, EnvToBool ("GLOG_" #name, value), meaning)
 
 #define GLOG_DEFINE_int32(name, value, meaning) \
-  DEFINE_int32(name, EnvToInt("GLOG_" #name, value), meaning)
+  DEFINE_int32(name, EnvToInt ("GLOG_" #name, value), meaning)
 
 #define GLOG_DEFINE_string(name, value, meaning) \
-  DEFINE_string(name, EnvToString("GLOG_" #name, value), meaning)
+  DEFINE_string (name, EnvToString ("GLOG_" #name, value), meaning)
 
 // These macros (could be functions, but I don't want to bother with a .cc
 // file), make it easier to initialize flags from the environment.
 
 #define EnvToString(envname, dflt)   \
-  (!getenv(envname) ? (dflt) : getenv(envname))
+  (!getenv (envname) ? (dflt) : getenv (envname))
 
 #define EnvToBool(envname, dflt)   \
-  (!getenv(envname) ? (dflt) : memchr("tTyY1\0", getenv(envname)[0], 6) != NULL)
+  (!getenv (envname) ? (dflt) : memchr ("tTyY1\0", getenv (envname)[0], 6) != NULL)
 
 #define EnvToInt(envname, dflt)  \
-  (!getenv(envname) ? (dflt) : strtol(getenv(envname), NULL, 10))
+  (!getenv (envname) ? (dflt) : strtol (getenv (envname), NULL, 10))
 
 #endif  // BASE_COMMANDLINEFLAGS_H__

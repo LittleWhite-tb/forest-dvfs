@@ -34,22 +34,22 @@
 #ifndef UTILITIES_H__
 #define UTILITIES_H__
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+#if defined (WIN32) || defined (_WIN32) || defined (__WIN32__)
 # define OS_WINDOWS
-#elif defined(__CYGWIN__) || defined(__CYGWIN32__)
+#elif defined (__CYGWIN__) || defined (__CYGWIN32__)
 # define OS_CYGWIN
-#elif defined(linux) || defined(__linux) || defined(__linux__)
+#elif defined (linux) || defined (__linux) || defined (__linux__)
 # define OS_LINUX
-#elif defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
+#elif defined (macintosh) || defined (__APPLE__) || defined (__APPLE_CC__)
 # define OS_MACOSX
-#elif defined(__FreeBSD__)
+#elif defined (__FreeBSD__)
 # define OS_FREEBSD
-#elif defined(__NetBSD__)
+#elif defined (__NetBSD__)
 # define OS_NETBSD
-#elif defined(__OpenBSD__)
+#elif defined (__OpenBSD__)
 # define OS_OPENBSD
 #else
-// TODO(hamaji): Add other platforms.
+// TODO (hamaji): Add other platforms.
 #endif
 
 // printf macros for size_t, in the style of inttypes.h
@@ -61,8 +61,8 @@
 
 // Use these macros after a % in a printf format string
 // to get correct 32/64 bit behavior, like this:
-// size_t size = records.size();
-// printf("%"PRIuS"\n", size);
+// size_t size = records.size ();
+// printf ("%"PRIuS"\n", size);
 
 #define PRIdS __PRIS_PREFIX "d"
 #define PRIxS __PRIS_PREFIX "x"
@@ -74,7 +74,7 @@
 
 #include <string>
 
-#if defined(OS_WINDOWS)
+#if defined (OS_WINDOWS)
 # include "port.h"
 #endif
 
@@ -94,37 +94,37 @@
 //
 // 3) The gdb unwinder -- also the one used by the c++ exception code.
 //    It's obviously well-tested, but has a fatal flaw: it can call
-//    malloc() from the unwinder.  This is a problem because we're
-//    trying to use the unwinder to instrument malloc().
+//    malloc () from the unwinder.  This is a problem because we're
+//    trying to use the unwinder to instrument malloc ().
 //
 // Note: if you add a new implementation here, make sure it works
-// correctly when GetStackTrace() is called with max_depth == 0.
+// correctly when GetStackTrace () is called with max_depth == 0.
 // Some code may do that.
 
-#if defined(HAVE_LIB_UNWIND)
+#if defined (HAVE_LIB_UNWIND)
 # define STACKTRACE_H "stacktrace_libunwind-inl.h"
-#elif !defined(NO_FRAME_POINTER)
-# if defined(__i386__) && __GNUC__ >= 2
+#elif !defined (NO_FRAME_POINTER)
+# if defined (__i386__) && __GNUC__ >= 2
 #  define STACKTRACE_H "stacktrace_x86-inl.h"
-# elif defined(__x86_64__) && __GNUC__ >= 2 && HAVE_UNWIND_H
+# elif defined (__x86_64__) && __GNUC__ >= 2 && HAVE_UNWIND_H
 #  define STACKTRACE_H "stacktrace_x86_64-inl.h"
-# elif (defined(__ppc__) || defined(__PPC__)) && __GNUC__ >= 2
+# elif (defined (__ppc__) || defined (__PPC__)) && __GNUC__ >= 2
 #  define STACKTRACE_H "stacktrace_powerpc-inl.h"
 # endif
 #endif
 
-#if !defined(STACKTRACE_H) && defined(HAVE_EXECINFO_H)
+#if !defined (STACKTRACE_H) && defined (HAVE_EXECINFO_H)
 # define STACKTRACE_H "stacktrace_generic-inl.h"
 #endif
 
-#if defined(STACKTRACE_H)
+#if defined (STACKTRACE_H)
 # define HAVE_STACKTRACE
 #endif
 
 // defined by gcc
-#if defined(__ELF__) && defined(OS_LINUX)
+#if defined (__ELF__) && defined (OS_LINUX)
 # define HAVE_SYMBOLIZE
-#elif defined(OS_MACOSX) && defined(HAVE_DLADDR)
+#elif defined (OS_MACOSX) && defined (HAVE_DLADDR)
 // Use dladdr to symbolize.
 # define HAVE_SYMBOLIZE
 #endif
@@ -145,41 +145,41 @@ namespace glog_internal_namespace_ {
 # define ATTRIBUTE_NOINLINE
 #endif
 
-const char* ProgramInvocationShortName();
+const char* ProgramInvocationShortName ();
 
-bool IsGoogleLoggingInitialized();
+bool IsGoogleLoggingInitialized ();
 
-bool is_default_thread();
+bool is_default_thread ();
 
-int64 CycleClock_Now();
+int64 CycleClock_Now ();
 
-int64 UsecToCycles(int64 usec);
+int64 UsecToCycles (int64 usec);
 
 typedef double WallTime;
-WallTime WallTime_Now();
+WallTime WallTime_Now ();
 
-int32 GetMainThreadPid();
-bool PidHasChanged();
+int32 GetMainThreadPid ();
+bool PidHasChanged ();
 
-pid_t GetTID();
+pid_t GetTID ();
 
-const std::string& MyUserName();
+const std::string& MyUserName ();
 
 // Get the part of filepath after the last path separator.
-// (Doesn't modify filepath, contrary to basename() in libgen.h.)
-const char* const_basename(const char* filepath);
+// (Doesn't modify filepath, contrary to basename () in libgen.h.)
+const char* const_basename (const char* filepath);
 
 // Wrapper of __sync_val_compare_and_swap. If the GCC extension isn't
 // defined, we try the CPU specific logics (we only support x86 and
 // x86_64 for now) first, then use a naive implementation, which has a
 // race condition.
 template<typename T>
-inline T sync_val_compare_and_swap(T* ptr, T oldval, T newval) {
-#if defined(HAVE___SYNC_VAL_COMPARE_AND_SWAP)
-  return __sync_val_compare_and_swap(ptr, oldval, newval);
-#elif defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
+inline T sync_val_compare_and_swap (T* ptr, T oldval, T newval) {
+#if defined (HAVE___SYNC_VAL_COMPARE_AND_SWAP)
+  return __sync_val_compare_and_swap (ptr, oldval, newval);
+#elif defined (__GNUC__) && (defined (__i386__) || defined (__x86_64__))
   T ret;
-  __asm__ __volatile__("lock; cmpxchg %1, (%2);"
+  __asm__ __volatile__ ("lock; cmpxchg %1, (%2);"
                        :"=a"(ret)
                         // GCC may produces %sil or %dil for
                         // constraint "r", but some of apple's gas
@@ -197,10 +197,10 @@ inline T sync_val_compare_and_swap(T* ptr, T oldval, T newval) {
 #endif
 }
 
-void DumpStackTraceToString(std::string* stacktrace);
+void DumpStackTraceToString (std::string* stacktrace);
 
 struct CrashReason {
-  CrashReason() : filename(0), line_number(0), message(0), depth(0) {}
+  CrashReason () : filename (0), line_number (0), message (0), depth (0) {}
 
   const char* filename;
   int line_number;
@@ -208,14 +208,14 @@ struct CrashReason {
 
   // We'll also store a bit of stack trace context at the time of crash as
   // it may not be available later on.
-  void* stack[32];
+  void* stack [32];
   int depth;
 };
 
-void SetCrashReason(const CrashReason* r);
+void SetCrashReason (const CrashReason* r);
 
-void InitGoogleLoggingUtilities(const char* argv0);
-void ShutdownGoogleLoggingUtilities();
+void InitGoogleLoggingUtilities (const char* argv0);
+void ShutdownGoogleLoggingUtilities ();
 
 }  // namespace glog_internal_namespace_
 

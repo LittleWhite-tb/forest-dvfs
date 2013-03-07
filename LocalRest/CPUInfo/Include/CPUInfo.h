@@ -29,6 +29,8 @@
 #include "DataFileReader.h"
 #include "PathBuilder.h"
 
+#include "glog/logging.h"
+
 #include <vector>
 
 /**
@@ -88,9 +90,8 @@ class CPUInfo
 
             if (!reader.isOpen () || !reader.read (pkgId))
             {
-               std::cerr << "Cannot detect which core own the thread " << thId << std::endl;
-
-               exit (EXIT_FAILURE);
+               LOG (FATAL) << "Cannot detect which core owns the thread "
+                  << thId << std::endl;
             }
 
             CPUInfo::threadToCore [thId] = pkgId;

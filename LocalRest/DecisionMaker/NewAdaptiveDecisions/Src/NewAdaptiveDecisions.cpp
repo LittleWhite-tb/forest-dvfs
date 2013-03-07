@@ -129,7 +129,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
    std::vector<float> maxIPCs;
    unsigned int nbActiveCores = this->activeCores.size ();
 
-   std::cout << "# active cores: " << nbActiveCores << std::endl;
+   DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
    
    // no active cores?
    if (nbActiveCores == 0)
@@ -150,7 +150,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
          *coupleEnergy = 0;
       }
 
-      //std::cout << "All cores idle" << std::endl;
+      //DLOG (INFO) << "All cores idle" << std::endl;
       return couple;
    }
 
@@ -164,13 +164,10 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
    {
       bool isLower = true, isHigher = true;
 
-      //std::cout << "Freq " << *it << ": ";
       for (unsigned int c = 0; c < this->nbCpuIds; c++)
       {
          if (this->usage [c] >= ACTIVITY_LEVEL)
          {
-            //std::cout << IPCs [*it * this->nbCpuIds + c] << " ";
-
             if (IPCs [*it * this->nbCpuIds + c] < d * maxIPCs [c])
             {
                isHigher = false;
@@ -181,16 +178,13 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
             }
          }
       }
-      //std::cout << std::endl;
 
       if (isLower)
       {
-         //std::cout << "smaller freq: " << *it <<  std::endl;
          smallerIpc.push_back (*it);
       }
       else if (isHigher)
       {
-         //std::cout << "greater freq: " << *it << std::endl;
          greaterIpc.push_back (*it);
       }
    }
@@ -242,8 +236,6 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
          *coupleEnergy = e_ratios [minFreq];
       }
 
-      //std::cout << "No smaller freqs, choosing " << minFreq << " e = " << *coupleEnergy <<  std::endl;
- 
       return couple;
    }
 
@@ -268,8 +260,6 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
       {
          *coupleEnergy = e_ratios [maxFreq];
       }
-
-      //std::cout << "No greater freqs, choosing " << maxFreq << " e = " << *coupleEnergy << std::endl;
 
       return couple;
    }
@@ -323,8 +313,11 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
 
          float coupleE = step1.timeRatio * e_ratios [smaller] + step2.timeRatio * e_ratios [greater];
 
-         std::cout << "couple ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio 
-            << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE << std::endl;
+         DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
+            << couple.step [STEP1].timeRatio << "),(" 
+            << couple.step [STEP2].freqId << "," 
+            << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE
+            << std::endl;
 
          if (coupleE < bestCoupleE)
          {
@@ -430,7 +423,7 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
       this->prof->read (hwc, i);
       float HWexp = this->getHWExploitationRatio (hwc);
 
-      //std::cerr << "#" << i << ", freq #" << currentFreq << " IPC = " << HWexp << std::endl;
+      //DLOG (INFO) << "#" << i << ", freq #" << currentFreq << " IPC = " << HWexp << std::endl;
       if (HWexp < 0 || isnan (HWexp))
       {
          hwcPanic = true;
@@ -442,7 +435,7 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 
       // also update cpu usage
       this->usage [i] = this->getCPUUsage (hwc);
-      //std::cerr << "CPU Usage = " << this->usage [i] << std::endl;
+      //DLOG (INFO) << "CPU Usage = " << this->usage [i] << std::endl;
    }
 
    // in case of panic, restart evaluation
@@ -491,7 +484,7 @@ void NewAdaptiveDecisions::computeSequence ()
          activeThreads.insert (c);
       }
    }
-   this->activeCores.clear();
+   this->activeCores.clear ();
    CPUInfo::threadIdsToCoreIds (activeThreads, this->activeCores);
 
    // test all perfmormance level by steps of 1%
@@ -502,7 +495,7 @@ void NewAdaptiveDecisions::computeSequence ()
 
       couple = getBestCouple (this->ipcEval, d, &coupleE);
 
-      //std::cout << "IPC: " << targetIPC
+      //DLOG (INFO) << "IPC: " << targetIPC
       //   << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
       //   << ")) energy: " << coupleE << std::endl;
 
@@ -514,7 +507,7 @@ void NewAdaptiveDecisions::computeSequence ()
       }
    }
 
-   std::cout << "d: " << bestD
+   DLOG (INFO) << "d: " << bestD
       << " couple: ((" << bestCouple.step [STEP1].freqId << "," << bestCouple.step [STEP1].timeRatio << "),(" << bestCouple.step [STEP2].freqId << "," << bestCouple.step [STEP2].timeRatio 
       << ")) energy: " << bestE << std::endl;
 
@@ -566,8 +559,6 @@ void NewAdaptiveDecisions::computeSequence ()
 		}
 	}
 
-   //std::cout << " tsw = " << this->totalSleepWin << ", " << maxRatioFreqId << ", " << this->oldMaxFreqId << std::endl; 
-  
    // Log the new frequency if necessary
 	if (logFrequency) {
 	 this->logFrequency (maxRatioFreqId);	
@@ -605,9 +596,8 @@ Decision NewAdaptiveDecisions::evaluate ()
 			break;
 		
 		default:
-			std::cerr << "Error: Unknown Evaluation State "
-								<< this->curRuntimeState << " not handled" << std::endl;
-			exit (EXIT_FAILURE);
+			LOG (FATAL) << "Error: Unknown evaluation state "
+            << this->curRuntimeState << " not handled" << std::endl;
 	};	
 }
 
@@ -679,8 +669,8 @@ Decision NewAdaptiveDecisions::takeDecision ()
 			break;
 
 		default:
-			std::cerr << "Error: Unknown Runtime State " << this->curRuntimeState << " not handled" << std::endl;
-			exit (EXIT_FAILURE);
+			LOG (FATAL) << "Error: Unknown runtime state " << this->curRuntimeState
+            << " not handled" << std::endl;
 	}
 	
 	return res;

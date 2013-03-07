@@ -32,7 +32,7 @@
 
 // Annoying stuff for windows -- makes sure clients can import these functions
 #ifndef GOOGLE_GLOG_DLL_DECL
-# if defined(_WIN32) && !defined(__CYGWIN__)
+# if defined (_WIN32) && !defined (__CYGWIN__)
 #   define GOOGLE_GLOG_DLL_DECL  __declspec(dllimport)
 # else
 #   define GOOGLE_GLOG_DLL_DECL
@@ -61,24 +61,24 @@ const int INFO = GLOG_INFO, WARNING = GLOG_WARNING,
 #define DFATAL_LEVEL FATAL
 #endif
 
-extern GOOGLE_GLOG_DLL_DECL const char* const LogSeverityNames[NUM_SEVERITIES];
+extern GOOGLE_GLOG_DLL_DECL const char* const LogSeverityNames [NUM_SEVERITIES];
 
 // NDEBUG usage helpers related to (RAW_)DCHECK:
 //
 // DEBUG_MODE is for small !NDEBUG uses like
-//   if (DEBUG_MODE) foo.CheckThatFoo();
+//   if (DEBUG_MODE) foo.CheckThatFoo ();
 // instead of substantially more verbose
 //   #ifndef NDEBUG
-//     foo.CheckThatFoo();
+//     foo.CheckThatFoo ();
 //   #endif
 //
 // IF_DEBUG_MODE is for small !NDEBUG uses like
-//   IF_DEBUG_MODE( string error; )
-//   DCHECK(Foo(&error)) << error;
+//   IF_DEBUG_MODE ( string error; )
+//   DCHECK (Foo (&error)) << error;
 // instead of substantially more verbose
 //   #ifndef NDEBUG
 //     string error;
-//     DCHECK(Foo(&error)) << error;
+//     DCHECK (Foo (&error)) << error;
 //   #endif
 //
 #ifdef NDEBUG

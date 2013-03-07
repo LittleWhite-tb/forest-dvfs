@@ -20,10 +20,9 @@
 CXX=g++
 CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DREST_LOG -DARCH_SNB
 CXXFLAGS_DEBUG=-g
-LD=$(CXX)
-LD_FLAGS=
-LIBS=-lpthread -lrt
 CXXFLAGS_RELEASE=-DNDEBUG
+LD=$(CXX)
+LD_FLAGS=-lpthread -lrt
 
 LIBPFM_VER=4.3.0
 LIBPFM_BIN=libpfm-$(LIBPFM_VER)/lib/libpfm.a
@@ -32,16 +31,17 @@ LIBPFM_INC=libpfm-$(LIBPFM_VER)/include/
 GLOG_VER=0.3.3
 GLOG_MAKEFILE=glog-$(GLOG_VER)/Makefile
 GLOG_BIN=glog-$(GLOG_VER)/.libs/libglog.a
+GLOG_INC=glog-$(GLOG_VER)/src
 
 LOCAL_HDR=$(shell find LocalRest/ -type f -name '*.h')
 LOCAL_SRC=$(shell find LocalRest/ -type f -name '*.cpp')
 LOCAL_OBJ_RELEASE=$(addprefix obj/, $(patsubst %.cpp, %.o, $(LOCAL_SRC)))
 LOCAL_OBJ_DEBUG=$(addprefix obj/, $(patsubst %.cpp, %_debug.o, $(LOCAL_SRC)))
-LOCAL_INC_FLAG=$(addprefix -I, $(sort $(dir $(LOCAL_HDR)))) -I$(LIBPFM_INC)
-
+LOCAL_INC_FLAG=$(addprefix -I, $(sort $(dir $(LOCAL_HDR))))
 
 ALL_OBJ=$(LOCAL_OBJ)
-ALL_INC_FLAGS=$(LOCAL_INC_FLAG)
+ALL_INC_FLAGS=$(LOCAL_INC_FLAG) -I$(LIBPFM_INC) -I$(GLOG_INC)
+
 
 .PHONY: check-arch offline clean distclean mrproper
 
@@ -57,11 +57,11 @@ offline:
 	@$(MAKE) -C ./offline
 	$(MAKE) -C ./offline run
 
-release: $(LIBPFM_BIN) $(GLOG_BIN) $(LOCAL_OBJ_RELEASE)
-	@$(LD) $(LD_FLAGS) $^ $(LIBS) $(LIBPFM_BIN) -o localRest
+release: $(LOCAL_OBJ_RELEASE)
+	@$(LD) $^ $(LD_FLAGS) $(LIBPFM_BIN) $(GLOG_BIN)  -o localRest
 
-debug: $(LIBPFM_BIN) $(GLOG_BIN) $(LOCAL_OBJ_DEBUG)
-	@$(LD) $(LD_FLAGS) $^ $(LIBS) $(LIBPFM_BIN) $(CXXFLAGS_DEBUG) -o localRest
+debug: $(LOCAL_OBJ_DEBUG)
+	$(LD) $(CXXFLAGS_DEBUG) $^ $(LD_FLAGS) $(LIBPFM_BIN) $(GLOG_BIN)  -o localRest
 
 $(LIBPFM_BIN):
 	@$(MAKE) -C libpfm-$(LIBPFM_VER)

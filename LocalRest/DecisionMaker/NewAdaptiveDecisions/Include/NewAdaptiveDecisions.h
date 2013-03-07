@@ -29,6 +29,8 @@
 #include <sstream>
 #include <time.h>
 
+#include "glog/logging.h"
+
 #include "DecisionMaker.h"
 #include "Profiler.h"
 #include "TimeProfiler.h"
@@ -266,28 +268,9 @@ class NewAdaptiveDecisions : public DecisionMaker
       }
 
       /**
-       * Method for printing debug information
-       */
-      inline void debug (const char *str) {
-#ifndef NDEBUG
-         if (NewAdaptiveDecisions::VERBOSE && *(this->unit.getThreads ().begin ()) == 0) {
-            std::cerr << "DEBUG:: " << str << std::endl;
-         }
-#endif
-         (void) str;
-      }
-
-      /**
        * Outputs the frequency in the log file
        */
       void logFrequency (unsigned int freqId) const;
-
-      /**
-       * Debug the str param on stderr (see debug (const char *str))
-       */
-      inline void debug (std::ostringstream& str) {
-         this->debug (str.str ().c_str ());
-      }
 
       /**
        * Computes the hardware exploitation ratio from the hardware counters.
@@ -303,7 +286,7 @@ class NewAdaptiveDecisions : public DecisionMaker
       {
          if (hwc.time == 0)
          {
-            std::cerr << "no time elapsed since last measurement" << std::endl;
+            LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
             return 0;
          }
          return hwc.retired / (1. * hwc.time);
@@ -323,11 +306,12 @@ class NewAdaptiveDecisions : public DecisionMaker
 
          if (hwc.time == 0)
          {
-            std::cerr << "no time elapsed since last measurement" << std::endl;
+            LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
             return 0;
          }
 
-         //std::cout << "active cycles: " << hwc.refCycles << " rdtsc: " << hwc.time << std::endl;
+         //DLOG (INFO) << "active cycles: " << hwc.refCycles << " rdtsc: "
+         //<< hwc.time << std::endl;
 
          // NOTE: RDTSC and refCycles run at the same freq
          res = hwc.refCycles / (1. * hwc.time);
