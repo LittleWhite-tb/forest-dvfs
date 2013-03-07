@@ -242,6 +242,15 @@ if not os.path.exists(LPP_PATH + "lPowerProbe"):
    print "lPowerProbe program " + LPP_PATH + " not compiled - aborting"
    sys.exit (0)
 
+# ask the user to be nice with us
+print "!"
+print "!"
+print "! In order to measure accurate values, please"
+print "!      CLOSE ANY OTHER RUNNING PROGRAM"
+print "!"
+print "!"
+raw_input("press Enter when you are ready...")
+
 # Get list of frequencies and sort'em
 freqs = getFreqs (int (sys.argv [1]))
 freqs.sort ()
