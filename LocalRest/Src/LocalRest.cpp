@@ -1,36 +1,37 @@
 /*
- Copyright (C) 2011 Exascale Research Center
-
- This program is free software; you can redistribute it and/or
- modify it under the terms of the GNU General Public License
- as published by the Free Software Foundation; either version 2
- of the License, or (at your option) any later version.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * FoREST - Reactive DVFS Control for Multicore Processors
+ * Copyright (C) 2013 Universite de Versailles
+ * Copyright (C) 2011-2012 Exascale Research Center
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
  * @file LocalRest.cpp
- * The LocalRest class is in this file. This is the main file for the local rest
- * server.
+ * Entry point for LocalRest. A thread will be started for each unit.
+ * Main thread will handle the unit 0.
  */
 
 #include <cstdlib>
-#include <cerrno>
-#include <cstring>
+#include <cassert>
+
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <errno.h>
-#include <cstring>
 #include <sstream>
+
+#include "glog/logging.h"
 
 #include "Common.h"
 #include "LocalRest.h"
@@ -73,6 +74,17 @@ struct RESTContext
 static RESTContext restCtx;
 
 /**
+ * Early entry point to ensure GLOG is initialized when static class instances
+ * are created. GCC specific for now.
+ */
+__attribute__ ((constructor (101)))
+static void pre_main ()
+{
+   google::InitGoogleLogging ("");
+   google::LogToStderr ();
+}
+
+/**
  * Rest entry point.
  */
 int main (int argc, char ** argv)
@@ -81,7 +93,7 @@ int main (int argc, char ** argv)
 	(void)(argv);
 
    if (argc != 2) {
-      std::cerr << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
+      LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
       exit (EXIT_FAILURE);
    }
 
@@ -99,8 +111,7 @@ int main (int argc, char ** argv)
    }
    else
    {
-      std::cerr << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
-      exit (EXIT_FAILURE);
+      LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
    }
 
    restCtx.cnfo = new CPUInfo ();
@@ -111,38 +122,28 @@ int main (int argc, char ** argv)
 	Logger::initLog (nbDVFSUnits);
 #endif
 	restCtx.thdCtx = new ThreadContext [nbDVFSUnits];
-	handleAllocation (restCtx.thdCtx);
 	
 	// launch threads
-	for (unsigned int i = 1; i < nbDVFSUnits; i++)
+	for (unsigned int i = 0; i < nbDVFSUnits; i++)
 	{
 		DVFSUnit& unit = restCtx.cnfo->getDVFSUnit (i);
 		// initialize options	
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
 		opts.dec = new NewAdaptiveDecisions (unit, mode);
-		handleAllocation (opts.dec);
 		opts.prof = new PfmProfiler (unit);
-		handleAllocation (opts.dec);
 		opts.unit = &unit;
 
-		// run thread
-		if (pthread_create (&restCtx.thdCtx [i].pid, NULL, thProf, &opts) != 0)
-		{
-			std::cerr << "Error: Failed to create profiler thread" << std::endl;
-			return EXIT_FAILURE;
-		}
+		// The unit 0 will use the current application thread. Others need
+      // a thread to run
+      if ( i != 0 )
+      {
+         if (pthread_create (&restCtx.thdCtx [i].pid, NULL, thProf, &opts) != 0)
+         {
+            LOG (FATAL) << "Error: Failed to create profiler thread" << std::endl;
+         }
+      }
 	}
-
-	// the main process is the main profiler
-	DVFSUnit& unit0 = restCtx.cnfo->getDVFSUnit (0);
-	thOpts& opts = restCtx.thdCtx [0].opts;
-	opts.id = 0;
-	opts.dec = new NewAdaptiveDecisions (unit0, mode);
-	handleAllocation (opts.dec);
-	opts.prof = new PfmProfiler (unit0);
-	handleAllocation (opts.dec);
-	opts.unit = &unit0;
 
 	// cleanup stuff when exiting
 #ifdef REST_LOG
@@ -152,7 +153,7 @@ int main (int argc, char ** argv)
 	atexit (exitCleanup);
 
 	// Launch the function for main thread
-	thProf (&opts);
+	thProf (&restCtx.thdCtx [0].opts);
 
 	// never reached
 	return EXIT_SUCCESS;
@@ -160,12 +161,13 @@ int main (int argc, char ** argv)
 
 static void * thProf (void * arg)
 {
-	thOpts * opts = (thOpts *) arg;
+   assert (arg);
+   
+	thOpts * opts = reinterpret_cast<thOpts*>(arg);
 	Decision dec;
 
    // default initialization for the first decision
    dec.freqId = 0;
-   dec.cpuId = opts->unit->getOSId ();
    dec.sleepWin = 0;
    dec.freqApplyDelay = 0;
 
@@ -183,7 +185,7 @@ static void * thProf (void * arg)
 	}
 
    // do it as long as we are not getting killed by a signal
-   while (true) {
+	while (true) {
       // If the runtime's decision is to skip the sleeping time, we obey it !!
       // wait for a while	
       if (dec.sleepWin > 0)
@@ -226,7 +228,7 @@ static void sigHandler (int nsig)
 			#endif
 			break;
 	default:
-			std::cerr << "Received signal #" << nsig << std::endl;
+			LOG (INFO) << "Received signal #" << nsig << std::endl;
 	};
 }
 

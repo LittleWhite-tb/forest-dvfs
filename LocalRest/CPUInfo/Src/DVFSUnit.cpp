@@ -1,19 +1,20 @@
 /*
- Copyright (C) 2011 Exascale Research Center
-
- This program is free software; you can redistribute it and/or
- modify it under the terms of the GNU General Public License
- as published by the Free Software Foundation; either version 2
- of the License, or (at your option) any later version.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * FoREST - Reactive DVFS Control for Multicore Processors
+ * Copyright (C) 2013 Universite de Versailles
+ * Copyright (C) 2011-2012 Exascale Research Center
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
@@ -21,6 +22,7 @@
  * The DVFSUnit class is in this file
  */
 
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
@@ -31,237 +33,192 @@
 #include <vector>
 #include <hwloc.h>
 
-#include "DVFSUnit.h"
+#include "glog/logging.h"
 
-DVFSUnit::DVFSUnit (unsigned int id, unsigned int cpuid)
+#include "DVFSUnit.h"
+#include "PathBuilder.h"
+#include "DataFileReader.h"
+
+DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
 {
-   std::ostringstream oss;
-   std::ifstream ifs;
-   std::ofstream ofs;   
-   unsigned int tmp;  // multi-purpose int
-   std::vector<int> tmpAllFreqs; // to temporarily store frequencies 
+   this->cpuIds = cpuIds;
+   this->id = id;
+
+   // pick one arbitrary cpu id to represent the unit
+   const unsigned int cpuID = *cpuIds.begin ();
 
    // get the latency of this unit
-   oss.str (std::string (""));
-   oss << "/sys/devices/system/cpu/cpu" << cpuid << "/cpufreq/cpuinfo_transition_latency";
-   ifs.open (oss.str ().c_str ());
-   if (!ifs)
    {
-      std::cerr << "Failed to fetch the latency for cpu " << cpuid << std::endl;
-      // default under linux, if it may help
-      this->latency = 10000;
+      DataFileReader reader (PathBuilder<PT_CPUINFO_TRANSITION_LATENCY,PathCache>::buildPath (cpuID));
+      if ( !reader.isOpen () || !reader.read (this->latency))
+      {
+         LOG (WARNING) << "Failed to fetch the latency for cpu " << cpuID
+            << std::endl;
+
+         // default under linux, if it may help
+         this->latency = 10000;
+      }
    }
-   ifs >> this->latency;
-   ifs.close ();
 
    // retrieve the available frequencies
-   oss.str(""); // Remove previous use
-   oss << "offline/power_" << cpuid << ".cfg";
-   
-   ifs.open (oss.str ().c_str ());
-   if (!ifs) {
-      std::cerr << "Error: Failed to fetch FoREST configuration file '" << oss.str() << "' for cpuid #"
-      << cpuid << ". You must run the offline script before using FoREST"
-      << std::endl;
-      exit (EXIT_FAILURE);
-   } 
-
-   /* Read config file first line */
-   std::string line;
-   std::getline (ifs, line, '\n');
-   std::istringstream iss(line);
-   while (iss >> tmp) {
-      assert (!iss.fail ());
-      tmpAllFreqs.push_back (tmp);
-   } 
-   this->nbFreqs = tmpAllFreqs.size ();
-
-   this->freqs = new unsigned int [this->nbFreqs];
-   for (unsigned int i = 0; i < this->nbFreqs; i++) {
-      this->freqs [i] = tmpAllFreqs [i];
-   } 
-
-   // Add the current cpu as the first cpu id in the DVFS list
-	this->addCpuId (cpuid); 
-
-  // Retrieve all the cores that are linked to the main cpuid by frequency
-   std::ostringstream rel;
-   rel << "/sys/devices/system/cpu/cpu" << cpuid << "/cpufreq/related_cpus";
-   std::ifstream relIfs;
-   relIfs.open (rel.str ().c_str ());
-   if (!relIfs) {
-      std::cerr << "Error: Failed to open topology information for cpu " << cpuid << std::endl;
-      exit (EXIT_FAILURE);
-   }
-
-   unsigned int subCpuId;
-   // Add all others cpu ids in the DVFS list as related cpus
-   while (relIfs >> subCpuId) {
-      if (subCpuId != cpuid) {
-         this->addCpuId (subCpuId); 
+   {
+      DataFileReader reader (PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS, PathCache>::buildPath (cpuID));
+      if (!reader.isOpen ()) 
+      {
+         LOG (FATAL) << "Failed to read frequency list '"
+         << PathBuilder<PT_CPUINFO_SCALING_AVAIL_FREQS,PathCache>::buildPath (cpuID)
+         << "' for cpu #" << cpuID
+         << std::endl;
       }
-   }
-   relIfs.close ();
 
-   /* Go fetch physical core information and store it in this->cores eventually */
-   hwloc_topology_t topology;
-   hwloc_obj_t obj;
-   
-   /* Initialize hwloc library */
-   if (hwloc_topology_init (&topology) == -1) {
-      std::cerr << "Error: Cannot initialize Hwloc topology" << std::endl;
-      exit (EXIT_FAILURE);
+      reader.readLine<unsigned int>(this->freqs);
+      std::sort (this->freqs.begin (), this->freqs.end ());
    }
 
-   hwloc_topology_ignore_type (topology, HWLOC_OBJ_CACHE);
+   // initialize all the cores under our control
+   this->takeControl (cpuIds);
 
-   if (hwloc_topology_load (topology) == -1) {
-      std::cerr << "Error: Cannot load Hwloc topology" << std::endl;
-      exit (EXIT_FAILURE);
-   }
- 
-   /* We should have a certain kind of hwloc topology tree... */
-   assert (hwloc_get_depth_type (topology, 1) == HWLOC_OBJ_SOCKET);
-   assert (hwloc_get_depth_type (topology, 2) == HWLOC_OBJ_CORE);
+   /* Now we want to take all the power economy ratio information from the
+    * config file */
+   {
+      DataFileReader reader (PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath (id));
+      if (!reader.isOpen ()) 
+      {
+         LOG (FATAL) << "Failed to fetch FoREST configuration file '" 
+         << PathBuilder<PT_POWER_CONFIG,PathCache>::buildPath (id) 
+         << "' for DVFS unit #" << id
+         << ". You must run the offline script before using FoREST"
+         << std::endl;
+      } 
 
-   this->nbPhysicalCores = hwloc_get_nbobjs_by_depth (topology, 2);
-   /* For each physical core, we're going to see their children (eg the logical units)
-    * and see which logical id corresponds to which physical id
-    */
-   for (unsigned int j = 0; j < this->nbPhysicalCores; j++) { 
-      obj = hwloc_get_obj_by_depth (topology, 2, j);
-      for (unsigned k = 0; k < obj->arity; k++) {
-         for (unsigned int i = 0; i < this->nbCpuIds; i++) {
-            if (obj->children [k]->os_index == this->cpuIds [i].logicalId) {
-               this->cpuIds [i].physicalId = obj->os_index;
-            }
+      // skip the first line
+      std::vector<float> data;
+      reader.readLine (data);
+      data.clear ();
+      
+      while (reader.readLine (data))
+      {
+         // skip empty lines
+         if (data.size () == 0)
+         {
+            continue;
          }
+
+         for (std::vector<float>::iterator it = data.begin ();
+              it != data.end ();
+              it++)
+         {
+            this->power.push_back (*it);
+         }
+
+         if (data.size () != this->freqs.size ())
+         {
+            LOG (FATAL) << "Corrupted power configuration file. Consider running again the offline power measurement"
+               << std::endl;
+         }
+
+         data.clear ();
       }
    }
 
-   // We don't need hwloc anymore, bybye
-   hwloc_topology_destroy (topology);
-
-   /* Now we want to take all the power economy ratio information from the config file */
-   this->power = new float [this->nbPhysicalCores * this->nbFreqs];
-  
-   // Go through all the other lines
-   float ratio;
-   unsigned int i = 0;
-   while (ifs >> ratio) { 
-      assert (i < this->nbPhysicalCores * this->nbFreqs);
-      this->power [i++] = ratio;
-      assert (!ifs.fail ());
-   }
-   ifs.close ();
-	
-   this->id = id;
+   // init the status of the unit
+   this->curFreqId = 0;
+   this->setFrequency (0);
 }
 
 DVFSUnit::~DVFSUnit ()
 {
-   std::ostringstream oss;
    std::ofstream ofs;
 
    // restore the former governor for each CPU
-	 size_t i, size = this->cpuIds.size ();
-	for (i = 0; i < size; i++) {
-		oss << "/sys/devices/system/cpu/cpu" << this->cpuIds [i].logicalId << "/cpufreq/scaling_governor";
-  	ofs.open (oss.str ().c_str ());
+   for (std::set<unsigned int>::iterator it = this->cpuIds.begin ();
+        it != this->cpuIds.end ();
+        it++)
+   {
+      ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it).c_str ());
 
 		if (ofs != 0 && ofs.is_open ()) {
-  		ofs << this->formerGov [i];
- 	 		ofs.flush ();
-			ofs.close ();
+         ofs << this->formerGov [*it];
+         ofs.flush ();
+         ofs.close ();
 		}
-		oss.str (std::string (""));
+   }
 
+   // close files
+   for (unsigned int i = 0; i < this->cpuIds.size (); i++)
+   {
 		this->freqFs [i]->close ();
 		delete this->freqFs [i];
 	}
-   // cleanup memory
-   delete [] this->power;
-   delete [] this->freqs;
 }
 
-const std::vector<CPUCouple>& DVFSUnit::getCpuIdList () const{
-   return this->cpuIds;
-}
+void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
+{
+   for (std::set<unsigned int>::iterator it = cpuIds.begin ();
+        it != cpuIds.end ();
+        it++)
+   {
+      std::string governor;
+      std::ofstream ofs;
 
-void DVFSUnit::addCpuId (unsigned int cpuId) {
-	assert (this->cpuIds.size () == this->formerGov.size ());
-	std::ostringstream oss;
-	std::ifstream ifs;
-	std::ofstream ofs;
+      // We store the former governor of this processor to restore it when
+      // DVFSUnit object is destroyed
+      {
+         DataFileReader governorReader (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it));
 
-	// We also store the former governor of this processor to restore it when DVFSUnit object is destroyed
-	oss << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/scaling_governor";
+         if (!governorReader.isOpen () 
+             || !governorReader.read<std::string>(governor))
+         {
+            LOG (WARNING) << "Failed to read current governor for cpu id #" 
+               << *it << std::endl;
 
-	ifs.open (oss.str ().c_str ());
+            governor = "ondemand";
+         }
+      }
 
-	if (ifs == 0 || !ifs.is_open ()) {
-		std::cerr << "Error: Cannot retrieve current governor for cpu id #" << cpuId << std::endl;
-		exit (EXIT_FAILURE);
-	}
+      this->formerGov [*it] = governor;
 
-	std::string governor;
-	ifs >> governor;
+	   // Replace the current governor by userspace
+   	ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it).c_str ());
+	   ofs << "userspace";
+   	ofs.flush ();
+	   ofs.close ();
 
-	// Push back in the list
-	this->formerGov.push_back (governor);
+      // open the file in wich we have to write to set a frequency
+   	std::ofstream *freqFs = new std::ofstream ();
+   	freqFs->open (PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath (*it).c_str ());
 
-	// Replace the current governor by userspace
-	ofs.open (oss.str ().c_str ());
-	ofs << "userspace";
-	ofs.flush ();
-	ofs.close ();
+   	if (!freqFs->is_open ()) {
+   	   LOG (FATAL) << "Error: Cannot open frequency file setter for writting."
+            << std::endl
+            << "Technical Info:" << std::endl << "- DVFSunit id: "
+            << *it << std::endl << "- File path: "
+            << PathBuilder<PT_CPUINFO_SCALING_SETSPEED, PathCache>::buildPath (*it).c_str ()
+            << std::endl;
+      }
 
-	// If it is the first cpu id to be added, then 
-	// it represents the id we'll write into	
-  // open the file in wich we have to write to set a frequency
-	oss.str (std::string (""));
-	oss << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/scaling_setspeed";
-	std::ofstream *freqFs = new std::ofstream ();
-	handleAllocation (freqFs);
-	freqFs->open (oss.str ().c_str ());
-	if (!freqFs->is_open ()) {
-   	std::cerr << "Error: Cannot open frequency file setter. Are you root and running Linux ?" << std::endl;
-   	std::cerr << "Technical Info:" << std::endl << "- DVFSunit id: " << cpuId << std::endl;
-   	std::cerr << "- File path: " << oss.str () << std::endl;
-   	exit (EXIT_FAILURE);
-	}
-
-   assert (this->freqs != NULL);
-	*freqFs << this->freqs [0];
-	freqFs->flush ();
-	this->curFreqId = 0;
-   CPUCouple cpuc = {0, cpuId};
-	this->cpuIds.push_back (cpuc);
-	this->nbCpuIds++;
-	this->freqFs.push_back (freqFs);
+	   this->freqFs.push_back (freqFs);
+   }
 }
 
 void DVFSUnit::setFrequency (unsigned int freqId)
 { 
-   assert (freqId < this->nbFreqs);
-
-   //std::ostringstream oss;
-		
-	//std::cerr << "Setting frequency id #" << freqId << std::endl;
+   assert (freqId < this->freqs.size ());
 
    // nothing to do?
    if (freqId == this->curFreqId) {
       return;
    }
 
-	size_t i, size = this->nbCpuIds;
-	for (i = 0; i < size; i++) {
+	for (std::vector<std::ofstream *>::iterator it = this->freqFs.begin ();
+        it != this->freqFs.end ();
+        it++)
+   {
 		// write the correct frequency in the file
-		//this->freqFs [i]->seekp (0, std::ios::beg);
-  	   *(this->freqFs [i]) << this->freqs [freqId];
-		this->freqFs [i]->flush ();
-		assert (!this->freqFs [i]->fail () && !this->freqFs [i]->bad ());
-		//std::cerr << "Writing " << this->freqs [freqId] << std::endl;
+  	   *(*it) << this->freqs [freqId];
+		(*it)->flush ();
+
+		assert (!(*it)->fail () && !(*it)->bad ());
 	}
 
 	this->curFreqId = freqId;

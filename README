@@ -1,0 +1,25 @@
+FoREST - Reactive DVFS Control for Multicore Processors
+
+FoREST is a new DVFS running in background that will control the CPU frequency based on the CPU usage.
+
+Notes :
+
+    Currently the program only correctly supports SandyBridge. The Makefile will check you CPU architecture and avoid you to compile if you does not have a SandyBridge.
+
+Dependencies :
+
+    msr-tools
+
+Compilation :
+
+    make
+
+Note that make will run the offline screen to determine the impact of frequency transition on power consumption. The script can take several minutes to run.
+
+Usage :
+
+    ./localRest powersave|energy
+
+Licence :
+    GPLv3
+    See COPYRIGHT file

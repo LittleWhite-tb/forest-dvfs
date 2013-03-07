@@ -1,19 +1,20 @@
 /*
-   Copyright (C) 2011 Exascale Research Center
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * FoREST - Reactive DVFS Control for Multicore Processors
+ * Copyright (C) 2013 Universite de Versailles
+ * Copyright (C) 2011-2012 Exascale Research Center
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
@@ -25,12 +26,14 @@
 #include <unistd.h>
 #include <iostream>
 #include <sys/ioctl.h>
+#include <set>
 #include <stdint.h>
 #include <string.h>
 
 #include "pfmProfiler.h"
 #include "perfmon/perf_event.h"
 #include "perfmon/pfmlib_perf_event.h"
+#include "glog/logging.h"
 
 // definition of the static fields
 pthread_mutex_t PfmProfiler::pfmInitMtx = PTHREAD_MUTEX_INITIALIZER;
@@ -44,8 +47,8 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 #ifdef ARCH_SNB
       "UNHALTED_REFERENCE_CYCLES"
 #elif ARCH_IVB
-//      "UNHALTED_REFERENCE_CYCLES"
-      "CPU_CLK_UNHALTED:REF_P"
+      "UNHALTED_REFERENCE_CYCLES"
+//      "CPU_CLK_UNHALTED:REF_P"
 //      "UNHALTED_CORE_CYCLES"
 #else
 #warning "Unknown micro-architecture! CPU cycle counting may be wrong."
@@ -53,23 +56,22 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 #endif
    };
 
+   const std::set<unsigned int> threads = this->unit.getThreads ();
    int res;
 
    // libpfm init
    PfmProfiler::pfmInit (); 
-   this->nbCpuIds = this->unit.getNbCpuIds ();
-
-   //   std::cerr << "nbCpuIds = " << this->nbCpuIds << std::endl;
+   this->nbCpuIds = threads.size ();
 
    this->pfmFds = new int [NB_HW_COUNTERS*nbCpuIds];
-   handleAllocation (this->pfmFds);
 
    this->formerMeasurement = new HWCounters [nbCpuIds];
-   handleAllocation (this->formerMeasurement);
 
    // For each CPU in the DVFSUnit
-   for (unsigned int cpu = 0; cpu < nbCpuIds; cpu++) {
-      unsigned int cpuId = this->unit.getOSId (cpu);
+   std::set<unsigned int>::iterator it = threads.begin ();
+   for (unsigned int cpu = 0; cpu < nbCpuIds; cpu++, it++)
+   {
+      unsigned int cpuId = *it;
 
       // Offset in the pfmFds array because flattened 2D array
       unsigned baseIdx = cpu*NB_HW_COUNTERS;
@@ -89,29 +91,21 @@ PfmProfiler::PfmProfiler (DVFSUnit & unit) : Profiler (unit)
 
          // encode the counter
          res = pfm_get_os_event_encoding (counters [i],  PFM_PLM0 | PFM_PLM1 | PFM_PLM2 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
-         if (res != PFM_SUCCESS)
-         {
-            std::cerr << "Failed to get counter " << counters [i] << " on cpu " << cpu << std::endl;
-            exit (EXIT_FAILURE);
-         }
+         CHECK (res == PFM_SUCCESS) << "Failed to get counter " << counters [i]
+            << " on cpu " << cpu << std::endl;
 
          // request scaling in case of shared counters
          arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
          // open the corresponding file on the system
          this->pfmFds [baseIdx + i] = perf_event_open (arg.attr, -1, cpuId, -1, 0);
-         if (this->pfmFds [baseIdx + i] == -1)
-         {
-            std::cerr << "Cannot open counter " << counters [i] << " on cpu " << cpuId << std::endl;
-            exit (EXIT_FAILURE);
-         }
+         CHECK (this->pfmFds [baseIdx + i] != -1) << "Cannot open counter "
+            << counters [i] << " on cpu " << cpuId << std::endl;
 
          // Activate the counter
-         if (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0))
-         {
-            std::cerr << "Cannot enable event " << counters [i] << " on cpu " << cpuId << std::endl;
-            exit (EXIT_FAILURE);
-         }
+         CHECK (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0) == 0)
+            << "Cannot enable event " << counters [i] << " on cpu " << cpuId
+            << std::endl;
       }
    }
 
@@ -139,7 +133,7 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
    assert (cpu < this->nbCpuIds);
    int res;
 
-   //std::cerr << "reading hwc for cpu " << cpu << std::endl;
+   //DLOG (INFO) << "reading hwc for cpu " << cpu << std::endl;
    
    // specific case of the time stamp counter
    uint32_t tsa, tsd;
@@ -161,12 +155,11 @@ void PfmProfiler::read (HWCounters & hwc, unsigned int cpu)
       res = ::read (this->pfmFds [baseIdx + i], buf, sizeof (buf));
       if (res != sizeof (buf))
       {
-         std::cerr << "Failed to read counter #" << i << std::endl;
+         LOG (ERROR) << "Failed to read counter #" << i << std::endl;
       }
 
       // handle scaling to allow PMU sharing
       value = (uint64_t)((double) buf [0] * (double) buf [1] / buf [2]);
-      //if (i == 1) std::cout << "value: " << buf [0] << " former: " << this->formerMeasurement [cpu].values [i] <<  std::endl;
       if (this->formerMeasurement [cpu].values [i] <= value)
       {
          hwc.values [i] = value - this->formerMeasurement [cpu].values [i];

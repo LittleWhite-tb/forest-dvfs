@@ -1,35 +1,35 @@
 /*
- Copyright (C) 2011 Exascale Research Center
-
- This program is free software; you can redistribute it and/or
- modify it under the terms of the GNU General Public License
- as published by the Free Software Foundation; either version 2
- of the License, or (at your option) any later version.
-
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software
- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * FoREST - Reactive DVFS Control for Multicore Processors
+ * Copyright (C) 2013 Universite de Versailles
+ * Copyright (C) 2011-2012 Exascale Research Center
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
  * @file DVFSUnit.h
- * The DVFSUnit class header is in this file
+ * The DVFSUnit class reprensents all the cores sharing the same frequency 
+ * setting.
  */
 
 #ifndef H_DVFSUNIT
 #define H_DVFSUNIT
 
+#include <algorithm>
 #include <cassert>
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <stdint.h>
-#include <iostream>
+#include <map>
+#include <set>
 #include <vector>
 
 #include "Common.h"
@@ -45,10 +45,11 @@ class DVFSUnit
       /**
        * Constructor
        *
-       * @param id The id of the processor for the OS
-       * @param useTB Do we consider the TurboBoost frequency or ignore it.
+       * @param id The unique ID for this unit. Must be the same as the id 
+       *  used when the offline power information was generated.
+       * @param cpuIds Set of CPU ids handled by this unit.
        */
-      DVFSUnit (unsigned int id, unsigned int cpuid);
+      DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds);
 
       /**
        * Destructor
@@ -56,23 +57,23 @@ class DVFSUnit
       ~DVFSUnit ();
 
       /**
-       * Returns the unit identifier (name) for the OS. This is typically a
-       * logical processor number.
+       * Returns the id of this DVFS unit.
        *
-       * @return The unit number defined by the underlying OS.
+       * @return The unique ID for this DVFS unit.
        */
-      inline unsigned int getOSId (unsigned idx = 0) const
+      inline unsigned int getId () const
       {
-         assert (idx < this->cpuIds.size ());
-         return this->cpuIds [idx].logicalId;
+         return this->id;
       }
 
-			inline unsigned int getId () const {
-				return id;
-			}
-
-      inline unsigned int getNbCpuIds () const{
-            return this->cpuIds.size ();
+      /**
+       * Returns the set of CPUs under our control.
+       *
+       * @return The IDs of the threads this instance controls.
+       */
+      inline const std::set<unsigned int> getThreads () const
+      {
+         return this->cpuIds;
       }
 
       /**
@@ -82,7 +83,7 @@ class DVFSUnit
        */
       inline unsigned int getNbFreqs () const
       {
-         return this->nbFreqs;
+         return this->freqs.size ();
       }
 
       /**
@@ -94,7 +95,7 @@ class DVFSUnit
        */
       inline unsigned int getFrequency (unsigned int freqId) const
       {
-         assert (freqId < this->nbFreqs);
+         assert (freqId < this->freqs.size ());
 
          return this->freqs [freqId];
       }
@@ -109,6 +110,11 @@ class DVFSUnit
          return this->curFreqId;
       }
       
+      /**
+       * Returns the current frequency used.
+       *
+       * @return The current frequency requested for the whole DVFS unit.
+       */
       inline unsigned int getCurFreq () const{
       	return this->freqs [this->curFreqId];
       }
@@ -131,57 +137,45 @@ class DVFSUnit
          return this->latency;
       }
 
-      // TODO comment
-      const std::vector<CPUCouple>& getCpuIdList () const;
-
-      inline unsigned int getNbPhysicalCores () const {
-         return this->nbPhysicalCores;
-      }
-
       /**
        * Return the power measurement obtained during the offline step for the
        * given frequency with the given number of active cores.
        *
        * @param freqId The frequency whose power is requested for.
-       * @param nbCoresOn The number of active cores.
+       * @param nbCoresOn How many physical CPU cores are active
        *
        * @return The power consumption of the offline benchmark in the
        * environment defined by the given parameters.
        */
       inline float getPowerAt (unsigned int freqId, unsigned int nbCoresOn) const
       {
-         assert (freqId < this->nbFreqs);
-         assert (nbCoresOn <= this->nbPhysicalCores);
+         assert (freqId < this->freqs.size ());
 
          if (nbCoresOn == 0)
          {
             return 0;
          }
-
-         return this->power [(nbCoresOn - 1) * this->nbFreqs + freqId];
+         
+         return this->power [(nbCoresOn - 1) * this->freqs.size () + freqId];
       }
 
    private:
-		/**
-         * Add a core id in the list of cpus of the dvfs unit
-         * Replaces its corresponding governor by userspace,
-         * saving its former governor to be able to restore it
-         * afterwards
-         */
-     void addCpuId (unsigned int cpuId);
-     
-     // TODO comment
-	 		unsigned int id;
-      /**
-       * The number of frequencies which this unit can use.
-       */
-      unsigned int nbFreqs;
 
       /**
-       * All the possible frequencies this thread can use. Array of size
-       * nbFreqs, sorted in increasing order.
+       * DVFS unit id.
        */
-      unsigned int * freqs;
+      unsigned int id;
+
+      /**
+       * The set of CPU ids under our control.
+       */
+      std::set<unsigned int> cpuIds;
+
+      /**
+       * All the possible frequencies this unit can use.
+       * Sorted in increasing order.
+       */
+      std::vector<unsigned int> freqs;
 
       /**
        * Id of the current frequency in use.
@@ -191,12 +185,12 @@ class DVFSUnit
       /**
        * Governor in use before we take control of the DVFS unit.
        */
-			std::vector<std::string> formerGov;
+      std::map<unsigned int, std::string> formerGov;
 
       /**
        * File where to write to set the frequency.
        */
-			std::vector<std::ofstream*> freqFs;
+      std::vector<std::ofstream*> freqFs;
 
       /**
        * Latency imposed to switch the frequency (nanoseconds).
@@ -204,19 +198,21 @@ class DVFSUnit
       unsigned int latency;
 
       /**
-       * List of cores that are linked to the DVFS Unit by frequency
-       * and handled by it 
-       */
-      std::vector<CPUCouple> cpuIds;
-		unsigned int nbCpuIds;
-      unsigned int nbPhysicalCores;
-      
-      /**
        * Flattened 2d array of power per given dvfsunit workload and per freq
-       * 1st dimension : dvfsunit workload (in number of actives physical cores)
+       * 1st dimension : dvfsunit workload (in number of active physical cores)
        * 2nd dimension : available frequencies
+       * 
+       * To access the power consumption for A active cores at frequency F,
+       * reach power [A * nbFreqs + F]
        */
-      float *power;
+      std::vector<float> power;
+
+      /**
+       * Initializes the given CPUs to begin controlling them.
+       *
+       * @param cpuIds The CPUs to control.
+       */
+      void takeControl (const std::set<unsigned int> &cpuIds);
 };
 
 

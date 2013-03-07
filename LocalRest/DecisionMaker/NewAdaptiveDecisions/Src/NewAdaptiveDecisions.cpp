@@ -1,20 +1,21 @@
 /*
-   Copyright (C) 2011 Exascale Research Center
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-   */
+ * FoREST - Reactive DVFS Control for Multicore Processors
+ * Copyright (C) 2013 Universite de Versailles
+ * Copyright (C) 2011-2012 Exascale Research Center
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 /**
  * @file NewAdaptiveDecisions.cpp
@@ -26,6 +27,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <cstdlib>
+#include <math.h>
 #include <vector>
 #include <stdint.h>
 #include <cassert>
@@ -33,7 +35,7 @@
 
 #include "NewAdaptiveDecisions.h"
 #include "Common.h"
-#include <math.h>
+#include "CPUInfo.h"
 #include "FreqSelector.h"
 
 #ifdef REST_LOG
@@ -46,16 +48,28 @@ struct CoupleInfo {
    unsigned int freqId;
 };
 
+// Static declarations
+#ifdef ARCH_SNB
+      // SandyBridge hw counters report incorrect activity for low activity
+      const float NewAdaptiveDecisions::ACTIVITY_LEVEL = 0.5f;
+#else
+      const float NewAdaptiveDecisions::ACTIVITY_LEVEL = 0.3f;
+#endif
+
+const float NewAdaptiveDecisions::SYS_POWER = 50.f;
+const float NewAdaptiveDecisions::USER_PERF_REQ_PERF = 0.95f;
+const float NewAdaptiveDecisions::USER_PERF_REQ_ENERGY = 0.50f;
+
 
 NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mode) :
    DecisionMaker (unit, mode),
-   timeProfiler (),
    USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
+   timeProfiler (),
    freqSelector (unit.getNbFreqs ())
 {
    this->curRuntimeState = EVALUATION;
    this->curEvalState = EVALUATION_INIT;
-   this->currentSeqChunk = 0;
+   this->curExecStep = 0;
    this->totalSleepWin = NewAdaptiveDecisions::MIN_SLEEP_WIN;
    this->oldMaxFreqId = 0;
    this->prof = NULL;
@@ -64,7 +78,7 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mod
    this->log = Logger::getLog (this->unit.getId ());
 #endif
 
-   this->nbCpuIds = unit.getNbCpuIds ();
+   this->nbCpuIds = unit.getThreads ().size ();
    this->nbFreqs = unit.getNbFreqs ();
    assert (this->nbCpuIds != 0);
    assert (this->nbFreqs != 0);
@@ -74,13 +88,6 @@ NewAdaptiveDecisions::NewAdaptiveDecisions (const DVFSUnit& unit, const Mode mod
    // Allocate data
    this->ipcEval = new float [this->ipcEvalSize];
    this->usage = new float [this->nbCpuIds];
-
-   // Check that allocation was successful
-   handleAllocation (this->ipcEval);
-   handleAllocation (this->usage);
-
-   // Reserve the critical vectors for performance reasons
-   this->sequence.reserve (this->nbCpuIds+1);
 
    // setup an initial state for the decision
    this->lastSequence.step [STEP1].freqId = 0;
@@ -93,45 +100,6 @@ NewAdaptiveDecisions::~NewAdaptiveDecisions (void)
 {
    delete [] this->ipcEval;
    delete [] this->usage;
-}
-
-void NewAdaptiveDecisions::getAvgIPCPerFreq (float *avgIPC)
-{
-   /*std::cout << "Activity level: ";
-   for (unsigned int c = 0; c < this->nbCpuIds; c++)
-   {
-      std::cout << this->usage [c] << " ";
-   }
-   std::cout << std::endl;*/
-
-
-   for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
-      it != this->freqsToEvaluate.end ();
-      it++)
-   {
-      unsigned int activeCpus = 0;
-      float ipc = 0;
-
-      for (unsigned int c = 0; c < this->nbCpuIds; c++)
-      {
-         if (this->usage [c] >= ACTIVITY_LEVEL)
-         {
-            ipc += this->ipcEval [*it * this->nbCpuIds + c];
-            activeCpus++;
-         }
-      }
-
-      if (activeCpus == 0)
-      {
-         avgIPC [*it] = 0;
-         continue;
-      }
-
-      ipc = ipc / activeCpus;
-      avgIPC [*it] = ipc;
-
-      std::cout << "IPC for freq " << *it << " = " << ipc << std::endl;
-   }
 }
 
 void NewAdaptiveDecisions::getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs)
@@ -153,24 +121,18 @@ void NewAdaptiveDecisions::getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs
    }
 }
 
-FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float *coupleEnergy)
+FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
+                                                     float *coupleEnergy)
 {
    std::vector<unsigned int> smallerIpc;
    std::vector<unsigned int> greaterIpc;
    std::vector<float> maxIPCs;
+   unsigned int nbActiveCores = this->activeCores.size ();
 
-   // how many cores are active?
-   unsigned int activeCpus = 0;
-   for (unsigned int c = 0; c < this->nbCpuIds; c++)
-   {
-      if (this->usage [c] >= ACTIVITY_LEVEL)
-      {
-         activeCpus++;
-      }
-   }
-
+   DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
+   
    // no active cores?
-   if (activeCpus == 0)
+   if (nbActiveCores == 0)
    {
       FreqChunk step1, step2;
 
@@ -188,7 +150,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
          *coupleEnergy = 0;
       }
 
-      //std::cout << "All cores idle" << std::endl;
+      //DLOG (INFO) << "All cores idle" << std::endl;
       return couple;
    }
 
@@ -202,14 +164,10 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
    {
       bool isLower = true, isHigher = true;
 
-      //std::cout << "Freq " << *it << ": ";
-
       for (unsigned int c = 0; c < this->nbCpuIds; c++)
       {
          if (this->usage [c] >= ACTIVITY_LEVEL)
          {
-            //std::cout << IPCs [*it * this->nbCpuIds + c] << " ";
-
             if (IPCs [*it * this->nbCpuIds + c] < d * maxIPCs [c])
             {
                isHigher = false;
@@ -221,31 +179,27 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
          }
       }
 
-      //std::cout << std::endl;
-
       if (isLower)
       {
-         //std::cout << "smaller freq: " << *it <<  std::endl;
          smallerIpc.push_back (*it);
       }
       else if (isHigher)
       {
-         //std::cout << "greater freq: " << *it << std::endl;
          greaterIpc.push_back (*it);
       }
    }
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
-   float *e_ratios = new float [this->nbFreqs];
-   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), activeCpus);
+   std::vector<float> e_ratios (this->nbFreqs);
+   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), nbActiveCores);
    const float Psys = NewAdaptiveDecisions::SYS_POWER;
-   e_ratios [*this->freqsToEvaluate.begin ()] = activeCpus;
+   e_ratios [*this->freqsToEvaluate.begin ()] = nbActiveCores;
 
    for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ()++;
         it != this->freqsToEvaluate.end ();
         it++)
    {
-      float Pi = this->unit.getPowerAt (*it, activeCpus);
+      float Pi = this->unit.getPowerAt (*it, nbActiveCores);
 
       e_ratios [*it] = 0;
 
@@ -261,7 +215,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
       }
    }
 
-   // only greater freqs? IPC is ensured, whatever we chose, go to the smallest known frequency
+   // only greater freqs? IPC is ensured, whatever we choose, go to the smallest known frequency
    if (smallerIpc.size () == 0)
    {
       FreqChunk step1, step2;
@@ -282,9 +236,6 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
          *coupleEnergy = e_ratios [minFreq];
       }
 
-      //std::cout << "No smaller freqs, choosing " << minFreq << std::endl;
-
-      delete [] e_ratios;
       return couple;
    }
 
@@ -310,12 +261,8 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
          *coupleEnergy = e_ratios [maxFreq];
       }
 
-      //std::cout << "No greater freqs, choosing " << maxFreq << std::endl;
-
-      delete [] e_ratios;
       return couple;
    }
-
 
    // we want min (r_i*e_i/e_ref+r_j*e_j/e_ref) among all couples (f_i, f_j)
    // with r_i and r_j the time ratios for f_i and f_j in the couple
@@ -366,8 +313,11 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
 
          float coupleE = step1.timeRatio * e_ratios [smaller] + step2.timeRatio * e_ratios [greater];
 
-         //std::cout << "couple ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio 
-         //   << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE << std::endl;
+         DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
+            << couple.step [STEP1].timeRatio << "),(" 
+            << couple.step [STEP2].freqId << "," 
+            << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE
+            << std::endl;
 
          if (coupleE < bestCoupleE)
          {
@@ -377,9 +327,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d, float
       }
    }
 
-   assert (bestCoupleE < std::numeric_limits<float>::max ());
-
-   delete [] e_ratios;
+   assert (bestCoupleE < std::numeric_limits<float>::max ()); 
 
    if (coupleEnergy != NULL)
    {
@@ -399,51 +347,6 @@ void NewAdaptiveDecisions::logFrequency (unsigned int freqId) const
 #ifdef REST_LOG
    std::ostringstream logger;
    logger << freqId;
-
-#if 0
-   float totTimeRatio = 0.;
-   for (unsigned int i = 0; i < this->sequence.size (); i++) {
-      logger << "{" << this->sequence [i].freqId << ", " << this->sequence [i].timeRatio << "}, ";
-      totTimeRatio += this->sequence [i].timeRatio;
-   }
-   std::cerr << logger.str () << std::endl;
-   assert (totTimeRatio == 1);
-   logger << "}" << std::endl;	
-
-
-   float ipcMax = 0.;
-   unsigned int max = 0;
-
-   for (unsigned int i = 1; i < this->ipcEvalSize; i++) {
-      ipcMax = rest_max (ipcMax, this->ipcEval [i]);
-      if (this->ipcEval [i] > this->ipcEval [max]) {
-         max = i;
-      }
-   }
-   /* modulo : core
-    * division : freq selection (ou inversement)
-    */
-   logger << " " << this->ipcEval [max] << std::endl;
-
-   logger << "IPC Eval array :" << std::endl;	
-   logger << std::endl;
-   for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
-        it != this->freqsToEvaluate.end ();
-        it++) {
-      unsigned int baseIdx = *it*this->nbCpuIds;
-      logger << *it << " ";
-      for (unsigned int j = 0; j < this->nbCpuIds; j++) {
-         logger << std::setw (10) << this->ipcEval [baseIdx+j] << " ";
-      }
-      logger << std::endl;
-   }
-
-
-   // Debug print
-   logger << "\tStep1 {" << this->lastSequence.step [STEP1].freqId << ", " << this->lastSequence.step [STEP1].timeRatio << "}" << std::endl;
-   logger << "\tStep2 {" << this->lastSequence.step [STEP2].freqId << ", " << this->lastSequence.step [STEP2].timeRatio << "}" << std::endl;
-#endif
-
    this->log->logOut (logger);
 #endif
 }
@@ -490,10 +393,10 @@ Decision NewAdaptiveDecisions::initEvaluation ()
    // We're all set! Let's evaluate the frequencies!
    this->curEvalState = FREQUENCY_EVALUATION;
 
-   // Prepare the first frequency to be the minimum of our freshly computed frequency window
+   // Prepare the first frequency to be the minimum of our freshly
+   // computed frequency window
    this->currentEvalFreqId = this->freqsToEvaluate.begin ();
    res.freqId = *this->currentEvalFreqId;
-   res.cpuId = this->unit.getOSId ();
    res.sleepWin = NewAdaptiveDecisions::IPC_EVAL_TIME;	
    res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
 
@@ -520,7 +423,7 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
       this->prof->read (hwc, i);
       float HWexp = this->getHWExploitationRatio (hwc);
 
-      //std::cerr << "#" << i << ", freq #" << currentFreq << " IPC = " << HWexp << std::endl;
+      //DLOG (INFO) << "#" << i << ", freq #" << currentFreq << " IPC = " << HWexp << std::endl;
       if (HWexp < 0 || isnan (HWexp))
       {
          hwcPanic = true;
@@ -532,6 +435,7 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 
       // also update cpu usage
       this->usage [i] = this->getCPUUsage (hwc);
+      //DLOG (INFO) << "CPU Usage = " << this->usage [i] << std::endl;
    }
 
    // in case of panic, restart evaluation
@@ -547,7 +451,6 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 
       // do nothing here and immediately get back to the next step
       res.freqId = 0;
-      res.cpuId = this->unit.getOSId ();
       res.sleepWin = 0;
       res.freqApplyDelay = 0;
 
@@ -556,7 +459,6 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 
    // evaluate the next frequency
    res.freqId = *this->currentEvalFreqId;
-   res.cpuId = this->unit.getOSId ();
    res.sleepWin = NewAdaptiveDecisions::IPC_EVAL_TIME;
    res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
 
@@ -573,6 +475,18 @@ void NewAdaptiveDecisions::computeSequence ()
    float bestD = 0;
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
+   // active cpus
+   std::set<unsigned int> activeThreads;
+   for (unsigned int c = 0; c < this->nbCpuIds; c++)
+   {
+      if (this->usage [c] >= ACTIVITY_LEVEL)
+      {
+         activeThreads.insert (c);
+      }
+   }
+   this->activeCores.clear ();
+   CPUInfo::threadIdsToCoreIds (activeThreads, this->activeCores);
+
    // test all perfmormance level by steps of 1%
    for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
    {
@@ -581,7 +495,7 @@ void NewAdaptiveDecisions::computeSequence ()
 
       couple = getBestCouple (this->ipcEval, d, &coupleE);
 
-      //std::cout << "IPC: " << targetIPC
+      //DLOG (INFO) << "IPC: " << targetIPC
       //   << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
       //   << ")) energy: " << coupleE << std::endl;
 
@@ -593,22 +507,24 @@ void NewAdaptiveDecisions::computeSequence ()
       }
    }
 
-   std::cout << "d: " << bestD
+   DLOG (INFO) << "d: " << bestD
       << " couple: ((" << bestCouple.step [STEP1].freqId << "," << bestCouple.step [STEP1].timeRatio << "),(" << bestCouple.step [STEP2].freqId << "," << bestCouple.step [STEP2].timeRatio 
       << ")) energy: " << bestE << std::endl;
 
-   this->sequence.clear (); 
-   this->sequence.push_back (bestCouple.step [STEP1]);
-   this->sequence.push_back (bestCouple.step [STEP2]);
+   // Set the sequence to the best couple found
+   this->sequence = bestCouple;
 
+   // remember this for freq window update
+   this->lastSequence = bestCouple;
+
+   // Promote the frequencies
    this->freqSelector.promote (bestCouple.step [STEP1].freqId,
                                bestCouple.step [STEP1].timeRatio);
    this->freqSelector.promote (bestCouple.step [STEP2].freqId,
                                bestCouple.step [STEP2].timeRatio);
 
-   // remember this for freq window update
-   this->lastSequence = bestCouple;
-
+   // Set the dominant frequency in the couple (e.g the one having the maximum
+   // time ratio)
    if (bestCouple.step [STEP1].timeRatio > bestCouple.step [STEP2].timeRatio)
    {
       maxRatioFreqId = bestCouple.step [STEP1].freqId;
@@ -643,8 +559,7 @@ void NewAdaptiveDecisions::computeSequence ()
 		}
 	}
 
-   //std::cout << " tsw = " << this->totalSleepWin << ", " << maxRatioFreqId << ", " << this->oldMaxFreqId << std::endl; 
-   
+   // Log the new frequency if necessary
 	if (logFrequency) {
 	 this->logFrequency (maxRatioFreqId);	
 	}
@@ -674,7 +589,6 @@ Decision NewAdaptiveDecisions::evaluate ()
 			
          // do nothing and go to the next step
          res.freqId = 0;
-         res.cpuId = this->unit.getOSId ();
          res.sleepWin = 0;
          res.freqApplyDelay = 0;
 
@@ -682,30 +596,26 @@ Decision NewAdaptiveDecisions::evaluate ()
 			break;
 		
 		default:
-			std::cerr << "Error: Unknown Evaluation State "
-								<< this->curRuntimeState << " not handled" << std::endl;
-			exit (EXIT_FAILURE);
+			LOG (FATAL) << "Error: Unknown evaluation state "
+            << this->curRuntimeState << " not handled" << std::endl;
 	};	
 }
 
 Decision NewAdaptiveDecisions::executeSequence ()
 {
-	size_t seqSize = this->sequence.size ();
-
-	if (this->currentSeqChunk < seqSize) {
+	if (this->curExecStep < 2) {
       Decision res;
 
-		res.freqId = this->sequence [this->currentSeqChunk].freqId;
-		res.cpuId = this->unit.getOSId ();
-      res.sleepWin =	this->sequence [this->currentSeqChunk].timeRatio * this->totalSleepWin;
+		res.freqId = this->sequence.step [this->curExecStep].freqId;
+      res.sleepWin =	this->sequence.step [this->curExecStep].timeRatio * this->totalSleepWin;
       res.freqApplyDelay = 0;
       
 		assert (res.sleepWin <= this->totalSleepWin);
 
-		this->currentSeqChunk++;
+		this->curExecStep++;
 
       // reset IPC related counters before starting sequence
-      if (this->currentSeqChunk == 0)
+      if (this->curExecStep == STEP1)
       {
          this->readCounters ();
       }
@@ -714,11 +624,11 @@ Decision NewAdaptiveDecisions::executeSequence ()
    }
 
    // this assert is not required, isn't it?
-   //assert (this->currentSeqChunk > 0);
+   //assert (this->curSeqChunk > 0);
 
    // Reset the current sequence chunk that will be executed in the
    // execution state
-   this->currentSeqChunk = 0;
+   this->curExecStep = 0;
 
    // Now, we loop back to the evaluation
    this->curRuntimeState = EVALUATION;
@@ -737,7 +647,6 @@ Decision NewAdaptiveDecisions::executeSequence ()
 
    // do nothing and go to the next step
    res.freqId = 0;
-   res.cpuId = this->unit.getOSId ();
    res.sleepWin = 0;
    res.freqApplyDelay = 0;
 
@@ -760,8 +669,8 @@ Decision NewAdaptiveDecisions::takeDecision ()
 			break;
 
 		default:
-			std::cerr << "Error: Unknown Runtime State " << this->curRuntimeState << " not handled" << std::endl;
-			exit (EXIT_FAILURE);
+			LOG (FATAL) << "Error: Unknown runtime state " << this->curRuntimeState
+            << " not handled" << std::endl;
 	}
 	
 	return res;

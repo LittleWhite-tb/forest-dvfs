@@ -1,7 +1,26 @@
 #!/usr/bin/env python
 # -*- encoding: utf8 -*-
 
+#
+# FoREST - Reactive DVFS Control for Multicore Processors
+# Copyright (C) 2013 Universite de Versailles
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 import subprocess as sp, multiprocessing as mp, sys
+import os
 
 """
 The power consumption of a CPU is C * f * V² = W
@@ -19,7 +38,8 @@ some frequencies such as TurboBoost lie on the frequency declared to the OS. Dif
 impact the actual frequency applied by TurboBoost.
 """
 
-MLPATH="./microlaunch/"
+LPP_PATH="./lPowerProbe/"
+RESULT_FILE="/tmp/output.csv"
 
 
 #----------------------------------
@@ -34,26 +54,26 @@ def runBench (nr, cores):
     cores is the id of the cores on whitch the test must be replicated
     '''
 
-    taskMask = "{" + ",".join([str(c) for c in cores]) + "}"
+    taskMask = ";".join([str(c) for c in cores])
 
-    cmd = MLPATH + 'microlaunch --kernelname "add.s" --nbprocess ' + str(len(cores)) + ' --cpupin "' + taskMask + '" --repetition ' + str(nr)\
-             + ' --metarepetition 5 --basename "add"   --info "raw;raw" --evallib '\
-             + '"{0}Libraries/likwid_power/likwid_energy.so;{0}Libraries/wallclock/wallclock.so"'.format(MLPATH)\
-             + ' --output-dir "/tmp"'
-    #print cmd
+    cmd = LPP_PATH + 'lPowerProbe -r 5 -d ' + str(len(cores)) + ' -p "' + taskMask + '" -o ' + RESULT_FILE + ' ./add ' + str(nr)
+    # print cmd
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
-    ex.communicate() [0]
+    ex.communicate()[0]
+
+    if ex.returncode != 0:
+      sys.exit (0)
 
     try:
-      fd = open("/tmp/kernel_add_2500000.csv")
+      fd = open(RESULT_FILE)
     except IOError as e:
-       sys.stderr.write ("Error: Cannot launch Microlauncher.\n- Is it cloned at the base of your nfs directory ?\n")
-       sys.stderr.write ("- Are you connected to the local network ?\n- Did you modprobe msr and chmod it properly ?\n- Did you chmod cpufreq folder correctly ?\n- Did you echo -1 in the event_paranoid file ?\n- Are you running a SandyBridge or more recent architecture ?\n")
-       sys.exit (0)
+      sys.stderr.write ("Error: Cannot launch lPowerProbe.\n- Is it cloned at the base of your nfs directory ?\n")
+      sys.stderr.write ("- Are you connected to the local network ?\n- Did you modprobe msr and chmod it properly ?\n- Did you chmod cpufreq folder correctly ?\n- Did you echo -1 in the event_paranoid file ?\n- Are you running a SandyBridge or more recent architecture ?\n")
+      sys.exit (0)
 
     data = []
     for ln in fd.readlines()[1:]: 
-      ln = ln.split(",")
+      ln = ln.split(";")
 
       # error in data file
       if len(ln) > 7:
@@ -63,6 +83,8 @@ def runBench (nr, cores):
       data.append((float(ln[1]) / 1e3, float(ln[0]) / float (ln [1]) * 1e6))
     fd.close()
     data.sort()
+    
+    os.remove(RESULT_FILE)
 
     return data[len(data) / 2]
 
@@ -208,6 +230,27 @@ if len (sys.argv) != 2:
    print sys.argv[0] + " {cpuid}"
    sys.exit (0)
 
+if not os.path.exists("/dev/cpu/0/msr"):
+   print "MSR is not available on your machine. Please install it and start it with modprobe"
+   sys.exit (0)
+   
+if not os.path.exists("./add"):
+   print "Test program './add' not compiled - aborting"
+   sys.exit (0)
+
+if not os.path.exists(LPP_PATH + "lPowerProbe"):
+   print "lPowerProbe program " + LPP_PATH + " not compiled - aborting"
+   sys.exit (0)
+
+# ask the user to be nice with us
+print "!"
+print "!"
+print "! In order to measure accurate values, please"
+print "!      CLOSE ANY OTHER RUNNING PROGRAM"
+print "!"
+print "!"
+raw_input("press Enter when you are ready...")
+
 # Get list of frequencies and sort'em
 freqs = getFreqs (int (sys.argv [1]))
 freqs.sort ()
@@ -221,14 +264,19 @@ configFile = "power_" + sys.argv [1] + ".cfg"
 # special case of 1 available frequency
 if len(freqs) == 1:
    sys.stderr.write ("Info: Only 1 frequency is available. Using FoREST is useless because you cannot take advantage of DVFS techniques. A configuration file has been created anyway.");
-   fd = open (configFile, 'w')
+   fd = 0
+   try:
+      fd = open (configFile, 'w')
+   except IOError:
+      print "WARNING: Config file put in /tmp"
+      fd = open ("/tmp/"+configFile, 'w') #At this point, I can't do more, it's failing hard
    fd.write (str (freqs [0]) + "\n")
    for i in cores:
       fd.write ("0\n")
    fd.close ()
    sys.exit(0)
 
-sys.stdout.write("Determining optimal Microlaunch configuration")
+sys.stdout.write("Determining optimal lPowerProbe configuration")
 sys.stdout.flush()
 if hasTB():
    # target 1 second for all frequencies but TB

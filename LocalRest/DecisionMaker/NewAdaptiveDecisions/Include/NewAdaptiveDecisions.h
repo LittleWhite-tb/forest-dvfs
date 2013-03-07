@@ -1,20 +1,21 @@
 /*
-   Copyright (C) 2011 Exascale Research Center
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-   */
+ * FoREST - Reactive DVFS Control for Multicore Processors
+ * Copyright (C) 2013 Universite de Versailles
+ * Copyright (C) 2011-2012 Exascale Research Center
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 /**
  * @file NewAdaptiveDecisions.h
@@ -27,6 +28,8 @@
 #include <set>
 #include <sstream>
 #include <time.h>
+
+#include "glog/logging.h"
 
 #include "DecisionMaker.h"
 #include "Profiler.h"
@@ -150,19 +153,24 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * Approximate system power.
        */
-      static const float SYS_POWER = 50;
+      static const float SYS_POWER;
 
       /**
        * Minimal performance requested by the user (in % of the max performance)
        * in the "performance" mode.
        */
-      static const float USER_PERF_REQ_PERF = 0.95;
+      static const float USER_PERF_REQ_PERF;
 
       /**
        * Minimal performance requested by the user (in % of the max performance)
        * in the "energy" mode.
        */
-      static const float USER_PERF_REQ_ENERGY = 0.50;
+      static const float USER_PERF_REQ_ENERGY;
+      
+      /**
+       * Allowed performance slowdown currently requested by the user.
+       */
+      const float USER_PERF_REQ;
 
       /**
        * A CPU is active if its usage is above this.
@@ -170,13 +178,9 @@ class NewAdaptiveDecisions : public DecisionMaker
        * NOTE: on SandyBridge, inactive cores incorrectly report high number
        * of unhalted core cycles (up to 50% reported activity for an idle core)
        */
-#ifdef ARCH_SNB
-      static const float ACTIVITY_LEVEL = 0.5;
-#else
-      static const float ACTIVITY_LEVEL = 0.3;
-#endif
+      static const float ACTIVITY_LEVEL;
 
-      /**
+            /**
        * Generic method called for the evaluation step
        * Does several steps:
        * - Evaluation Init (see initEvaluation)
@@ -216,7 +220,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * @param avgIPC Output parameter. Must be an allocated array able to
        * contain at least as many entries as the number of frequencies.
        */
-      void getAvgIPCPerFreq (float *avgIPC);
+      // void getAvgIPCPerFreq (float *avgIPC);
 
       /**
        * Returns the maximal IPC in the array of IPCs per frequency.
@@ -242,8 +246,8 @@ class NewAdaptiveDecisions : public DecisionMaker
       FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy);
 
       /**
-       * Compute the sequence corresponding to the aggregation of the 2-steps computation of all the cores previously computed
-       *
+       * Compute the sequence corresponding to the aggregation of the 2-steps
+       * computation of all the cores previously computed
        */
       void computeSequence ();
 
@@ -253,37 +257,20 @@ class NewAdaptiveDecisions : public DecisionMaker
       Decision executeSequence ();
 
       /**
-       * Is useful to check whether we have to read the counters or not (it's not necessary in the execution state)
+       * Is useful to check whether we have to read the counters or not
+       * (it's not necessary in the execution state)
        *
-       * @return Whether the runtime is currently evaluating or executing the frequency sequence
+       * @return Whether the runtime is currently evaluating or executing
+       * the frequency sequence
        */
       inline bool isEvaluating () const{
          return this->curRuntimeState == EVALUATION;
       }
 
       /**
-       * Method for printing debug information
-       */
-      inline void debug (const char *str) {
-#ifndef NDEBUG
-         if (NewAdaptiveDecisions::VERBOSE && this->unit.getOSId () == 0) {
-            std::cerr << "DEBUG:: " << str << std::endl;
-         }
-#endif
-         (void) str;
-      }
-
-      /**
        * Outputs the frequency in the log file
        */
       void logFrequency (unsigned int freqId) const;
-
-      /**
-       * Debug the str param on stderr (see debug (const char *str))
-       */
-      inline void debug (std::ostringstream& str) {
-         this->debug (str.str ().c_str ());
-      }
 
       /**
        * Computes the hardware exploitation ratio from the hardware counters.
@@ -299,15 +286,9 @@ class NewAdaptiveDecisions : public DecisionMaker
       {
          if (hwc.time == 0)
          {
-            std::cerr << "no time elapsed since last measurement" << std::endl;
+            LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
             return 0;
          }
-
-         /*std::cerr << "hwc.cycles = " << hwc.cycles
-           << " hwc.retired = " << hwc.retired << std::endl;
-           std::cerr << "getFreq (0) = " << this->unit.getFrequency (0)
-           << " getCurFreq () = " << this->unit.getCurFreq () << std::endl;*/
-
          return hwc.retired / (1. * hwc.time);
       }
 
@@ -325,11 +306,12 @@ class NewAdaptiveDecisions : public DecisionMaker
 
          if (hwc.time == 0)
          {
-            std::cerr << "no time elapsed since last measurement" << std::endl;
+            LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
             return 0;
          }
 
-         //std::cout << "active cycles: " << hwc.refCycles << " rdtsc: " << hwc.time << std::endl;
+         //DLOG (INFO) << "active cycles: " << hwc.refCycles << " rdtsc: "
+         //<< hwc.time << std::endl;
 
          // NOTE: RDTSC and refCycles run at the same freq
          res = hwc.refCycles / (1. * hwc.time);
@@ -346,16 +328,18 @@ class NewAdaptiveDecisions : public DecisionMaker
        */
       FreqChunkCouple getVirtualFreq (float degradedIPC, unsigned int cpu, unsigned int activeCpus) const;
 
-      // TODO comment
+      /**
+       * Reads the counters needed for the evaluation process on all the cores
+       * corresponding to our DVFS Unit, e.g. sharing the same frequency
+       * transition.
+       */
       void readCounters ();
 
-      // TODO Comment
-      TimeProfiler timeProfiler;
-
       /**
-       * Allowed performance slowdown currently requested by the user.
+       * The timeProfiler is a way to keep track of the overhead of the
+       * different steps in our evaluation and execution processes.
        */
-      const float USER_PERF_REQ;
+      TimeProfiler timeProfiler;
 
       /**
        * The current state of the decision maker
@@ -369,7 +353,7 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * The current frequency chunk we are executing (in the runtime execution step)
        */
-      unsigned int currentSeqChunk;
+      unsigned int curExecStep;
 
       /**
        * Number of cpuIds that are handled by the Decision Maker
@@ -399,7 +383,7 @@ class NewAdaptiveDecisions : public DecisionMaker
       /**
        * The current sequence
        */
-      std::vector<FreqChunk> sequence;
+      FreqChunkCouple sequence;
 
       /**
        * Maximum freq id used in the former sequence for stability evaluation.
@@ -447,6 +431,13 @@ class NewAdaptiveDecisions : public DecisionMaker
        */
       Logger *log;
 #endif
+
+      /**
+       * Set of active cores.
+       * An active CPU is a core having an activity higher than threshold \a ACTIVITY_LEVEL
+       */
+      std::set<unsigned int>activeCores;
+      
 
 };
 
