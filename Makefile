@@ -29,6 +29,10 @@ LIBPFM_VER=4.3.0
 LIBPFM_BIN=libpfm-$(LIBPFM_VER)/lib/libpfm.a
 LIBPFM_INC=libpfm-$(LIBPFM_VER)/include/
 
+GLOG_VER=0.3.3
+GLOG_MAKEFILE=glog-$(GLOG_VER)/Makefile
+GLOG_BIN=glog-$(GLOG_VER)/.libs/libglog.a
+
 LOCAL_HDR=$(shell find LocalRest/ -type f -name '*.h')
 LOCAL_SRC=$(shell find LocalRest/ -type f -name '*.cpp')
 LOCAL_OBJ_RELEASE=$(addprefix obj/, $(patsubst %.cpp, %.o, $(LOCAL_SRC)))
@@ -39,35 +43,43 @@ LOCAL_INC_FLAG=$(addprefix -I, $(sort $(dir $(LOCAL_HDR)))) -I$(LIBPFM_INC)
 ALL_OBJ=$(LOCAL_OBJ)
 ALL_INC_FLAGS=$(LOCAL_INC_FLAG)
 
-.PHONY: check-arch offline clean mrproper
+.PHONY: check-arch offline clean distclean mrproper
 
 all: check-arch offline debug
 
 check-arch:
 	@echo "=== Testing CPU architecture ==="
-	make -C ./offline/archTester
-	#./offline/archTester/archTester
+	@make -C ./offline/archTester
+	./offline/archTester/archTester
 
 offline:
-	make -C ./offline/lPowerProbe/
-	make -C ./offline
-	make -C ./offline run
-	cd ..
+	@$(MAKE) -C ./offline/lPowerProbe/
+	@$(MAKE) -C ./offline
+	$(MAKE) -C ./offline run
 
-release: $(LIBPFM_BIN) $(LOCAL_OBJ_RELEASE)
-	$(LD) $(LD_FLAGS) $^ $(LIBS) $(LIBPFM_BIN) -o localRest
+release: $(LIBPFM_BIN) $(GLOG_BIN) $(LOCAL_OBJ_RELEASE)
+	@$(LD) $(LD_FLAGS) $^ $(LIBS) $(LIBPFM_BIN) -o localRest
 
-debug: $(LIBPFM_BIN) $(LOCAL_OBJ_DEBUG)
-	$(LD) $(LD_FLAGS) $^ $(LIBS) $(LIBPFM_BIN) $(CXXFLAGS_DEBUG) -o localRest
+debug: $(LIBPFM_BIN) $(GLOG_BIN) $(LOCAL_OBJ_DEBUG)
+	@$(LD) $(LD_FLAGS) $^ $(LIBS) $(LIBPFM_BIN) $(CXXFLAGS_DEBUG) -o localRest
 
 $(LIBPFM_BIN):
 	@$(MAKE) -C libpfm-$(LIBPFM_VER)
 
+$(GLOG_MAKEFILE):
+	@cd glog-$(GLOG_VER); ./configure
+
+$(GLOG_BIN): $(GLOG_MAKEFILE)
+	@$(MAKE) -C glog-$(GLOG_VER)
+
 clean:
 	@rm -rf obj localRest
-	@make -C ./offline/lPowerProbe/ clean
-	@make -C ./offline clean
-	@make -C ./offline/archTester clean
+	@$(MAKE) -C ./offline/lPowerProbe/ clean
+	@$(MAKE) -C ./offline clean
+	@$(MAKE) -C ./offline/archTester clean
+
+distlean: mrproper
+
 
 mrproper: clean
 	@$(MAKE) -C libpfm-$(LIBPFM_VER) clean
