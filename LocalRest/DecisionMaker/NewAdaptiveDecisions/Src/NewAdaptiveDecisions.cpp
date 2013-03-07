@@ -128,6 +128,8 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
    std::vector<unsigned int> greaterIpc;
    std::vector<float> maxIPCs;
    unsigned int nbActiveCores = this->activeCores.size ();
+
+   std::cout << "# active cores: " << nbActiveCores << std::endl;
    
    // no active cores?
    if (nbActiveCores == 0)
@@ -440,7 +442,7 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
 
       // also update cpu usage
       this->usage [i] = this->getCPUUsage (hwc);
-      std::cerr << "CPU Usage = " << this->usage [i] << std::endl;
+      //std::cerr << "CPU Usage = " << this->usage [i] << std::endl;
    }
 
    // in case of panic, restart evaluation

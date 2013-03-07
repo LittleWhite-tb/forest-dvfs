@@ -136,7 +136,7 @@ class NewAdaptiveDecisions : public DecisionMaker
        * at most five frequencies will be evaluated: two just bellow the current
        * one and two just above.
        */
-      static const unsigned int FREQ_WINDOW_SZ = 2;
+      static const unsigned int FREQ_WINDOW_SZ = 1;
 
       /**
        * Number of frequencies to consider as similar regarding stability.
@@ -327,7 +327,7 @@ class NewAdaptiveDecisions : public DecisionMaker
             return 0;
          }
 
-         std::cout << "active cycles: " << hwc.refCycles << " rdtsc: " << hwc.time << std::endl;
+         //std::cout << "active cycles: " << hwc.refCycles << " rdtsc: " << hwc.time << std::endl;
 
          // NOTE: RDTSC and refCycles run at the same freq
          res = hwc.refCycles / (1. * hwc.time);
