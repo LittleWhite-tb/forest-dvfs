@@ -57,7 +57,7 @@ def runBench (nr, cores):
     taskMask = ";".join([str(c) for c in cores])
 
     cmd = LPP_PATH + 'lPowerProbe -r 5 -d ' + str(len(cores)) + ' -p "' + taskMask + '" -o ' + RESULT_FILE + ' ./add ' + str(nr)
-    #print cmd
+    # print cmd
     ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
     ex.communicate()[0]
 
@@ -233,6 +233,14 @@ if len (sys.argv) != 2:
 if not os.path.exists("/dev/cpu/0/msr"):
    print "MSR is not available on your machine. Please install it and start it with modprobe"
    sys.exit (0)
+   
+if not os.path.exists("./add"):
+   print "Test program './add' not compiled - aborting"
+   sys.exit (0)
+
+if not os.path.exists(LPP_PATH + "lPowerProbe"):
+   print "lPowerProbe program " + LPP_PATH + " not compiled - aborting"
+   sys.exit (0)
 
 # Get list of frequencies and sort'em
 freqs = getFreqs (int (sys.argv [1]))
@@ -247,7 +255,12 @@ configFile = "power_" + sys.argv [1] + ".cfg"
 # special case of 1 available frequency
 if len(freqs) == 1:
    sys.stderr.write ("Info: Only 1 frequency is available. Using FoREST is useless because you cannot take advantage of DVFS techniques. A configuration file has been created anyway.");
-   fd = open (configFile, 'w')
+   fd = 0
+   try:
+      fd = open (configFile, 'w')
+   except IOError:
+      print "WARNING: Config file put in /tmp"
+      fd = open ("/tmp/"+configFile, 'w') #At this point, I can't do more, it's failing hard
    fd.write (str (freqs [0]) + "\n")
    for i in cores:
       fd.write ("0\n")
