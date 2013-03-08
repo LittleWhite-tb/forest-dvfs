@@ -31,7 +31,7 @@
 #include <sstream>
 #include <cstring>
 #include <iomanip>
-#include "NewAdaptiveDecisions.h"
+#include "DecisionMaker.h"
 
 typedef enum {       
 	EVALUATION = 0,

@@ -37,7 +37,7 @@
 #include "LocalRest.h"
 #include "CPUInfo.h"
 //#include "AdaptiveDecisions.h"
-#include "NewAdaptiveDecisions.h"
+#include "DecisionMaker.h"
 #include "pfmProfiler.h"
 
 #ifdef REST_LOG
@@ -130,7 +130,7 @@ int main (int argc, char ** argv)
 		// initialize options	
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
-		opts.dec = new NewAdaptiveDecisions (unit, mode);
+		opts.dec = new DecisionMaker (unit, mode);
 		opts.prof = new PfmProfiler (unit);
 		opts.unit = &unit;
 
