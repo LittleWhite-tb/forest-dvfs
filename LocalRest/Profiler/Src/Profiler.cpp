@@ -18,19 +18,159 @@
  */
 
 /**
-  * @file Profiler.cpp
-  * The Profiler class is in this file.
+ * @file Profiler.cpp
+ * The Profiler class is in this file
  */
 
+#include <cstdlib>
+#include <unistd.h>
+#include <iostream>
+#include <sys/ioctl.h>
+#include <set>
+#include <stdint.h>
+#include <string.h>
+
 #include "Profiler.h"
+#include "perfmon/perf_event.h"
+#include "perfmon/pfmlib_perf_event.h"
+#include "glog/logging.h"
+
+// definition of the static fields
+pthread_mutex_t Profiler::pfmInitMtx = PTHREAD_MUTEX_INITIALIZER;
+unsigned int Profiler::nbPfmInit = 0;
 
 Profiler::Profiler (DVFSUnit & dvfsUnit) : unit (dvfsUnit)
 {
+   const char * counters [] =
+   {
+      "INST_RETIRED:ANY_P",
+#ifdef ARCH_SNB
+      "UNHALTED_REFERENCE_CYCLES"
+#elif ARCH_IVB
+      "UNHALTED_REFERENCE_CYCLES"
+//      "CPU_CLK_UNHALTED:REF_P"
+//      "UNHALTED_CORE_CYCLES"
+#else
+#warning "Unknown micro-architecture! CPU cycle counting may be wrong."
+      "UNHALTED_REFERENCE_CYCLES"
+#endif
+   };
 
+   const std::set<unsigned int> threads = this->unit.getThreads ();
+   int res;
+
+   // libpfm init
+   Profiler::pfmInit (); 
+   this->nbCpuIds = threads.size ();
+
+   this->pfmFds = new int [NB_HW_COUNTERS*nbCpuIds];
+
+   this->formerMeasurement = new HWCounters [nbCpuIds];
+
+   // For each CPU in the DVFSUnit
+   std::set<unsigned int>::iterator it = threads.begin ();
+   for (unsigned int cpu = 0; cpu < nbCpuIds; cpu++, it++)
+   {
+      unsigned int cpuId = *it;
+
+      // Offset in the pfmFds array because flattened 2D array
+      unsigned baseIdx = cpu*NB_HW_COUNTERS;
+
+      // initialize counters for the current cpu
+      for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+      {
+         struct perf_event_attr attr;
+         pfm_perf_encode_arg_t arg;
+
+         // initialize the structure
+         memset (&attr, 0, sizeof (attr));
+         memset (&arg, 0, sizeof (arg));
+         arg.attr = &attr;
+         arg.fstr = 0;
+         arg.size = sizeof (arg);
+
+         // encode the counter
+         res = pfm_get_os_event_encoding (counters [i],  PFM_PLM0 | PFM_PLM1 | PFM_PLM2 | PFM_PLM3, PFM_OS_PERF_EVENT_EXT, &arg);
+         CHECK (res == PFM_SUCCESS) << "Failed to get counter " << counters [i]
+            << " on cpu " << cpu << std::endl;
+
+         // request scaling in case of shared counters
+         arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+
+         // open the corresponding file on the system
+         this->pfmFds [baseIdx + i] = perf_event_open (arg.attr, -1, cpuId, -1, 0);
+         CHECK (this->pfmFds [baseIdx + i] != -1) << "Cannot open counter "
+            << counters [i] << " on cpu " << cpuId << std::endl;
+
+         // Activate the counter
+         CHECK (ioctl (this->pfmFds [baseIdx + i], PERF_EVENT_IOC_ENABLE, 0) == 0)
+            << "Cannot enable event " << counters [i] << " on cpu " << cpuId
+            << std::endl;
+      }
+   }
+
+   // initially, old values are 0
+   memset (this->formerMeasurement, 0, this->nbCpuIds * sizeof (*this->formerMeasurement)); 
 }
 
 Profiler::~Profiler ()
 {
+   // free memory
+   for (unsigned int i = 0; i < nbCpuIds*NB_HW_COUNTERS; i++)
+   {
+      close (this->pfmFds [i]);
+   }
 
+   delete [] pfmFds, pfmFds = 0;
+   delete [] formerMeasurement, formerMeasurement = 0;
+
+   // close pfm
+   Profiler::pfmTerminate ();
+}
+
+void Profiler::read (HWCounters & hwc, unsigned int cpu)
+{
+   assert (cpu < this->nbCpuIds);
+   int res;
+
+   //DLOG (INFO) << "reading hwc for cpu " << cpu << std::endl;
+   
+   // specific case of the time stamp counter
+   uint32_t tsa, tsd;
+   uint64_t val;
+   asm volatile ("rdtsc" : "=a" (tsa), "=d" (tsd));
+   val = ((uint64_t) tsa) | (((uint64_t) tsd) << 32);
+   hwc.time = val - this->formerMeasurement [cpu].time;
+   this->formerMeasurement [cpu].time = val;
+
+   // Base index of the file descriptors array (because it's a flattened 2d array)
+   unsigned baseIdx = cpu*NB_HW_COUNTERS;
+
+   // for each hw counter of this cpu
+   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+   {
+      uint64_t buf [3];
+      uint64_t value;
+
+      res = ::read (this->pfmFds [baseIdx + i], buf, sizeof (buf));
+      if (res != sizeof (buf))
+      {
+         LOG (ERROR) << "Failed to read counter #" << i << std::endl;
+      }
+
+      // handle scaling to allow PMU sharing
+      value = (uint64_t)((double) buf [0] * (double) buf [1] / buf [2]);
+      if (this->formerMeasurement [cpu].values [i] <= value)
+      {
+         hwc.values [i] = value - this->formerMeasurement [cpu].values [i];
+      }
+      else  // overflow
+      {
+         hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - this->formerMeasurement [cpu].values [i] + value;
+      }
+
+      // remember this value
+      this->formerMeasurement [cpu].values [i] = value;
+   }
 }
 

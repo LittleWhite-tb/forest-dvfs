@@ -38,7 +38,7 @@
 #include "CPUInfo.h"
 //#include "AdaptiveDecisions.h"
 #include "DecisionMaker.h"
-#include "pfmProfiler.h"
+#include "Profiler.h"
 
 #ifdef REST_LOG
 	#include "Logger.h"
@@ -124,7 +124,7 @@ int main (int argc, char ** argv)
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
 		opts.dec = new DecisionMaker (unit, mode);
-		opts.prof = new PfmProfiler (unit);
+		opts.prof = new Profiler (unit);
 		opts.unit = &unit;
 
 		// The unit 0 will use the current application thread. Others need

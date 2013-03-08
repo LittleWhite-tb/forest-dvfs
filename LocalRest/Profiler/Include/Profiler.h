@@ -18,17 +18,22 @@
  */
 
 /**
- * @fileProfiler.h
- * The Profiler class header is here.
+  @file Profiler.h
+  @brief The Profiler class header is here.
  */
-#ifndef H_PROFILER
-#define H_PROFILER
+#ifndef H_PFMPROFILER
+#define H_PFMPROFILER
+
+#include <iostream>
+#include <pthread.h>
 
 #include "DVFSUnit.h"
+#include "perfmon/pfmlib.h"
+#include "glog/logging.h"
 
 /**
  * @class Profiler
- * The root of all profiler implementations.
+ * Profiler implementation based on libpfm.
  */
 class Profiler
 {
@@ -39,28 +44,90 @@ class Profiler
        *
        * @param unit The DVFS unit we are profiling.
        */
-      Profiler (DVFSUnit & dvfsUnit);
+      Profiler (DVFSUnit & unit);
 
       /**
        * Destructor
        */
-      virtual ~Profiler (void);
+      virtual ~Profiler ();
 
       /**
        * Reads the counter values and "resets" them.
        *
        * @param hwc The hardware counter structure to fill with the results.
+       * @param cpu The id of the cpu in the internal profiler table
        */
-      virtual void read (HWCounters & hwc, unsigned cpu) = 0;
+      void read (HWCounters & hwc, unsigned int cpu);
 
-      virtual unsigned int getNbCpuIds () const = 0;
-
-   protected:
+   private:
 
       /**
-       * A copy of the DVFS unit we are profiling.
+       * Pfm initialization routine.
        */
-      DVFSUnit & unit;
+      static void pfmInit ()
+      {
+         int res;
+
+         pthread_mutex_lock (&Profiler::pfmInitMtx);
+
+         if (Profiler::nbPfmInit == 0)
+         {
+            if ((res = pfm_initialize ()) != PFM_SUCCESS)
+            {
+               LOG (FATAL) << "Failed to initialize libpfm: " << pfm_strerror (res) << std::endl;
+            }
+         }
+
+         Profiler::nbPfmInit++;
+
+         pthread_mutex_unlock (&Profiler::pfmInitMtx);
+      }
+
+      /**
+       * Pfm closing routine.
+       */
+      static void pfmTerminate ()
+      {
+         pthread_mutex_lock (&Profiler::pfmInitMtx);
+
+         if (Profiler::nbPfmInit-- == 0)
+         {
+            pfm_terminate ();
+         }
+
+         pthread_mutex_unlock (&Profiler::pfmInitMtx);
+      }
+
+      inline unsigned int getNbCpuIds () const{
+          return this->nbCpuIds;
+      }
+
+      /**
+       * Number of cpu handled by the Profiler
+       */
+      unsigned int nbCpuIds;
+
+      /**
+       * Mutex to access the pfm initialization variables.
+       */
+      static pthread_mutex_t pfmInitMtx;
+
+      /**
+       * How many threads have initialized the library?
+       */
+      static unsigned int nbPfmInit;
+
+      /**
+       * List of fds opened to read the HW counters.
+       */
+      int *pfmFds;
+
+      /**
+       * Former result to allow difference computations.
+       */
+      HWCounters *formerMeasurement;
+
+      DVFSUnit& unit;
 };
 
 #endif
