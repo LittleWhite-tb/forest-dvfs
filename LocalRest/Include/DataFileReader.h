@@ -20,6 +20,7 @@
 #define DATAFILEREADER_HPP
 
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -43,8 +44,10 @@ public:
       std::getline (this->m_file, line, '\n');
       std::istringstream iss (line);
       T tmp = T ();
+
+      iss >> std::ws;
       
-      while (iss >> tmp) 
+      while (iss >> tmp >> std::ws) 
       {
          data.push_back (tmp);
       }

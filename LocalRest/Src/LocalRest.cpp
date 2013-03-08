@@ -73,16 +73,6 @@ struct RESTContext
 // the context
 static RESTContext restCtx;
 
-/**
- * Early entry point to ensure GLOG is initialized when static class instances
- * are created. GCC specific for now.
- */
-__attribute__ ((constructor (101)))
-static void pre_main ()
-{
-   google::InitGoogleLogging ("");
-   google::LogToStderr ();
-}
 
 /**
  * Rest entry point.
@@ -96,6 +86,9 @@ int main (int argc, char ** argv)
       LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
       exit (EXIT_FAILURE);
    }
+
+   google::InitGoogleLogging (argv[0]);
+   google::LogToStderr ();
 
    Mode mode;
    std::string energy ("energy");
