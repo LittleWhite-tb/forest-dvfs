@@ -129,7 +129,7 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
    std::vector<float> maxIPCs;
    unsigned int nbActiveCores = this->activeCores.size ();
 
-   DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
+   //DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
    
    // no active cores?
    if (nbActiveCores == 0)
@@ -313,11 +313,11 @@ FreqChunkCouple NewAdaptiveDecisions::getBestCouple (float *IPCs, float d,
 
          float coupleE = step1.timeRatio * e_ratios [smaller] + step2.timeRatio * e_ratios [greater];
 
-         DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
+         /*DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
             << couple.step [STEP1].timeRatio << "),(" 
             << couple.step [STEP2].freqId << "," 
             << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE
-            << std::endl;
+            << std::endl;*/
 
          if (coupleE < bestCoupleE)
          {
@@ -426,6 +426,7 @@ Decision NewAdaptiveDecisions::evaluateFrequency () {
       //DLOG (INFO) << "#" << i << ", freq #" << currentFreq << " IPC = " << HWexp << std::endl;
       if (HWexp < 0 || isnan (HWexp))
       {
+         DLOG(WARNING) << "PANIC!!! " << HWexp << std::endl;
          hwcPanic = true;
       }
       else
@@ -479,6 +480,7 @@ void NewAdaptiveDecisions::computeSequence ()
    std::set<unsigned int> activeThreads;
    for (unsigned int c = 0; c < this->nbCpuIds; c++)
    {
+      DLOG(INFO) << "Activity " << c << ": " << this->usage[c] << std::endl;
       if (this->usage [c] >= ACTIVITY_LEVEL)
       {
          activeThreads.insert (c);
@@ -598,7 +600,10 @@ Decision NewAdaptiveDecisions::evaluate ()
 		default:
 			LOG (FATAL) << "Error: Unknown evaluation state "
             << this->curRuntimeState << " not handled" << std::endl;
-	};	
+
+         // pacify compiler, never called
+         exit(EXIT_FAILURE);
+	};
 }
 
 Decision NewAdaptiveDecisions::executeSequence ()
