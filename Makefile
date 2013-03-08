@@ -57,10 +57,10 @@ offline:
 	@$(MAKE) -C ./offline
 	$(MAKE) -C ./offline run
 
-release: $(LOCAL_OBJ_RELEASE)
+release: $(LOCAL_OBJ_RELEASE) $(LIBPFM_BIN) $(GLOG_BIN)
 	@$(LD) $^ $(LD_FLAGS) $(LIBPFM_BIN) $(GLOG_BIN)  -o localRest
 
-debug: $(LOCAL_OBJ_DEBUG)
+debug: $(LOCAL_OBJ_DEBUG) $(LIBPFM_BIN) $(GLOG_BIN)
 	$(LD) $(CXXFLAGS_DEBUG) $^ $(LD_FLAGS) $(LIBPFM_BIN) $(GLOG_BIN)  -o localRest
 
 $(LIBPFM_BIN):
@@ -84,9 +84,10 @@ distlean: mrproper
 mrproper: clean
 	@$(MAKE) -C libpfm-$(LIBPFM_VER) clean
 
-obj/%.d: %.cpp
+# build glog headers before searching for deps
+obj/%.d: %.cpp $(GLOG_MAKEFILE)
 	@mkdir -p $(@D)
-	@$(CXX) -MM $(ALL_INC_FLAGS) $< > $@ 2> /dev/null
+	@$(CXX) -MM $(ALL_INC_FLAGS) $< > $@ #2> /dev/null
 
 -include $(patsubst %.o, %.d, $(ALL_OBJ))
 
