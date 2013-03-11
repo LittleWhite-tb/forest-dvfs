@@ -44,6 +44,8 @@
 	#include "Logger.h"
 #endif
 
+namespace FoREST {
+
 // local functions
 static void * thProf (void * arg);
 static void exitCleanup ();
@@ -70,8 +72,50 @@ struct RESTContext
 	ThreadContext *thdCtx;
 };
 
+struct Context {
+   Topology topology;
+   ThreadContenxt *threadsContext;
+};
+
 // the context
 static RESTContext restCtx;
+static Context context;
+
+int handleArguments (int argc, char *argv[], Mode& mode) {
+  if (argc != 2) {
+      LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
+      exit (EXIT_FAILURE);
+   }
+
+   
+}
+
+int main2 (int argc, char *argv[]) {
+   Mode mode;
+
+   // Google log library initialization
+   google::InitGoogleLogging (argv[0]);
+   google::LogToStderr ();
+
+   // Handle program arguments
+   handleArguments (argc, argv, mode);
+
+   Topology *topo = new Topology (&context.threadsContext);
+   unsigned int nbUnits = topo->getNbUnits ();
+   context.topology = topo; // Keep track of the topology in the context
+
+   // For each unit in the topology, except from the first one
+   // The first one will be launched on the current (main) thread
+   for (unsigned int unitId = 1; unitId < nbUnits; unitId++) {
+      launchThread (unitId);
+      DVFSUnit& unit = topo->getUnit (unitId);
+      ThreadArgs& args = unit.getArgs ();
+
+      
+   }
+
+   return 0;
+}
 
 
 /**
@@ -250,4 +294,6 @@ static void exitCleanup ()
 #endif
    delete restCtx.cnfo;
 }
+
+} // namespace FoREST
 
