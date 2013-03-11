@@ -92,23 +92,26 @@ int main(void)
                                            19 + 1);
       printf("\text Model : %u\n",extModel);
       
-      if ( extFamily == 0 &&
+      if ((extFamily == 0 &&
            extModel == 2 && 
            family == 6 && 
-           (model == 10 || model == 13) )
+           (model == 10 || model == 13))
+      || (family == 6 &&
+          model == 10 &&
+          extModel == 3 && extFamily == 0)
+         )
       {
-         printf("It's a sandy bridge\n");
          return EXIT_SUCCESS;
       }
       else
       {
-         printf("The only architecture supported yet is Sandy Bridge, sorry.\n");
+         printf("Your processor is not supported as it does not embeds an energy probe, sorry.\n");
          return EXIT_FAILURE;
       }
    }
    else
    {
-      printf("The only architecture supported yet is Intel, sorry.\n");
+      printf("Only Intel processors are supported so far, sorry.\n");
       return EXIT_FAILURE;
    }
 
