@@ -48,22 +48,20 @@ struct CoupleInfo {
    unsigned int freqId;
 };
 
-// Static declarations
-#ifdef ARCH_SNB
-      // SandyBridge hw counters report incorrect activity for low activity
-      const float DecisionMaker::ACTIVITY_LEVEL = 0.5f;
-#else
-      const float DecisionMaker::ACTIVITY_LEVEL = 0.3f;
-#endif
 
-const float DecisionMaker::SYS_POWER = 50.f;
-const float DecisionMaker::USER_PERF_REQ_PERF = 0.95f;
-const float DecisionMaker::USER_PERF_REQ_ENERGY = 0.50f;
-
-
-DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode) :
+DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
+                              Config &cfg) :
    unit (dvfsUnit),
+   IPC_EVAL_TIME(cfg.getInt("IPC_EVALUATION_TIME")),
+   MIN_SLEEP_WIN(cfg.getInt("MIN_SLEEP_WIN")),
+   MAX_SLEEP_WIN(cfg.getInt("MAX_SLEEP_WIN")),
+   FREQ_WINDOW_SZ(cfg.getInt("FREQ_WINDOW_SZ")),
+   STABILITY_WINDOW_SZ(cfg.getInt("STABILITY_WINDOW_SZ")),
+   SYS_POWER(cfg.getFloat("SYS_POWER")),
+   USER_PERF_REQ_PERF(cfg.getFloat("USER_PERF_REQ_PERF")),
+   USER_PERF_REQ_ENERGY(cfg.getFloat("USER_PERF_REQ_ENERGY")),
    USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
+   ACTIVITY_LEVEL(cfg.getFloat("ACTIVITY_LEVEL")),
    timeProfiler (),
    freqSelector (dvfsUnit.getNbFreqs ())
 {

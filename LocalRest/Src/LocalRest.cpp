@@ -34,10 +34,10 @@
 #include "glog/logging.h"
 
 #include "Common.h"
-#include "LocalRest.h"
+#include "Config.h"
 #include "CPUInfo.h"
-//#include "AdaptiveDecisions.h"
 #include "DecisionMaker.h"
+#include "LocalRest.h"
 #include "Profiler.h"
 
 #ifdef REST_LOG
@@ -68,6 +68,7 @@ struct ThreadContext {
 // variables shared among the threads
 struct RESTContext
 {
+   Config *cfg;
 	CPUInfo *cnfo;
 	ThreadContext *thdCtx;
 };
@@ -151,6 +152,7 @@ int main (int argc, char ** argv)
       LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
    }
 
+   restCtx.cfg = new Config();
    restCtx.cnfo = new CPUInfo ();
 
 	unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
@@ -167,7 +169,7 @@ int main (int argc, char ** argv)
 		// initialize options	
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
-		opts.dec = new DecisionMaker (unit, mode);
+		opts.dec = new DecisionMaker (unit, mode, *restCtx.cfg);
 		opts.prof = new Profiler (unit);
 		opts.unit = &unit;
 
@@ -293,6 +295,7 @@ static void exitCleanup ()
 	Logger::destroyLog ();
 #endif
    delete restCtx.cnfo;
+   delete restCtx.cfg;
 }
 
 } // namespace FoREST

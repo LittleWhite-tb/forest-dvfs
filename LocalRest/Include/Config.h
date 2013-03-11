@@ -20,13 +20,11 @@
 #define CONFIG_H
 
 #include "Config.h"
+#include "glog/logging.h"
 
 #include <cstdlib>
 #include <map>
 #include <string>
-
-#define GLOBAL_INT(varname) Config::getInstance().getInt(varname)
-#define GLOBAL_FLOAT(varname) Config::getInstance().getFloat(varname)
 
 class Config
 {
@@ -48,7 +46,13 @@ public:
     */
    inline float getFloat(const std::string &varname)
    {
-      return strtof(this->values[varname].c_str(), NULL);
+      std::map<const std::string, const std::string>::iterator it =
+         this->values.find(varname);
+
+      CHECK(it != this->values.end()) << "Requested property '" << varname
+         << "' not found in configuration file.";
+
+      return strtof(it->second.c_str(), NULL);
    }
   
    /**
@@ -58,7 +62,13 @@ public:
     */
    inline int getInt(const std::string &varname)
    {
-      return atoi(this->values[varname].c_str());
+      std::map<const std::string, const std::string>::iterator it =
+         this->values.find(varname);
+
+      CHECK(it != this->values.end()) << "Requested property '" << varname
+         << "' not found in configuration file.";
+
+      return atoi(it->second.c_str());
    }
 
 

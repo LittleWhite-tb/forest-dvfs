@@ -58,14 +58,15 @@ void Config::loadValues()
       // ignore comments
       if (ln[0] == "#")
       {
+         ln.clear();
          continue;
       }
 
       // 2 tokens entries (varname value)
       if (ln.size() == 2)
       {
+         DLOG(INFO) << "Found property " << ln[0] << std::endl;
          this->values.insert(std::pair<const std::string, const std::string>(ln[0], ln[1]));
-         continue;
       }
 
       // 3 tokens entries (varname = value)
@@ -76,8 +77,11 @@ void Config::loadValues()
             LOG(FATAL) << "Invalid configuration file content." << std::endl;
          }
 
+         DLOG(INFO) << "Found property " << ln[0] << std::endl;
          this->values.insert(std::pair<const std::string, const std::string>(ln[0], ln[2]));
       }
+
+      ln.clear();
    }
 }
 

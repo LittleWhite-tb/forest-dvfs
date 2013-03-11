@@ -31,6 +31,7 @@
 
 #include "glog/logging.h"
 
+#include "Config.h"
 #include "DecisionMaker.h"
 #include "Profiler.h"
 #include "TimeProfiler.h"
@@ -96,8 +97,10 @@ class DecisionMaker
        *
        * @param dvfsUnit The DVFS unit this decision maker is in charge of.
        * @param mode Run mode (energy or performance).
+       * @param cfg The current configuration.
        */
-      DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode);
+      DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
+                     Config &cfg);
 
       /**
        * Destructor
@@ -145,29 +148,20 @@ class DecisionMaker
       Profiler *prof;
 
       /**
-       * Debug flag.
-       */
-#ifdef NDEBUG
-      static const bool VERBOSE = false;
-#else
-      static const bool VERBOSE = true;
-#endif
-
-      /**
        * Time required to evaluate the IPC for one frequency (us).
        */
-      static const unsigned int IPC_EVAL_TIME = 100;
+      const unsigned int IPC_EVAL_TIME;
 
       /**
        * Minimal execution time once a frequency is chosen (us).
        */
-      static const unsigned int MIN_SLEEP_WIN = 10000;
+      const unsigned int MIN_SLEEP_WIN;
 
       /**
        * Maximal execution time before re-evaluating which frequency to use
        * (us).
        */
-      static const unsigned int MAX_SLEEP_WIN = 200000;
+      const unsigned int MAX_SLEEP_WIN;
 
       /**
        * Number of frequencies we consider bellow and above the current
@@ -175,7 +169,7 @@ class DecisionMaker
        * at most five frequencies will be evaluated: two just bellow the current
        * one and two just above.
        */
-      static const unsigned int FREQ_WINDOW_SZ = 1;
+      const unsigned int FREQ_WINDOW_SZ;
 
       /**
        * Number of frequencies to consider as similar regarding stability.
@@ -185,24 +179,24 @@ class DecisionMaker
        * still consider the situation as stable, i.e. the sleep window is 
        * increased.
        */
-      static const unsigned int STABILITY_WINDOW_SZ = 0;
+      const unsigned int STABILITY_WINDOW_SZ;
 
       /**
        * Approximate system power.
        */
-      static const float SYS_POWER;
+      const float SYS_POWER;
 
       /**
        * Minimal performance requested by the user (in % of the max performance)
        * in the "performance" mode.
        */
-      static const float USER_PERF_REQ_PERF;
+      const float USER_PERF_REQ_PERF;
 
       /**
        * Minimal performance requested by the user (in % of the max performance)
        * in the "energy" mode.
        */
-      static const float USER_PERF_REQ_ENERGY;
+      const float USER_PERF_REQ_ENERGY;
       
       /**
        * Allowed performance slowdown currently requested by the user.
@@ -215,7 +209,7 @@ class DecisionMaker
        * NOTE: on SandyBridge, inactive cores incorrectly report high number
        * of unhalted core cycles (up to 50% reported activity for an idle core)
        */
-      static const float ACTIVITY_LEVEL;
+      const float ACTIVITY_LEVEL;
 
             /**
        * Generic method called for the evaluation step
