@@ -36,12 +36,21 @@
 #include "glog/logging.h"
 
 #include "DVFSUnit.h"
+#include "ThreadContext.h"
 #include "PathBuilder.h"
 #include "DataFileReader.h"
+#include "Common.h"
+#include "Config.h"
 
-DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
+namespace FoREST {
+
+DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
+                    const Mode mode, Config& config, ThreadContext *threadContext) :
+   decisionMaker (*this, mode, config),
+   profiler (*this)
 {
-   this->cpuIds = cpuIds;
+   (void) threadContext;
+
    this->id = id;
 
    // pick one arbitrary cpu id to represent the unit
@@ -75,8 +84,17 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds)
       std::sort (this->freqs.begin (), this->freqs.end ());
    }
 
-   // initialize all the cores under our control
-   this->takeControl (cpuIds);
+   unsigned int i = 0;
+   unsigned int nbFreqs = this->freqs.size ();
+   for (std::set<unsigned int>::const_iterator it = cpuIds.begin ();
+        it != cpuIds.end ();
+        it++) {
+      Thread *newThread = new Thread (i++, nbFreqs, profiler);
+      this->takeControl (newThread);
+      this->thread.push_back (newThread);
+   }
+
+   this->decisionMaker.setupThreads (thread);
 
    /* Now we want to take all the power economy ratio information from the
     * config file */
@@ -131,74 +149,76 @@ DVFSUnit::~DVFSUnit ()
    std::ofstream ofs;
 
    // restore the former governor for each CPU
-   for (std::set<unsigned int>::iterator it = this->cpuIds.begin ();
-        it != this->cpuIds.end ();
+   for (std::vector<Thread*>::iterator it = this->thread.begin ();
+        it != this->thread.end ();
         it++)
    {
-      ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it).c_str ());
+      Thread* thread = *it;
+      unsigned int threadId = thread->getId ();
+      ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (threadId).c_str ());
 
 		if (ofs != 0 && ofs.is_open ()) {
-         ofs << this->formerGov [*it];
+         ofs << this->formerGov [threadId];
          ofs.flush ();
          ofs.close ();
 		}
+      delete thread;
    }
 
    // close files
-   for (unsigned int i = 0; i < this->cpuIds.size (); i++)
-   {
-		this->freqFs [i]->close ();
-		delete this->freqFs [i];
+   for (std::vector<std::ofstream*>::iterator it = this->freqFs.begin ();
+        it != this->freqFs.end ();
+        it++) {
+   	(*it)->close ();
+		delete *it;
 	}
 }
 
-void DVFSUnit::takeControl (const std::set<unsigned int> &cpuIds)
+void DVFSUnit::takeControl (const Thread *thread)
 {
-   for (std::set<unsigned int>::iterator it = cpuIds.begin ();
-        it != cpuIds.end ();
-        it++)
+   assert (thread != NULL);
+   unsigned int threadId = thread->getId ();
+
+   std::string governor;
+   std::ofstream ofs;
+
+   // We store the former governor of this processor to restore it when
+   // DVFSUnit object is destroyed
    {
-      std::string governor;
-      std::ofstream ofs;
+      DataFileReader governorReader (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (threadId));
 
-      // We store the former governor of this processor to restore it when
-      // DVFSUnit object is destroyed
+      if (!governorReader.isOpen () 
+          || !governorReader.read<std::string>(governor))
       {
-         DataFileReader governorReader (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it));
+         LOG (WARNING) << "Failed to read current governor for cpu id #" 
+            << threadId << std::endl;
 
-         if (!governorReader.isOpen () 
-             || !governorReader.read<std::string>(governor))
-         {
-            LOG (WARNING) << "Failed to read current governor for cpu id #" 
-               << *it << std::endl;
-
-            governor = "ondemand";
-         }
+         governor = "ondemand";
       }
-
-      this->formerGov [*it] = governor;
-
-	   // Replace the current governor by userspace
-   	ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (*it).c_str ());
-	   ofs << "userspace";
-   	ofs.flush ();
-	   ofs.close ();
-
-      // open the file in wich we have to write to set a frequency
-   	std::ofstream *freqFs = new std::ofstream ();
-   	freqFs->open (PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath (*it).c_str ());
-
-   	if (!freqFs->is_open ()) {
-   	   LOG (FATAL) << "Error: Cannot open frequency file setter for writting."
-            << std::endl
-            << "Technical Info:" << std::endl << "- DVFSunit id: "
-            << *it << std::endl << "- File path: "
-            << PathBuilder<PT_CPUINFO_SCALING_SETSPEED, PathCache>::buildPath (*it).c_str ()
-            << std::endl;
-      }
-
-	   this->freqFs.push_back (freqFs);
    }
+
+   this->formerGov [threadId] = governor;
+
+   // Replace the current governor by userspace
+	ofs.open (PathBuilder<PT_CPUINFO_SCALING_GOVERNOR,PathCache>::buildPath (threadId).c_str ());
+   ofs << "userspace";
+	ofs.flush ();
+   ofs.close ();
+
+   // open the file in wich we have to write to set a frequency
+	std::ofstream *freqFs = new std::ofstream ();
+	freqFs->open (PathBuilder<PT_CPUINFO_SCALING_SETSPEED,PathCache>::buildPath (threadId).c_str ());
+
+	if (!freqFs->is_open ()) {
+	   LOG (FATAL) << "Error: Cannot open frequency file setter for writting."
+         << std::endl
+         << "Technical Info:" << std::endl << "- DVFSunit id: "
+         << id << std::endl << "- File path: "
+         << PathBuilder<PT_CPUINFO_SCALING_SETSPEED, PathCache>::buildPath (threadId).c_str ()
+         << std::endl;
+   }
+
+   this->freqFs.push_back (freqFs);
 }
 
 void DVFSUnit::setFrequency (unsigned int freqId)
@@ -223,4 +243,6 @@ void DVFSUnit::setFrequency (unsigned int freqId)
 
 	this->curFreqId = freqId;
 }
+
+} // namespace FoREST
 

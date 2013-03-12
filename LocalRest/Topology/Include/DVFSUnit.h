@@ -32,8 +32,12 @@
 #include <set>
 #include <vector>
 
-#include "Common.h"
+#include "Mode.h"
+#include "Thread.h"
+#include "DecisionMaker.h"
 
+namespace FoREST {
+struct ThreadContext;
 /**
  * @class DVFSUnit
  * A core or a thread whose frequency can be set independantly from any other
@@ -49,7 +53,8 @@ class DVFSUnit
        *  used when the offline power information was generated.
        * @param cpuIds Set of CPU ids handled by this unit.
        */
-      DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds);
+      DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds, const Mode mode,
+                Config& config, ThreadContext *threadContext);
 
       /**
        * Destructor
@@ -69,11 +74,10 @@ class DVFSUnit
       /**
        * Returns the set of CPUs under our control.
        *
-       * @return The IDs of the threads this instance controls.
+       * @return the number of threads the dvfs unit controls
        */
-      inline const std::set<unsigned int> getThreads () const
-      {
-         return this->cpuIds;
+      inline unsigned int getNbThreads () const{
+         return this->thread.size ();
       }
 
       /**
@@ -160,16 +164,25 @@ class DVFSUnit
       }
 
    private:
+      /**
+       * The entity taking decision for the DVFS Unit
+       */
+      DecisionMaker decisionMaker;
+
+      /**
+       * The entity profiling data for the DVFS Unit
+       */
+      Profiler profiler;
+
+      /**
+       * The set of threads ids under our control.
+       */
+      std::vector<Thread*> thread;
 
       /**
        * DVFS unit id.
        */
       unsigned int id;
-
-      /**
-       * The set of CPU ids under our control.
-       */
-      std::set<unsigned int> cpuIds;
 
       /**
        * All the possible frequencies this unit can use.
@@ -212,9 +225,9 @@ class DVFSUnit
        *
        * @param cpuIds The CPUs to control.
        */
-      void takeControl (const std::set<unsigned int> &cpuIds);
+      void takeControl (const Thread *thread);
 };
 
-
+} //namespace FoREST
 
 #endif

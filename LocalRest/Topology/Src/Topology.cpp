@@ -18,8 +18,8 @@
  */
 
 /**
- * @file CPUInfo.cpp
- * The CPUInfo class is in this file
+ * @file Topology.cpp
+ * The Topology class is in this file
  */
 
 #include <cstdlib>
@@ -29,12 +29,16 @@
 #include <unistd.h>
 #include <set>
 
-#include "CPUInfo.h"
+#include "Topology.h"
+#include "ThreadContext.h"
+#include "PathBuilder.h"
 #include "Common.h"
 
-std::map<unsigned int, unsigned int> CPUInfo::threadToCore;
+namespace FoREST {
 
-CPUInfo::CPUInfo ()
+std::map<unsigned int, unsigned int> Topology::threadToCore;
+
+Topology::Topology (const Mode mode, ThreadContext *threadContext)
 {
    unsigned int DVFSid = 0;
    std::ostringstream oss;
@@ -61,8 +65,11 @@ CPUInfo::CPUInfo ()
       this->getRelatedCores (cpuId, related);
 
       // create the unique DVFS unit
-      DVFSUnit *newDVFS = new DVFSUnit (DVFSid++, related);
-      this->DVFSUnits.push_back (newDVFS);
+      DVFSUnit *unit = new DVFSUnit (DVFSid, related, mode,
+                                     config,
+                                     threadContext + DVFSid);
+      DVFSid++;
+      this->DVFSUnits.push_back (unit);
 
       // remove the related cores from the list of cores
       for (std::set<unsigned int>::iterator it = related.begin ();
@@ -76,7 +83,7 @@ CPUInfo::CPUInfo ()
    this->nbDVFSUnits = this->DVFSUnits.size ();  
 }
 
-CPUInfo::~CPUInfo ()
+Topology::~Topology ()
 {
    for (std::vector<DVFSUnit *>::iterator it = this->DVFSUnits.begin ();
          it != this->DVFSUnits.end ();
@@ -86,8 +93,7 @@ CPUInfo::~CPUInfo ()
    }
 }
 
-void CPUInfo::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &related)
-{
+void Topology::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &related) const{
    unsigned int val;
 
    DataFileReader reader (PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath (cpuId));
@@ -98,4 +104,5 @@ void CPUInfo::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &relat
    }
 }
 
+} // namespace FoREST
 

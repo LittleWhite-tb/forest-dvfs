@@ -17,30 +17,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 /**
- * @file FreqSelector.cpp
- * The FreqSelector class is in this file
+ * @file ThreadContext.h
+ * Thread structures file
  */
 
-#include "FreqSelector.h"
+#ifndef H_THREADCONTEXT
+#define H_THREADCONTEXT
 
 namespace FoREST {
-
-FreqSelector::FreqSelector (unsigned int nbFreqs)
+class DecisionMaker;
+class Profiler;
+class DVFSUnit;
+   
+// options used to create the threads
+struct thOpts
 {
-   this->nbFreqs = nbFreqs;
-   this->coeffs = new float [nbFreqs];
+	unsigned int id;
+	DecisionMaker *dec;
+	Profiler *prof;
+	DVFSUnit *unit;
+};
 
-   for (unsigned int i = 0; i < nbFreqs; i++)
-   {
-      this->coeffs [i] = 0.;
-   }
-}
-
-FreqSelector::~FreqSelector ()
-{
-   delete [] this->coeffs;
-}
+struct ThreadContext {
+	pthread_t pid;
+	thOpts opts;
+};
 
 } // namespace FoREST
 
+#endif

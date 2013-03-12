@@ -17,30 +17,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 /**
- * @file FreqSelector.cpp
- * The FreqSelector class is in this file
+ * @file HWCounters.h
+ * HW counters structure file
  */
 
-#include "FreqSelector.h"
+#ifndef H_HWCOUNTERS
+#define H_HWCOUNTERS
+
+#include <cstdlib>
+#include <stdint.h>
 
 namespace FoREST {
 
-FreqSelector::FreqSelector (unsigned int nbFreqs)
+/**
+ * Value of the watched hardware counters.
+ */
+typedef union
 {
-   this->nbFreqs = nbFreqs;
-   this->coeffs = new float [nbFreqs];
-
-   for (unsigned int i = 0; i < nbFreqs; i++)
+   struct __attribute__ ((packed))
    {
-      this->coeffs [i] = 0.;
-   }
-}
+      uint64_t retired;    // # of retired instructions
+      uint64_t refCycles;  // unhalted cycles elapsed at the reference frequency
+      uint64_t time;       // time as reported by rdtsc 
+   };
 
-FreqSelector::~FreqSelector ()
-{
-   delete [] this->coeffs;
-}
+   uint64_t values [3];
+} HWCounters;
+
+/**
+ * How many counters have to be profiled. Does not include time.
+ */
+#define NB_HW_COUNTERS ((sizeof(HWCounters) / sizeof(uint64_t)) - 1)
+
 
 } // namespace FoREST
 
+#endif

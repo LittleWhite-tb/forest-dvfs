@@ -23,43 +23,19 @@
  * Shared functions and properties.
  */
 
-#ifndef H_COMMON
-#define H_COMMON
+#ifndef H_FORESTCOMMON
+#define H_FORESTCOMMON
 
 #include <stdint.h>
-#include <iostream>
 #include <cstdlib>
-#include <time.h>
 
-/**
- * Value of the watched hardware counters.
- */
-typedef union
-{
-   struct __attribute__ ((packed))
-   {
-      uint64_t retired;    // # of retired instructions
-      uint64_t refCycles;  // unhalted cycles elapsed at the reference frequency
-      uint64_t time;       // time as reported by rdtsc 
-   };
+namespace FoREST {
 
-   uint64_t values [3];
-} HWCounters;
-
-/**
- * How many counters have to be profiled. Does not include time.
- */
-#define NB_HW_COUNTERS ((sizeof(HWCounters) / sizeof(uint64_t)) - 1)
-
-/* Defines the runtime mode */
-enum Mode {
-   MODE_ENERGY,
-   MODE_PERFORMANCE
-};
-
-// a few utility functions which may be useful at some point
+   // a few utility functions which may be useful at some point
 #define rest_max(a, b) ((a) > (b) ? (a) : (b))
 #define rest_min(a, b) ((a) < (b) ? (a) : (b))
 #define rest_abs(a) ((a) < 0 ? -(a) : (a))
+
+} // namespace FoREST
 
 #endif

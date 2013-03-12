@@ -17,30 +17,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 /**
- * @file FreqSelector.cpp
- * The FreqSelector class is in this file
+ * @file HWCounters.h
+ * HW counters structure file
  */
 
-#include "FreqSelector.h"
+#ifndef H_HWCOUNTERS
+#define H_HWCOUNTERS
 
 namespace FoREST {
 
-FreqSelector::FreqSelector (unsigned int nbFreqs)
-{
-   this->nbFreqs = nbFreqs;
-   this->coeffs = new float [nbFreqs];
-
-   for (unsigned int i = 0; i < nbFreqs; i++)
-   {
-      this->coeffs [i] = 0.;
-   }
-}
-
-FreqSelector::~FreqSelector ()
-{
-   delete [] this->coeffs;
-}
-
 } // namespace FoREST
 
+#endif

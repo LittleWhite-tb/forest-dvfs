@@ -35,7 +35,7 @@
 
 #include "DecisionMaker.h"
 #include "Common.h"
-#include "CPUInfo.h"
+#include "Topology.h"
 #include "FreqSelector.h"
 
 #ifdef REST_LOG
@@ -43,11 +43,7 @@
 #include <iomanip>
 #endif
 
-struct CoupleInfo {
-   float ipc;
-   unsigned int freqId;
-};
-
+namespace FoREST {
 
 DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
                               Config &cfg) :
@@ -63,19 +59,25 @@ DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
    USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
    ACTIVITY_LEVEL(cfg.getFloat("ACTIVITY_LEVEL")),
    timeProfiler (),
-   freqSelector (dvfsUnit.getNbFreqs ())
-{
-   this->curRuntimeState = EVALUATION;
-   this->curEvalState = EVALUATION_INIT;
-   this->curExecStep = 0;
-   this->totalSleepWin = DecisionMaker::MIN_SLEEP_WIN;
-   this->oldMaxFreqId = 0;
-   this->prof = NULL;
-   this->skipSequenceComputation = false;
+   freqSelector (dvfsUnit.getNbFreqs ()),
+   curRuntimeState (EVALUATION),
+   curEvalState (EVALUATION_INIT),
+   curExecStep (0),
+   totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),
+   oldMaxFreqId (0),
+   prof (NULL),
+   skipSequenceComputation (false),
 #ifdef REST_LOG
-   this->log = Logger::getLog (this->unit.getId ());
+   log (Logger::getLog (this->unit.getId ())),
 #endif
+   // setup an initial state for the decision
+   lastSequence.step [STEP1].freqId (0),
+   lastSequence.step [STEP1].timeRatio (0),
+   lastSequence.step [STEP2].freqId (0),
+   lastSequence.step [STEP2].timeRatio (0)
+{}
 
+void DecisionMaker::setupThreads (std::vector<Thread*>& thread) {
    this->nbCpuIds = unit.getThreads ().size ();
    this->nbFreqs = unit.getNbFreqs ();
    assert (this->nbCpuIds != 0);
@@ -87,12 +89,7 @@ DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
    this->ipcEval = new float [this->ipcEvalSize];
    this->usage = new float [this->nbCpuIds];
 
-   // setup an initial state for the decision
-   this->lastSequence.step [STEP1].freqId = 0;
-   this->lastSequence.step [STEP1].timeRatio = 0;
-   this->lastSequence.step [STEP2].freqId = 0;
-   this->lastSequence.step [STEP2].timeRatio = 0;
-}
+   }
 
 DecisionMaker::~DecisionMaker (void)
 {
@@ -684,3 +681,6 @@ void DecisionMaker::readCounters ()
       this->prof->read (hwc, c);
    }
 }
+
+} //namespace FoREST
+

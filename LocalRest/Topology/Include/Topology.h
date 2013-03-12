@@ -18,13 +18,14 @@
  */
 
 /**
- * @file CPUInfo.h
- * The CPUInfo class header is in this file
+ * @file Topology.h
+ * The Topology class header is in this file
  */
 
-#ifndef H_CPUINFO
-#define H_CPUINFO
+#ifndef H_TOPOLOGY
+#define H_TOPOLOGY
 
+#include "Mode.h"
 #include "DVFSUnit.h"
 #include "DataFileReader.h"
 #include "PathBuilder.h"
@@ -33,22 +34,25 @@
 
 #include <vector>
 
+namespace FoREST {
+struct ThreadContext;
+
 /**
- * @class CPUInfo
+ * @class Topology
  * Information related to the processors on this system.
  */
-class CPUInfo
+class Topology
 {
    public:
       /**
        * Constructor
        */
-      CPUInfo ();
+      Topology (const Mode mode, ThreadContext *threadContext);
 
       /**
        * Destructor
        */
-      ~CPUInfo ();
+      ~Topology ();
 
       /**
        * Get the number of DVFS units available.
@@ -65,7 +69,7 @@ class CPUInfo
        *
        * @return The DVFS unit with the given id.
        */
-      inline DVFSUnit & getDVFSUnit (unsigned int id) const
+      inline DVFSUnit& getDVFSUnit (unsigned int id) const
       {
          assert (id < this->nbDVFSUnits);
 
@@ -81,9 +85,9 @@ class CPUInfo
       static unsigned int threadIdToCoreId (unsigned int thId)
       {
          std::map<unsigned int, unsigned int>::iterator it = 
-            CPUInfo::threadToCore.find (thId);
+            Topology::threadToCore.find (thId);
 
-         if (it == CPUInfo::threadToCore.end ())
+         if (it == Topology::threadToCore.end ())
          {
             unsigned int pkgId;
             DataFileReader reader (PathBuilder<PT_TOPOLOGY_CORE_ID,PathCache>::buildPath (thId));
@@ -94,8 +98,8 @@ class CPUInfo
                   << thId << std::endl;
             }
 
-            CPUInfo::threadToCore [thId] = pkgId;
-            it = CPUInfo::threadToCore.find (thId);
+            Topology::threadToCore [thId] = pkgId;
+            it = Topology::threadToCore.find (thId);
          }
 
          return it->second;
@@ -115,7 +119,7 @@ class CPUInfo
               it != thIds.end ();
               it++)
          {
-            coreIds.insert (CPUInfo::threadIdToCoreId (*it));
+            coreIds.insert (Topology::threadIdToCoreId (*it));
          }
       }
       
@@ -133,10 +137,12 @@ class CPUInfo
        */
       unsigned int nbDVFSUnits;
 
+      Config config;
+
       /**
        * All the available DVFS-capable computing units.
        */
-      std::vector<DVFSUnit *> DVFSUnits;
+      std::vector<DVFSUnit*> DVFSUnits;
 
       /**
        * Fills the set of cores sharing the same frequency domain as the one
@@ -146,8 +152,10 @@ class CPUInfo
        * @param related Output parameter, filled with the cores related to
        *  cpuId.
        */
-      void getRelatedCores (unsigned int cpuId, std::set<unsigned int> &related);
+      void getRelatedCores (unsigned int cpuId, std::set<unsigned int> &related) const;
 
 };
+
+} // namespace FoREST
 
 #endif

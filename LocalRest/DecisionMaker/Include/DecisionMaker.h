@@ -22,8 +22,8 @@
  * The AdaptiveDecisions class header is in this file
  */
 
-#ifndef H_NEWADAPTIVEDECISIONS
-#define H_NEWADAPTIVEDECISIONS
+#ifndef H_DECISIONMAKER
+#define H_DECISIONMAKER
 
 #include <set>
 #include <sstream>
@@ -31,18 +31,20 @@
 
 #include "glog/logging.h"
 
+#include "Common.h"
 #include "Config.h"
-#include "DecisionMaker.h"
 #include "Profiler.h"
 #include "TimeProfiler.h"
 #include "FreqSelector.h"
+#include "Mode.h"
 
 #ifdef REST_LOG
 #include <vector>
 #include "Logger.h"
 #endif
 
-
+namespace FoREST {
+class DVFSUnit;
 // Frequency sequence data structure
 enum { STEP1 = 0, STEP2 };
 
@@ -62,6 +64,13 @@ struct FreqChunkCouple
 {
    FreqChunk step [2];
 };
+
+// TODO comment
+struct CoupleInfo {
+   float ipc;
+   unsigned int freqId;
+};
+
 
 /**
  * Decision taken by the decision maker.
@@ -482,8 +491,8 @@ class DecisionMaker
        */
       std::ofstream switchOFS;
 #endif
-
-
 };
+
+} // namespace FoREST
 
 #endif

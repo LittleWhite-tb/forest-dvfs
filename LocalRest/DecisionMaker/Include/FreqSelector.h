@@ -31,6 +31,8 @@
 
 #include "Common.h"
 
+namespace FoREST {
+
 /**
  * @class FreqSelector
  *
@@ -155,5 +157,8 @@ class FreqSelector
        */
       float * coeffs;
 };
+
+
+}// namespace FoREST
 
 #endif

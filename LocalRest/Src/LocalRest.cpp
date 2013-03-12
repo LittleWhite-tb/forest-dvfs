@@ -34,10 +34,10 @@
 #include "glog/logging.h"
 
 #include "Common.h"
-#include "Config.h"
-#include "CPUInfo.h"
-#include "DecisionMaker.h"
 #include "LocalRest.h"
+#include "Topology.h"
+//#include "AdaptiveDecisions.h"
+#include "DecisionMaker.h"
 #include "Profiler.h"
 
 #ifdef REST_LOG
@@ -51,44 +51,43 @@ static void * thProf (void * arg);
 static void exitCleanup ();
 static void sigHandler (int nsig);
 
-// options used to create the threads
-typedef struct
-{
-	unsigned int id;
-	DecisionMaker *dec;
-	Profiler *prof;
-	DVFSUnit *unit;
-} thOpts;
-
-struct ThreadContext {
-	pthread_t pid;
-	thOpts opts;
-};
-
-// variables shared among the threads
-struct RESTContext
-{
-   Config *cfg;
-	CPUInfo *cnfo;
-	ThreadContext *thdCtx;
-};
-
 struct Context {
    Topology topology;
-   ThreadContenxt *threadsContext;
+   ThreadContext *threadContext;
 };
+
 
 // the context
 static RESTContext restCtx;
 static Context context;
 
 int handleArguments (int argc, char *argv[], Mode& mode) {
-  if (argc != 2) {
+   if (argc != 2) {
       LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
       exit (EXIT_FAILURE);
    }
 
-   
+   std::string energy ("energy");
+   std::string performance ("performance");
+
+   if (energy.compare (argv [1]) == 0) {
+      mode = MODE_ENERGY;
+   }
+   else if (performance.compare (argv [1]) == 0) {
+      mode = MODE_PERFORMANCE;
+   }
+   else {
+      LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
+   } 
+}
+
+int launchThread (unsigned int unitId) {
+   DVFSUnit& unit = topo->getUnit (unitId);
+   ThreadArgs& args = unit.getArgs ();
+   pid_t *pid = unit.getPidPtr ();
+   if (pthread_create (pid, NULL, FoREST, &args) != 0) {
+      LOG (FATAL) << "Error: Failed to create FoREST thread" << std::endl;
+   }
 }
 
 int main2 (int argc, char *argv[]) {
@@ -101,7 +100,7 @@ int main2 (int argc, char *argv[]) {
    // Handle program arguments
    handleArguments (argc, argv, mode);
 
-   Topology *topo = new Topology (&context.threadsContext);
+   Topology *topo = new Topology (mode, &context.threadContext);
    unsigned int nbUnits = topo->getNbUnits ();
    context.topology = topo; // Keep track of the topology in the context
 
@@ -109,15 +108,22 @@ int main2 (int argc, char *argv[]) {
    // The first one will be launched on the current (main) thread
    for (unsigned int unitId = 1; unitId < nbUnits; unitId++) {
       launchThread (unitId);
-      DVFSUnit& unit = topo->getUnit (unitId);
-      ThreadArgs& args = unit.getArgs ();
-
-      
    }
 
-   return 0;
-}
+   // Launch the first unit's thread
+   launchThread (0);
 
+	// Handle USR1 signals in log if needed
+#ifdef REST_LOG
+	signal (SIGUSR1, sigHandler);
+#endif
+
+   // Handle Interrupt signal for proper cleanup
+	signal (SIGINT, sigHandler);
+	atexit (exitCleanup);
+
+   return EXIT_SUCCESS;
+}
 
 /**
  * Rest entry point.
@@ -152,7 +158,6 @@ int main (int argc, char ** argv)
       LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
    }
 
-   restCtx.cfg = new Config();
    restCtx.cnfo = new CPUInfo ();
 
 	unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
@@ -169,7 +174,7 @@ int main (int argc, char ** argv)
 		// initialize options	
 		thOpts& opts = restCtx.thdCtx [i].opts;
 		opts.id = i;
-		opts.dec = new DecisionMaker (unit, mode, *restCtx.cfg);
+		opts.dec = new DecisionMaker (unit, mode);
 		opts.prof = new Profiler (unit);
 		opts.unit = &unit;
 
@@ -295,7 +300,6 @@ static void exitCleanup ()
 	Logger::destroyLog ();
 #endif
    delete restCtx.cnfo;
-   delete restCtx.cfg;
 }
 
 } // namespace FoREST

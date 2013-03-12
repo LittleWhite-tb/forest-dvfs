@@ -27,10 +27,12 @@
 #include <iostream>
 #include <pthread.h>
 
-#include "DVFSUnit.h"
+#include "HWCounters.h"
 #include "perfmon/pfmlib.h"
 #include "glog/logging.h"
 
+namespace FoREST {
+class DVFSUnit;
 /**
  * @class Profiler
  * Profiler implementation based on libpfm.
@@ -57,7 +59,15 @@ class Profiler
        * @param hwc The hardware counter structure to fill with the results.
        * @param cpu The id of the cpu in the internal profiler table
        */
-      void read (HWCounters & hwc, unsigned int cpu);
+      bool read (int fd [NB_HW_COUNTERS], HWCounters & hwc, HWCounters& cpu);
+
+      /**
+       * Opens the HW counters file descriptors for the given thread id
+       *
+       * @param given thread id
+       * @param fd the array of file descriptors (must be NB_HW_COUNTERS wide)
+       */
+      void open (unsigned int threadId, int fd [NB_HW_COUNTERS]);
 
    private:
 
@@ -129,5 +139,7 @@ class Profiler
 
       DVFSUnit& unit;
 };
+
+}
 
 #endif
