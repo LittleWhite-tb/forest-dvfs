@@ -45,13 +45,17 @@
 namespace FoREST {
 
 DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
-                    const Mode mode, Config& config, ThreadContext *threadContext) :
+                    const Mode mode, Config& config, ThreadContext *thrContext) :
    decisionMaker (*this, mode, config),
-   profiler (*this)
+   profiler (*this),
+   threadContext (thrContext)
 {
-   (void) threadContext;
-
    this->id = id;
+
+   // Setup its thread context
+   this->threadContext->args.dm = &decisionMaker;
+   this->threadContext->args.unit = this;
+   this->threadContext->args.id = id;
 
    // pick one arbitrary cpu id to represent the unit
    const unsigned int cpuID = *cpuIds.begin ();

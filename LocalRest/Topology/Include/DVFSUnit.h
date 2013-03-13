@@ -38,6 +38,7 @@
 
 namespace FoREST {
 struct ThreadContext;
+
 /**
  * @class DVFSUnit
  * A core or a thread whose frequency can be set independantly from any other
@@ -162,6 +163,11 @@ class DVFSUnit
          
          return this->power [(nbCoresOn - 1) * this->freqs.size () + freqId];
       }
+      
+      // TODO comment
+      inline ThreadContext *getContext () {
+         return this->threadContext;
+      }
 
    private:
       /**
@@ -226,6 +232,11 @@ class DVFSUnit
        * @param cpuIds The CPUs to control.
        */
       void takeControl (const Thread *thread);
+
+      /**
+       * The corresponding thread context structure
+       */
+      ThreadContext *threadContext;
 };
 
 } //namespace FoREST

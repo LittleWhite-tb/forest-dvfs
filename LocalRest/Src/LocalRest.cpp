@@ -36,9 +36,9 @@
 #include "Common.h"
 #include "LocalRest.h"
 #include "Topology.h"
-//#include "AdaptiveDecisions.h"
 #include "DecisionMaker.h"
 #include "Profiler.h"
+#include "ThreadContext.h"
 
 #ifdef REST_LOG
 	#include "Logger.h"
@@ -47,24 +47,22 @@
 namespace FoREST {
 
 // local functions
-static void * thProf (void * arg);
+static void * FoREST (void * arg);
 static void exitCleanup ();
 static void sigHandler (int nsig);
 
 struct Context {
-   Topology topology;
-   ThreadContext *threadContext;
+   Topology *topology;
+   std::vector<ThreadContext*> threadContext;
 };
 
-
 // the context
-static RESTContext restCtx;
 static Context context;
 
-int handleArguments (int argc, char *argv[], Mode& mode) {
+static inline bool handleArguments (int argc, char *argv[], Mode& mode) {
    if (argc != 2) {
       LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
-      exit (EXIT_FAILURE);
+      return false;
    }
 
    std::string energy ("energy");
@@ -78,147 +76,33 @@ int handleArguments (int argc, char *argv[], Mode& mode) {
    }
    else {
       LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
-   } 
+      return false;
+   }
+
+   return true;
 }
 
-int launchThread (unsigned int unitId) {
-   DVFSUnit& unit = topo->getUnit (unitId);
-   ThreadArgs& args = unit.getArgs ();
-   pid_t *pid = unit.getPidPtr ();
-   if (pthread_create (pid, NULL, FoREST, &args) != 0) {
+bool launchThread (unsigned int unitId) {
+   DVFSUnit& unit = context.topology->getDVFSUnit (unitId);
+   ThreadContext *context = unit.getContext ();
+   ThreadArgs& args = context->args;
+   pthread_t thr = context->thr;
+   if (pthread_create (&thr, NULL, FoREST, &args) != 0) {
       LOG (FATAL) << "Error: Failed to create FoREST thread" << std::endl;
+      return false;
    }
+
+   return true;
 }
 
-int main2 (int argc, char *argv[]) {
-   Mode mode;
+static void *FoREST (void *arg) {
+   assert (arg != NULL);
 
-   // Google log library initialization
-   google::InitGoogleLogging (argv[0]);
-   google::LogToStderr ();
-
-   // Handle program arguments
-   handleArguments (argc, argv, mode);
-
-   Topology *topo = new Topology (mode, &context.threadContext);
-   unsigned int nbUnits = topo->getNbUnits ();
-   context.topology = topo; // Keep track of the topology in the context
-
-   // For each unit in the topology, except from the first one
-   // The first one will be launched on the current (main) thread
-   for (unsigned int unitId = 1; unitId < nbUnits; unitId++) {
-      launchThread (unitId);
-   }
-
-   // Launch the first unit's thread
-   launchThread (0);
-
-	// Handle USR1 signals in log if needed
-#ifdef REST_LOG
-	signal (SIGUSR1, sigHandler);
-#endif
-
-   // Handle Interrupt signal for proper cleanup
-	signal (SIGINT, sigHandler);
-	atexit (exitCleanup);
-
-   return EXIT_SUCCESS;
-}
-
-/**
- * Rest entry point.
- */
-int main (int argc, char ** argv)
-{
-	(void)(argc);
-	(void)(argv);
-
-   if (argc != 2) {
-      LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
-      exit (EXIT_FAILURE);
-   }
-
-   google::InitGoogleLogging (argv[0]);
-   google::LogToStderr ();
-
-   Mode mode;
-   std::string energy ("energy");
-   std::string performance ("performance");
-
-   if (energy.compare (argv [1]) == 0)
-   {
-      mode = MODE_ENERGY;
-   }
-   else if (performance.compare (argv [1]) == 0)
-   {
-      mode = MODE_PERFORMANCE;
-   }
-   else
-   {
-      LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
-   }
-
-   restCtx.cnfo = new CPUInfo ();
-
-	unsigned int nbDVFSUnits = restCtx.cnfo->getNbDVFSUnits ();
-
-#ifdef REST_LOG	
-	Logger::initLog (nbDVFSUnits);
-#endif
-	restCtx.thdCtx = new ThreadContext [nbDVFSUnits];
-	
-	// launch threads
-	for (unsigned int i = 0; i < nbDVFSUnits; i++)
-	{
-		DVFSUnit& unit = restCtx.cnfo->getDVFSUnit (i);
-		// initialize options	
-		thOpts& opts = restCtx.thdCtx [i].opts;
-		opts.id = i;
-		opts.dec = new DecisionMaker (unit, mode);
-		opts.prof = new Profiler (unit);
-		opts.unit = &unit;
-
-		// The unit 0 will use the current application thread. Others need
-      // a thread to run
-      if ( i != 0 )
-      {
-         if (pthread_create (&restCtx.thdCtx [i].pid, NULL, thProf, &opts) != 0)
-         {
-            LOG (FATAL) << "Error: Failed to create profiler thread" << std::endl;
-         }
-      }
-	}
-
-	// cleanup stuff when exiting
-#ifdef REST_LOG
-	signal (SIGUSR1, sigHandler);
-#endif
-	signal (SIGINT, sigHandler);
-	atexit (exitCleanup);
-
-	// Launch the function for main thread
-	thProf (&restCtx.thdCtx [0].opts);
-
-	// never reached
-	return EXIT_SUCCESS;
-}
-
-static void * thProf (void * arg)
-{
-   assert (arg);
-   
-	thOpts * opts = reinterpret_cast<thOpts*>(arg);
-	Decision dec;
-
-   // default initialization for the first decision
-   dec.freqId = 0;
-   dec.sleepWin = 0;
-   dec.freqApplyDelay = 0;
-
-	opts->dec->setProfiler (opts->prof);
+   ThreadArgs *args = reinterpret_cast<ThreadArgs*> (arg);
+   DecisionMaker* dm = args->dm;
 
 	// only the main thread receives signals
-	if (opts->id != 0)
+	if (args->id != 0)
 	{
 		sigset_t set;
 
@@ -230,27 +114,10 @@ static void * thProf (void * arg)
 
    // do it as long as we are not getting killed by a signal
 	while (true) {
-      // If the runtime's decision is to skip the sleeping time, we obey it !!
-      // wait for a while	
-      if (dec.sleepWin > 0)
-      {
-         usleep (dec.sleepWin);
-      }
-
-      dec = opts->dec->takeDecision ();
-
-      // switch frequency	
-      if (dec.sleepWin > 0) 
-      {
-         opts->unit->setFrequency (dec.freqId);
-      }
-
-      // if needed, wait a bit for the freq to be applied	
-      if (dec.freqApplyDelay != 0)
-      {
-         usleep (dec.freqApplyDelay);
-         opts->dec->readCounters (); // Reset the counters
-      }
+      dm->initEvaluation ();
+      dm->evaluateFrequency ();
+      dm->computeSequence ();
+      dm->executeSequence ();
    }
 
 	// pacify compiler but we never get out of while loop
@@ -264,43 +131,77 @@ static void sigHandler (int nsig)
 			exit (EXIT_FAILURE);
 			break;
 	case SIGUSR1:
-			#ifdef REST_LOG
-				for (unsigned int i = 0; i < restCtx.cnfo->getNbDVFSUnits (); i++) {
-					Logger *log = Logger::getLog (restCtx.cnfo->getDVFSUnit (i).getId ());
-					log->logOut ("*");
-				}
-			#endif
-			break;
+#ifdef REST_LOG
+      for (std::vector<ThreadContext*>::iterator
+           it = context.threadContext.begin ();
+           it != context.threadContext.end ();
+           it++) {
+         Logger *log = Logger::getLog ((*it)->args.unit->getId ());
+   		log->logOut ("*");
+      }
+#endif
+	   break;
 	default:
 			LOG (INFO) << "Received signal #" << nsig << std::endl;
 	};
 }
 
-static void exitCleanup ()
-{ 
-	unsigned int i;
-	unsigned int nbUnits = restCtx.cnfo->getNbDVFSUnits ();
-
+static void exitCleanup () {
 	// cancel all threads (0 = main process, not a thread)
-	for (i = 1; i < nbUnits; i++)
-	{
-		pthread_cancel (restCtx.thdCtx [i].pid);
-		pthread_join (restCtx.thdCtx [i].pid, NULL);
+	for (std::vector<ThreadContext*>::iterator
+        it = context.threadContext.begin ();
+        it != context.threadContext.end ();
+        it++) {
+		pthread_cancel ((*it)->thr);
+		pthread_join ((*it)->thr, NULL);
 	}
-
-	// clean the memory used by all the threads
-	for (i = 0; i < nbUnits; i++)
-	{
-		delete restCtx.thdCtx [i].opts.prof;
-		delete restCtx.thdCtx [i].opts.dec;
-	} 
-	delete [] restCtx.thdCtx;
 
 #ifdef REST_LOG
 	Logger::destroyLog ();
 #endif
-   delete restCtx.cnfo;
+   delete context.topology;
 }
 
 } // namespace FoREST
 
+int main (int argc, char *argv[]) {
+   FoREST::Mode mode = FoREST::MODE_PERFORMANCE;
+
+   // Google log library initialization
+   google::InitGoogleLogging (argv[0]);
+   google::LogToStderr (); 
+
+   // Handle program arguments
+   if (!FoREST::handleArguments (argc, argv, mode)) {
+      exit (EXIT_SUCCESS);
+   }
+
+   FoREST::Topology *topo = new FoREST::Topology (mode, FoREST::context.threadContext);
+   unsigned int nbUnits = topo->getNbDVFSUnits ();
+   FoREST::context.topology = topo; // Keep track of the topology in the context
+ 
+   // Init FoREST log
+#ifdef REST_LOG
+   Logger::initLog (nbUnits);
+#endif
+
+   // For each unit in the topology, except from the first one
+   // The first one will be launched on the current (main) thread
+   for (unsigned int unitId = 1; unitId < nbUnits; unitId++) {
+      FoREST::launchThread (unitId);
+   }
+
+   // Launch the first unit's thread
+   FoREST::launchThread (0);
+
+	// Handle USR1 signals in log if needed
+#ifdef REST_LOG
+	signal (SIGUSR1, FoREST::sigHandler);
+#endif
+
+   // Handle Interrupt signal for proper cleanup
+	signal (SIGINT, FoREST::sigHandler);
+	atexit (FoREST::exitCleanup);
+
+   return EXIT_SUCCESS;
+}

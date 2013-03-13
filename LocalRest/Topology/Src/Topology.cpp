@@ -38,7 +38,8 @@ namespace FoREST {
 
 std::map<unsigned int, unsigned int> Topology::threadToCore;
 
-Topology::Topology (const Mode mode, ThreadContext *threadContext)
+Topology::Topology (const Mode mode, std::vector<ThreadContext*>& thrContext) :
+   threadContext (thrContext)
 {
    unsigned int DVFSid = 0;
    std::ostringstream oss;
@@ -65,9 +66,11 @@ Topology::Topology (const Mode mode, ThreadContext *threadContext)
       this->getRelatedCores (cpuId, related);
 
       // create the unique DVFS unit
+      ThreadContext *thrContext = new ThreadContext ();
+      threadContext.push_back (thrContext);
       DVFSUnit *unit = new DVFSUnit (DVFSid, related, mode,
                                      config,
-                                     threadContext + DVFSid);
+                                     thrContext);
       DVFSid++;
       this->DVFSUnits.push_back (unit);
 
@@ -80,7 +83,7 @@ Topology::Topology (const Mode mode, ThreadContext *threadContext)
       }
    }
 
-   this->nbDVFSUnits = this->DVFSUnits.size ();  
+   this->nbDVFSUnits = this->DVFSUnits.size ();
 }
 
 Topology::~Topology ()
@@ -90,6 +93,12 @@ Topology::~Topology ()
          it++)
    {
       delete *it;
+   }
+
+   for (std::vector<ThreadContext*>::iterator it = this->threadContext.begin ();
+        it != this->threadContext.end ();
+        it++) {
+      delete (*it);
    }
 }
 

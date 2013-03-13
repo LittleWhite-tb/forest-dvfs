@@ -32,17 +32,16 @@ class Profiler;
 class DVFSUnit;
    
 // options used to create the threads
-struct thOpts
+struct ThreadArgs
 {
 	unsigned int id;
-	DecisionMaker *dec;
-	Profiler *prof;
+	DecisionMaker *dm;
 	DVFSUnit *unit;
 };
 
 struct ThreadContext {
-	pthread_t pid;
-	thOpts opts;
+	pthread_t thr;
+   ThreadArgs args;
 };
 
 } // namespace FoREST

@@ -47,7 +47,7 @@ class Topology
       /**
        * Constructor
        */
-      Topology (const Mode mode, ThreadContext *threadContext);
+      Topology (const Mode mode, std::vector<ThreadContext*>& threadContext);
 
       /**
        * Destructor
@@ -112,19 +112,21 @@ class Topology
        * @param coreIds Ouput parameter, filled with the list of cores to which
        *  the threads are associated.
        */
-      static void threadIdsToCoreIds (const std::set<unsigned int> &thIds,
+      static void threadIdsToCoreIds (const std::set<Thread*> &thIds,
                                      std::set<unsigned int> &coreIds)
       {
-         for (std::set<unsigned int>::iterator it = thIds.begin ();
+         for (std::set<Thread*>::const_iterator it = thIds.begin ();
               it != thIds.end ();
               it++)
          {
-            coreIds.insert (Topology::threadIdToCoreId (*it));
+            unsigned int threadId = (*it)->getId ();
+            coreIds.insert (Topology::threadIdToCoreId (threadId));
          }
       }
       
    private:
-
+      // TODO comment
+      std::vector<ThreadContext*>& threadContext;
       /**
        * Maps a core ID to every thread ID. Useful to determine the core of a
        * given thread.

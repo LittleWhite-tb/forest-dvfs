@@ -37,10 +37,12 @@ nbFrequencies_ (nbFrequencies),
 profiler_ (profiler) {
    // Allocate data
    hwc_ = new HWCounters [2*nbFrequencies_];
-   oldHwc_ = hwc_ + nbFrequencies;
+   oldHwc_ = hwc_ + nbFrequencies_;
+   ipc_ = new float [nbFrequencies_];
 
    // reset the values
    memset (hwc_, 0, sizeof (*hwc_)*2*nbFrequencies_);
+   memset (ipc_, 0, sizeof (*ipc_)*nbFrequencies_);
 
    // Open the HW counters file descriptors
    profiler_.open (id_, fd);
@@ -48,6 +50,7 @@ profiler_ (profiler) {
 
 Thread::~Thread () {
    delete [] hwc_;
+   delete [] ipc_;
    for (unsigned int i = 0; i < NB_HW_COUNTERS; i++) {
       close (fd[i]);
    }

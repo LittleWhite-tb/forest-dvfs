@@ -37,6 +37,7 @@
 #include "TimeProfiler.h"
 #include "FreqSelector.h"
 #include "Mode.h"
+#include "Thread.h"
 
 #ifdef REST_LOG
 #include <vector>
@@ -108,7 +109,7 @@ class DecisionMaker
        * @param mode Run mode (energy or performance).
        * @param cfg The current configuration.
        */
-      DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
+      DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
                      Config &cfg);
 
       /**
@@ -125,37 +126,58 @@ class DecisionMaker
        * window is given.
        */
       Decision takeDecision ();
+      
+      // TODO comment 
+      void setupThreads (std::vector<Thread*>& thread);
 
       /**
-       * Sets the hardware counter profiler to prof.
+       * Initializes the evaluation, does several steps : 
+       * - Compute the center of the frequency window (see computeFreqWindowCenter)
+       * - Compute the frequency Window (see computeFreqWindow)
+       * - Reset some values
+       */
+      void initEvaluation ();
+
+      /**
+       * Call iteratively the getHWExploitationRatio method to evaluate each
+       * frequency in the window computed before
        *
-       * @param prof The new profiler to use.
+       * @return The decision corresponding to the next frequency to be evaluated (or a zeroDecision if it was the last frequency)
        */
-      void setProfiler (Profiler *prof)
-      {
-         this->prof = prof;
-      }
+      void evaluateFrequency ();
 
       /**
-       * Reads the counters needed for the evaluation process on all the cores
-       * corresponding to our DVFS Unit, e.g. sharing the same frequency
-       * transition.
+       * Compute the step1 and step2 for each core
        */
-      void readCounters ();
+      void computeSteps ();
 
+      /**
+       * Compute the sequence corresponding to the aggregation of the 2-steps
+       * computation of all the cores previously computed
+       */
+      void computeSequence ();
+
+      /**
+       * Executes the sequence of frequency/timeRatio couples in the runtime
+       */
+      void executeSequence ();
 
    private:
 
       /**
        * Which DVFS unit we are handling.
       */
-      const DVFSUnit& unit;
+      DVFSUnit& unit;
+      
+      /**
+       * Threads the handled DVFS unit is holding
+       */
+      std::vector<Thread*>* thread;
 
       /**
-       * Profiler used to read  
+       * List of threads active for the current evaluation process
        */
-      Profiler *prof;
-
+      std::set<Thread*> activeThread;
       /**
        * Time required to evaluate the IPC for one frequency (us).
        */
@@ -220,57 +242,6 @@ class DecisionMaker
        */
       const float ACTIVITY_LEVEL;
 
-            /**
-       * Generic method called for the evaluation step
-       * Does several steps:
-       * - Evaluation Init (see initEvaluation)
-       * - Frequency Evaluation (see evaluateFrequency)
-       * - 2 Steps computation (see computeSteps)
-       * - Sequence computation (see computeSequence)
-       * 
-       * @return The decision of the evaluation
-       */
-      Decision evaluate ();
-
-      /**
-       * Initializes the evaluation, does several steps : 
-       * - Compute the center of the frequency window (see computeFreqWindowCenter)
-       * - Compute the frequency Window (see computeFreqWindow)
-       * - Reset some values
-       */
-      Decision initEvaluation ();
-
-      /**
-       * Call iteratively the getHWExploitationRatio method to evaluate each
-       * frequency in the window computed before
-       *
-       * @return The decision corresponding to the next frequency to be evaluated (or a zeroDecision if it was the last frequency)
-       */
-      Decision evaluateFrequency ();
-
-      /**
-       * Compute the step1 and step2 for each core
-       */
-      void computeSteps ();
-
-      /**
-       * Converts IPC per core into IPC per processor. Actually averages the 
-       * IPCs per core. The result is outputed in the argument.
-       *
-       * @param avgIPC Output parameter. Must be an allocated array able to
-       * contain at least as many entries as the number of frequencies.
-       */
-      // void getAvgIPCPerFreq (float *avgIPC);
-
-      /**
-       * Returns the maximal IPC in the array of IPCs per frequency.
-       *
-       * @param IPCs an array initialized with the IPC per frequency (one entry
-       * per frequency.
-       * @param maxIPCs Ouput parameter, the maximal IPC per core. One entry per core.
-       */
-      void getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs);
-
       /**
        * Computes the best frequency couple for achieving the target IPC with
        * the frequencies whose IPC is provided in IPCs.
@@ -283,82 +254,13 @@ class DecisionMaker
        * @return The frequency couple leading to the minimal energy consumption
        * and achieving the targetIPC.
        */
-      FreqChunkCouple getBestCouple (float *IPCs, float d, float *coupleEnergy);
-
-      /**
-       * Compute the sequence corresponding to the aggregation of the 2-steps
-       * computation of all the cores previously computed
-       */
-      void computeSequence ();
-
-      /**
-       * Executes the sequence of frequency/timeRatio couples in the runtime
-       */
-      Decision executeSequence ();
-
-      /**
-       * Is useful to check whether we have to read the counters or not
-       * (it's not necessary in the execution state)
-       *
-       * @return Whether the runtime is currently evaluating or executing
-       * the frequency sequence
-       */
-      inline bool isEvaluating () const{
-         return this->curRuntimeState == EVALUATION;
-      }
+      FreqChunkCouple getBestCouple (float d, float *coupleEnergy);
 
       /**
        * Outputs the frequency in the log file
        */
-      void logFrequency (unsigned int freqId) const;
-
-      /**
-       * Computes the hardware exploitation ratio from the hardware counters.
-       *
-       * @param hwc The hardware counter values.
-       *
-       * @return A number which evaluates how much the cpu is used compared to
-       * the memory. Zero means that the memory is not at all the bottleneck,
-       * whereas large values means that the cpu is often paused and waits for
-       * the memory.
-       */
-      inline float getHWExploitationRatio (const HWCounters & hwc) const
-      {
-         if (hwc.time == 0)
-         {
-            LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
-            return 0;
-         }
-         return hwc.retired / (1. * hwc.time);
-      }
-
-      /**
-       * Returns the CPU usage corresponding to the given hardware counter
-       * measurement.
-       *
-       * @param hwc The hardware counter values.
-       *
-       * @return a usage ratio between 0 and 1 representing the CPU usage.
-       */
-      inline float getCPUUsage (HWCounters &hwc) const 
-      {
-         float res;
-
-         if (hwc.time == 0)
-         {
-            LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
-            return 0;
-         }
-
-         //DLOG (INFO) << "active cycles: " << hwc.refCycles << " rdtsc: "
-         //<< hwc.time << std::endl;
-
-         // NOTE: RDTSC and refCycles run at the same freq
-         res = hwc.refCycles / (1. * hwc.time);
-
-         return rest_min (res, 1);
-      }
-
+      void logFrequency (unsigned int freqId) const; 
+ 
       /**
        * Computes the couple of freq Id and its associated sleepWindows to
        *  emulate a frequency that would lead to the provided degraded IPC
@@ -373,25 +275,6 @@ class DecisionMaker
        * different steps in our evaluation and execution processes.
        */
       TimeProfiler timeProfiler;
-
-      /**
-       * The current state of the decision maker
-       */
-      State curRuntimeState;
-      /**
-       * The current evaluation state of the decision maker (because several evaluation steps)
-       */
-      EvalState curEvalState;
-
-      /**
-       * The current frequency chunk we are executing (in the runtime execution step)
-       */
-      unsigned int curExecStep;
-
-      /**
-       * Number of cpuIds that are handled by the Decision Maker
-       */
-      size_t nbCpuIds;
 
       /**
        * Number of frequencies that are available on the processor
@@ -409,11 +292,6 @@ class DecisionMaker
       std::set<unsigned int> freqsToEvaluate;
 
       /**
-       * Currently evaluated frequency. Related to freqsToEvaluate.
-       */
-      std::set<unsigned int>::iterator currentEvalFreqId;
-
-      /**
        * The current sequence
        */
       FreqChunkCouple sequence;
@@ -429,25 +307,6 @@ class DecisionMaker
       unsigned int totalSleepWin;
 
       /**
-       * IPC evaluation result. There are as many frequencies as the number of
-       * frequencies times the number of cpu on the current DVFS unit. For a two
-       * cores machines, ipcEval [1] is the IPC for freq 0 on core 1, ipcEval [2]
-       * is the IPC for freq 1 on core 0.
-       */
-      float * ipcEval;
-
-      /**
-       * Size of the ipcEval array
-       */
-      size_t ipcEvalSize;
-
-      /**
-       * Last measured CPU activity per core. As many entries as the number of
-       * cpu cores. Usage between 0 and 1.
-       */
-      float *usage;
-
-      /**
        * Helps to compute stability accross settings.
        */
       FreqSelector freqSelector;
@@ -457,13 +316,6 @@ class DecisionMaker
        * This is typically true if no physical core is active
        */
       bool skipSequenceComputation;
-
-#ifdef REST_LOG
-      /**
-       * Log reference to trace the runtime decisions and important information
-       */
-      Logger *log;
-#endif
 
       /**
        * Set of active cores.
@@ -481,9 +333,11 @@ class DecisionMaker
          clock_gettime (CLOCK_MONOTONIC, &ts);
          this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " #" << std::endl;
       }
+
+      // TODO comment
       inline void log(unsigned int freq,unsigned int window)
       {
-	this->switchOFS << "[realy applied] Freq : "<<freq<<" sleep : "<<window <<std::endl;
+      	this->switchOFS << "[realy applied] Freq : "<<freq<<" sleep : "<<window <<std::endl;
       }
       
       /**

@@ -25,7 +25,11 @@
 #ifndef H_TOPOTHREAD
 #define H_TOPOTHREAD
 
+#include <math.h>
+
 #include "Profiler.h"
+#include "Common.h"
+#include "HWCounters.h"
 
 namespace FoREST {
 
@@ -53,6 +57,16 @@ private:
    HWCounters *oldHwc_;
 
    /**
+    * Array storing ipc values regarding of previous hw counters computation
+    */
+   float *ipc_;
+
+   /**
+    * Frequency id in the ipc table that refers the max IPC
+    */
+   unsigned int maxIpc_;
+
+   /**
     * Number of available frequencies
     */
 
@@ -62,7 +76,16 @@ private:
     */
    Profiler& profiler_;
 
+   /**
+    * File descriptors of the hw counters to be read by the profiler
+    */
    int fd [NB_HW_COUNTERS];
+
+   /**
+    * CPU usage (between 0 and 1)
+    */
+   float usage_;
+
 public:
    /**
     * Constructor
@@ -88,8 +111,89 @@ public:
       return hwc_ [frequencyId];
    }
 
-   inline unsigned int getId () const {
+   inline unsigned int getId () const{
       return id_;
+   }
+
+   /**
+    * Computes and returns the CPU usage with the measurements done with the highest frequency
+    */
+   inline float computeUsage () {
+      float res;
+      // Take the highest frequency as the reference for computing thread usage
+      HWCounters& hwc = hwc_ [NB_HW_COUNTERS-1];
+      
+      if (hwc.time == 0)
+      {
+         LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
+         return 0;
+      }
+      
+      //DLOG (INFO) << "active cycles: " << hwc.refCycles << " rdtsc: "
+      //<< hwc.time << std::endl;
+      
+      // NOTE: RDTSC and refCycles run at the same freq
+      res = hwc.refCycles / (1. * hwc.time);
+      
+      usage_ = rest_min (res, 1);
+      return usage_;
+   }
+
+   /**
+    * Returns the CPU usage of the current thread
+    */
+   inline float getUsage () const{
+      return usage_;
+   }
+
+   inline bool isActive (unsigned int activityThreshold) const{
+      return usage_ > activityThreshold;
+   }
+
+   /**
+       * Computes the thread IPC from the hardware counters at a given frequency.
+       * A number which evaluates how much the cpu is used compared to
+       * the memory. Zero means that the memory is not at all the bottleneck,
+       * whereas large values means that the cpu is often paused and waits for
+       * the memory.*
+       *
+       * @param frequencyId The frequency id to know which hw counters values to use
+       *
+       * @return Whether HW counters returned irrational values (nan or 0 values)
+       */
+   inline bool computeIPC (unsigned int frequencyId) const{
+      HWCounters& hwc = hwc_ [frequencyId];
+      bool hwcPanic = false;
+
+      if (hwc.time == 0) {
+         LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
+         return 0;
+      }
+      float ipc = hwc.retired / (1. * hwc.time); 
+      ipc_ [frequencyId] = ipc;
+      if (ipc < 0 || isnan (ipc)) {
+         hwcPanic = true;
+      }
+      return hwcPanic;
+   }
+
+   // TODO comment
+   inline float getIPC (unsigned int frequencyId) const{
+      return ipc_ [frequencyId];
+   }
+
+   // TODO comment
+   inline void computeMaxIPC () {
+      maxIpc_ = ipc_ [0];
+      for (unsigned int i = 1; i < nbFrequencies_; i++) {
+         if (maxIpc_ < ipc_ [i]) {
+            maxIpc_ = i;
+         }
+      }
+   }
+
+   inline float getMaxIPC () const{
+      return ipc_ [maxIpc_];
    }
 };
 

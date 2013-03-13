@@ -32,11 +32,13 @@
 #include <stdint.h>
 #include <cassert>
 #include <limits>
+#include <time.h>
 
 #include "DecisionMaker.h"
 #include "Common.h"
 #include "Topology.h"
 #include "FreqSelector.h"
+#include "Thread.h"
 
 #ifdef REST_LOG
 #include "Logger.h"
@@ -45,7 +47,14 @@
 
 namespace FoREST {
 
-DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
+static inline void sleepForAWhile (unsigned long nanoseconds) {
+   timespec req;
+   req.tv_sec = 0;
+   req.tv_nsec = nanoseconds*1000;
+   nanosleep (&req, NULL);
+}
+
+DecisionMaker::DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
                               Config &cfg) :
    unit (dvfsUnit),
    IPC_EVAL_TIME(cfg.getInt("IPC_EVALUATION_TIME")),
@@ -59,69 +68,30 @@ DecisionMaker::DecisionMaker (const DVFSUnit& dvfsUnit, const Mode mode,
    USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
    ACTIVITY_LEVEL(cfg.getFloat("ACTIVITY_LEVEL")),
    timeProfiler (),
-   freqSelector (dvfsUnit.getNbFreqs ()),
-   curRuntimeState (EVALUATION),
-   curEvalState (EVALUATION_INIT),
-   curExecStep (0),
-   totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),
    oldMaxFreqId (0),
-   prof (NULL),
-   skipSequenceComputation (false),
-#ifdef REST_LOG
-   log (Logger::getLog (this->unit.getId ())),
-#endif
+   totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),
+   freqSelector (dvfsUnit.getNbFreqs ()),
+   skipSequenceComputation (false)
+{
    // setup an initial state for the decision
-   lastSequence.step [STEP1].freqId (0),
-   lastSequence.step [STEP1].timeRatio (0),
-   lastSequence.step [STEP2].freqId (0),
-   lastSequence.step [STEP2].timeRatio (0)
-{}
+   lastSequence.step [STEP1].freqId = 0;
+   lastSequence.step [STEP1].timeRatio = 0;
+   lastSequence.step [STEP2].freqId = 0;
+   lastSequence.step [STEP2].timeRatio = 0;
+}
 
-void DecisionMaker::setupThreads (std::vector<Thread*>& thread) {
-   this->nbCpuIds = unit.getThreads ().size ();
-   this->nbFreqs = unit.getNbFreqs ();
-   assert (this->nbCpuIds != 0);
-   assert (this->nbFreqs != 0);
-
-   this->ipcEvalSize = this->nbFreqs * this->nbCpuIds;
-
-   // Allocate data
-   this->ipcEval = new float [this->ipcEvalSize];
-   this->usage = new float [this->nbCpuIds];
-
-   }
+void DecisionMaker::setupThreads (std::vector<Thread*>& threads) {
+   this->thread = &threads; 
+}
 
 DecisionMaker::~DecisionMaker (void)
-{
-   delete [] this->ipcEval;
-   delete [] this->usage;
-}
+{}
 
-void DecisionMaker::getMaxIPCs (float *IPCs, std::vector<float> & maxIPCs)
-{
-   maxIPCs.clear ();
-
-   for (unsigned int c = 0; c < this->nbCpuIds; c++)
-   {
-      float maxIPC = 0;
-
-      for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
-         it != this->freqsToEvaluate.end ();
-         it++)
-      {
-         maxIPC = rest_max (maxIPC, IPCs [*it * this->nbCpuIds + c]);
-      }
-
-      maxIPCs.push_back (maxIPC);
-   }
-}
-
-FreqChunkCouple DecisionMaker::getBestCouple (float *IPCs, float d,
-                                                     float *coupleEnergy)
+FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 {
    std::vector<unsigned int> smallerIpc;
    std::vector<unsigned int> greaterIpc;
-   std::vector<float> maxIPCs;
+
    unsigned int nbActiveCores = this->activeCores.size ();
 
    DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
@@ -149,38 +119,39 @@ FreqChunkCouple DecisionMaker::getBestCouple (float *IPCs, float d,
       return couple;
    }
 
-   // compute max IPC per core
-   getMaxIPCs (IPCs, maxIPCs);
+   // compute max IPC per thread
+   for (std::vector<Thread*>::iterator it = this->thread->begin ();
+        it != this->thread->end ();
+        it++) {
+      (*it)->computeMaxIPC ();
+   } 
 
    // split frequencies depending on their IPCs
-   for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
-        it != this->freqsToEvaluate.end ();
-        it++)
+   for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
+        freq != this->freqsToEvaluate.end ();
+        freq++)
    {
       bool isLower = true, isHigher = true;
 
-      for (unsigned int c = 0; c < this->nbCpuIds; c++)
-      {
-         if (this->usage [c] >= ACTIVITY_LEVEL)
-         {
-            if (IPCs [*it * this->nbCpuIds + c] < d * maxIPCs [c])
-            {
-               isHigher = false;
-            }
-            else
-            {
-               isLower = false;
-            }
+      // For each active thread
+      for (std::set<Thread*>::iterator thread = this->activeThread.begin ();
+           thread != this->activeThread.end ();
+           thread++) {
+         // Get the IPC at the requested freauency
+         float threadIpc = (*thread)->getIPC (*freq);
+         float maxIpc = (*thread)->getMaxIPC ();
+         
+         if (threadIpc < d * maxIpc) {
+            isHigher = false;
+         } else {
+            isLower = false;
          }
       }
 
-      if (isLower)
-      {
-         smallerIpc.push_back (*it);
-      }
-      else if (isHigher)
-      {
-         greaterIpc.push_back (*it);
+      if (isLower) {
+         smallerIpc.push_back (*freq);
+      } else if (isHigher) {
+         greaterIpc.push_back (*freq);
       }
    }
 
@@ -190,23 +161,23 @@ FreqChunkCouple DecisionMaker::getBestCouple (float *IPCs, float d,
    const float Psys = DecisionMaker::SYS_POWER;
    e_ratios [*this->freqsToEvaluate.begin ()] = nbActiveCores;
 
-   for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ()++;
-        it != this->freqsToEvaluate.end ();
-        it++)
+   std::set<unsigned int>::iterator freqIt = this->freqsToEvaluate.begin ();
+   for (std::set<unsigned int>::iterator freq = ++freqIt;
+        freq != this->freqsToEvaluate.end ();
+        freq++)
    {
-      float Pi = this->unit.getPowerAt (*it, nbActiveCores);
+      float Pi = this->unit.getPowerAt (*freq, nbActiveCores);
 
-      e_ratios [*it] = 0;
+      e_ratios [*freq] = 0;
 
-      for (unsigned int c = 0; c < this->nbCpuIds; c++)
+      for (std::set<Thread*>::iterator thr = this->activeThread.begin ();
+           thr != this->activeThread.end ();
+           thr++)
       {
-         if (this->usage [c] >= ACTIVITY_LEVEL)
-         {
-            float IPCref = IPCs [*this->freqsToEvaluate.begin () * this->nbCpuIds + c];
-            float IPCi = IPCs [*it * this->nbCpuIds + c];
-
-            e_ratios [*it] += (IPCref / IPCi) * ((Pi + Psys) / (Pref + Psys));
-         }
+         float IPCref = (*thr)->getIPC (*this->freqsToEvaluate.begin ());
+         float IPCi = (*thr)->getIPC (*freq);
+         
+         e_ratios [*freq] += (IPCref / IPCi) * ((Pi + Psys) / (Pref + Psys));
       }
    }
 
@@ -214,8 +185,9 @@ FreqChunkCouple DecisionMaker::getBestCouple (float *IPCs, float d,
    if (smallerIpc.size () == 0)
    {
       FreqChunk step1, step2;
-      // sets are sorted
-      unsigned int minFreq = *this->freqsToEvaluate.begin ();
+      // sets are sorted highest from highest to lowest
+      freqIt = this->freqsToEvaluate.end ();
+      unsigned int minFreq = *(--freqIt);
 
       step1.freqId = minFreq;
       step2.freqId = 0;
@@ -240,7 +212,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float *IPCs, float d,
    {
       FreqChunk step1, step2;
       // sets are sorted
-      unsigned int maxFreq = *--this->freqsToEvaluate.end ();
+      unsigned int maxFreq = *this->freqsToEvaluate.begin ();
 
       step1.freqId = maxFreq;
       step2.freqId = 0;
@@ -286,14 +258,16 @@ FreqChunkCouple DecisionMaker::getBestCouple (float *IPCs, float d,
          // apply the highest frequency as much as possible, find the smallest
          // time ratio for the smallest freq
          float minRatio = 2;
-         for (unsigned int c = 0; c < this->nbCpuIds; c++)
+         for (std::set<Thread*>::iterator thread = this->activeThread.begin ();
+              thread != this->activeThread.end ();
+              thread++)
          {
-            if (this->usage [c] >= ACTIVITY_LEVEL)
-            {
-               minRatio = rest_min (minRatio, 
-                  (IPCs [greater * this->nbCpuIds + c] - d * maxIPCs [c])
-                  / (IPCs [greater * this->nbCpuIds + c] - IPCs [smaller * this->nbCpuIds + c]));
-            }
+            float greaterIpc = (*thread)->getIPC (greater);
+            float smallerIpc = (*thread)->getIPC (smaller);
+            float maxIpc = (*thread)->getMaxIPC ();
+            minRatio = rest_min (minRatio, 
+                  (greaterIpc - d * maxIpc)
+               / (greaterIpc - smallerIpc));
          }
 
          step1.timeRatio = minRatio;
@@ -335,27 +309,25 @@ FreqChunkCouple DecisionMaker::getBestCouple (float *IPCs, float d,
 
 void DecisionMaker::logFrequency (unsigned int freqId) const
 {	
-   assert (freqId < this->nbFreqs);
-
-   (void) freqId;
-
 #ifdef REST_LOG
+   assert (freqId < this->nbFreqs);
+   Logger *log = Logger::getLog (this->unit.getId ());
    std::ostringstream logger;
    logger << freqId;
-   this->log->logOut (logger);
+   log->logOut (logger);
 #endif
 }
 
-Decision DecisionMaker::initEvaluation ()
-{
-   Decision res;
+void DecisionMaker::initEvaluation ()
+{ 
    unsigned int freqWindowCenter;
 
    // Reset the list of frequencies to evaluate
    this->freqsToEvaluate.clear ();
 
    // Computing the new freq window
-   if (this->lastSequence.step [STEP1].timeRatio > this->lastSequence.step [STEP2].timeRatio)
+   if (this->lastSequence.step [STEP1].timeRatio
+       > this->lastSequence.step [STEP2].timeRatio)
    {
       freqWindowCenter = this->lastSequence.step [STEP1].freqId;
    }
@@ -385,81 +357,56 @@ Decision DecisionMaker::initEvaluation ()
    assert (this->freqsToEvaluate.size () <= this->nbFreqs);
    assert (this->freqsToEvaluate.size () > 0);
 
-   // We're all set! Let's evaluate the frequencies!
-   this->curEvalState = FREQUENCY_EVALUATION;
-
-   // Prepare the first frequency to be the minimum of our freshly
-   // computed frequency window
-   this->currentEvalFreqId = this->freqsToEvaluate.begin ();
-   res.freqId = *this->currentEvalFreqId;
-   res.sleepWin = DecisionMaker::IPC_EVAL_TIME;	
-   res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
-
-   assert (res.freqId < this->nbFreqs);
-
    // time the evaluation for debuging purposes
-   this->timeProfiler.evaluate (EVALUATION_INIT);
-
-   return res;
+   this->timeProfiler.evaluate (EVALUATION_INIT); 
 }
 
-Decision DecisionMaker::evaluateFrequency () {
-   assert (this->prof != NULL);
+void DecisionMaker::evaluateFrequency () {
+   bool hwcPanic = false;
+   std::vector<Thread*>::iterator thr;
 
-   Decision res;
+   // For each frequency in our window
+   std::set<unsigned int>::iterator freq = freqsToEvaluate.begin ();
+   while (freq != freqsToEvaluate.end ()) {
+      // Apply the frequency
+      this->unit.setFrequency (*freq);
 
-   unsigned int currentFreq = *this->currentEvalFreqId;
-   bool hwcPanic = false; // Decides whether the HWC values are reasonable
+      // Wait for the frequency to be applied
+      sleepForAWhile (this->unit.getSwitchLatency ());
 
-   // read counters
-   for (unsigned int i = 0; i < this->nbCpuIds; i++) {
-      HWCounters hwc;
-
-      this->prof->read (hwc, i);
-      float HWexp = this->getHWExploitationRatio (hwc);
-
-      //DLOG (INFO) << "#" << i << ", freq #" << currentFreq << " IPC = " << HWexp << std::endl;
-      if (HWexp < 0 || isnan (HWexp))
-      {
-         hwcPanic = true;
-      }
-      else
-      {
-         this->ipcEval [currentFreq*this->nbCpuIds + i] = HWexp;
+      // Reset all values for each thread
+      for (thr = thread->begin (); thr != thread->end (); thr++) {
+         (*thr)->read (*freq);
       }
 
-      // also update cpu usage
-      this->usage [i] = this->getCPUUsage (hwc);
-      //DLOG (INFO) << "CPU Usage = " << this->usage [i] << std::endl;
+      // (Fo)rest for a while...
+      sleepForAWhile (DecisionMaker::IPC_EVAL_TIME);
+      
+      // Read all values for each thread
+      for (thr = thread->begin (); thr != thread->end (); thr++) {
+         (*thr)->read (*freq);
+      }
+
+      // Compute IPCs
+      for (thr = thread->begin (); thr != thread->end (); thr++) {
+         if (!(*thr)->computeIPC (*freq)) {
+            hwcPanic = true; // There were a problem computing ipc, restarting
+            break;
+         }
+      }
+      if (!hwcPanic) {
+         freq++;
+      }
    }
-
-   // in case of panic, restart evaluation
-   if (!hwcPanic) {
-      this->currentEvalFreqId++;
+   
+   // Compute usage of each thread
+   for (thr = thread->begin (); thr != thread->end (); thr++) {
+      (*thr)->computeUsage ();
    }
+  
+   // Evaluate time spent in this evaluation step
+   this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
 
-   // last evaluation step?
-   if (!hwcPanic && this->currentEvalFreqId == this->freqsToEvaluate.end ()) {
-      this->curEvalState = SEQUENCE_COMPUTATION;
-
-      this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
-
-      // do nothing here and immediately get back to the next step
-      res.freqId = 0;
-      res.sleepWin = 0;
-      res.freqApplyDelay = 0;
-
-      return res;
-   }
-
-   // evaluate the next frequency
-   res.freqId = *this->currentEvalFreqId;
-   res.sleepWin = DecisionMaker::IPC_EVAL_TIME;
-   res.freqApplyDelay = this->unit.getSwitchLatency () / 1000;
-
-   assert (res.freqId < this->nbFreqs);
-
-   return res;
 }
 
 void DecisionMaker::computeSequence () 
@@ -471,16 +418,17 @@ void DecisionMaker::computeSequence ()
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
    // active cpus
-   std::set<unsigned int> activeThreads;
-   for (unsigned int c = 0; c < this->nbCpuIds; c++)
+   for (std::vector<Thread*>::iterator thr = thread->begin ();
+        thr != thread->end ();
+        thr++)
    {
-      if (this->usage [c] >= ACTIVITY_LEVEL)
+      if ((*thr)->isActive (ACTIVITY_LEVEL))
       {
-         activeThreads.insert (c);
+         this->activeThread.insert (*thr);
       }
    }
    this->activeCores.clear ();
-   CPUInfo::threadIdsToCoreIds (activeThreads, this->activeCores);
+   Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
 
    // test all perfmormance level by steps of 1%
    for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
@@ -488,7 +436,7 @@ void DecisionMaker::computeSequence ()
       FreqChunkCouple couple;
       float coupleE;
 
-      couple = getBestCouple (this->ipcEval, d, &coupleE);
+      couple = getBestCouple (d, &coupleE);
 
       //DLOG (INFO) << "IPC: " << targetIPC
       //   << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
@@ -548,6 +496,8 @@ void DecisionMaker::computeSequence ()
 		unsigned int maxFreqWindow =
          this->oldMaxFreqId + DecisionMaker::STABILITY_WINDOW_SZ;
 		
+      // If dominant freq changes by a step of +/- STABILITY_WINDOW_SZ
+      // we still consider it as stable and we do not reset the totalSleepWin
 		if (maxRatioFreqId < minFreqWindow || maxRatioFreqId > maxFreqWindow)
       {
 			this->totalSleepWin = DecisionMaker::MIN_SLEEP_WIN;
@@ -559,127 +509,28 @@ void DecisionMaker::computeSequence ()
 	 this->logFrequency (maxRatioFreqId);	
 	}
 
-	this->oldMaxFreqId = maxRatioFreqId; 
+	this->oldMaxFreqId = maxRatioFreqId;
+
+   this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
 }
 
-Decision DecisionMaker::evaluate ()
+void DecisionMaker::executeSequence ()
 {
-	switch (this->curEvalState)
-   {
-		case EVALUATION_INIT:
-			return this->initEvaluation ();
-
-		case FREQUENCY_EVALUATION:
-			return this->evaluateFrequency ();
-
-		case SEQUENCE_COMPUTATION:
-			Decision res;
-
-			this->computeSequence ();
-			
-         this->curRuntimeState = SEQUENCE_EXECUTION;
-			this->curEvalState = EVALUATION_INIT; // For the next evaluation
-			
-         this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
-			
-         // do nothing and go to the next step
-         res.freqId = 0;
-         res.sleepWin = 0;
-         res.freqApplyDelay = 0;
-
-         return res;
-			break;
-		
-		default:
-			LOG (FATAL) << "Error: Unknown evaluation state "
-            << this->curRuntimeState << " not handled" << std::endl;
-	};	
-}
-
-Decision DecisionMaker::executeSequence ()
-{
-	if (this->curExecStep < 2) {
-      Decision res;
-
-		res.freqId = this->sequence.step [this->curExecStep].freqId;
-      res.sleepWin =	this->sequence.step [this->curExecStep].timeRatio * this->totalSleepWin;
-      res.freqApplyDelay = 0;
+   // Apply steps
+   for (unsigned int i = 0; i < 2; i++) {
+      unsigned int freqId = this->sequence.step [i].freqId;
+      this->unit.setFrequency (freqId);
+   
+      // Apply it for some time...
+      unsigned int sleepWin = this->sequence.step [i].timeRatio
+                        * this->totalSleepWin;
+      sleepWin *= 1000; // Because we're sleeping in nanoseconds
       
-		assert (res.sleepWin <= this->totalSleepWin);
-
-		this->curExecStep++;
-
-      // reset IPC related counters before starting sequence
-      if (this->curExecStep == STEP1)
-      {
-         this->readCounters ();
-      }
-
-		return res;	
+      // Sleep now !
+      sleepForAWhile (sleepWin);
    }
-
-   // this assert is not required, isn't it?
-   //assert (this->curSeqChunk > 0);
-
-   // Reset the current sequence chunk that will be executed in the
-   // execution state
-   this->curExecStep = 0;
-
-   // Now, we loop back to the evaluation
-   this->curRuntimeState = EVALUATION;
-
    // Profiler, remind we leave execution
    this->timeProfiler.evaluate (EXECUTION_SLOT);
-
-   /*#ifdef REST_LOG
-     std::ostringstream str;
-     str << std::setw (10) << this->totalsleepWin << " ";
-     this->timeProfiler.print (str);
-     this->log->logOut (str);
-#endif*/
-
-   Decision res;
-
-   // do nothing and go to the next step
-   res.freqId = 0;
-   res.sleepWin = 0;
-   res.freqApplyDelay = 0;
-
-   return res;
-}
-
-// New
-Decision DecisionMaker::takeDecision ()
-{
-	Decision res;
-	
-	switch (this->curRuntimeState)
-   {
-		case EVALUATION:
-			res = this->evaluate ();
-			break;
-
-		case SEQUENCE_EXECUTION:
-			res = this->executeSequence ();
-			break;
-
-		default:
-			LOG (FATAL) << "Error: Unknown runtime state " << this->curRuntimeState
-            << " not handled" << std::endl;
-	}
-	
-	return res;
-}
-
-void DecisionMaker::readCounters ()
-{
-   assert (this->prof != 0);
-
-   for (unsigned int c = 0; c < this->nbCpuIds; c++)
-   {
-      HWCounters hwc;
-      this->prof->read (hwc, c);
-   }
 }
 
 } //namespace FoREST
