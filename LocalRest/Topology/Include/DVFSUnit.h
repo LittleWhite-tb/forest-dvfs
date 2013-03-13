@@ -164,7 +164,11 @@ class DVFSUnit
          return this->power [(nbCoresOn - 1) * this->freqs.size () + freqId];
       }
       
-      // TODO comment
+      /**
+       * Function used to get the thread context of the current unit
+       * It is mainly used for the thread to be aware of its components
+       * (including the DecisionMaker)
+       */
       inline ThreadContext *getContext () {
          return this->threadContext;
       }

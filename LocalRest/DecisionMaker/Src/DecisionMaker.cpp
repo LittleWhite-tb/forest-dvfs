@@ -22,17 +22,14 @@
  * The DecisionMaker class is in this file
  */
 
-#include <algorithm>
 #include <iostream>
 #include <cstring>
-#include <unistd.h>
 #include <cstdlib>
 #include <math.h>
 #include <vector>
 #include <stdint.h>
 #include <cassert>
 #include <limits>
-#include <time.h>
 
 #include "DecisionMaker.h"
 #include "Common.h"

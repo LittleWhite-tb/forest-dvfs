@@ -177,12 +177,18 @@ public:
       return hwcPanic;
    }
 
-   // TODO comment
+   /**
+    * Get an IPC for a specific frequency
+    *
+    * @param frequencyId the wanted frequency id
+    */
    inline float getIPC (unsigned int frequencyId) const{
       return ipc_ [frequencyId];
    }
 
-   // TODO comment
+   /**
+    * Computes the maximum IPC among all the different frequencies
+    */
    inline void computeMaxIPC () {
       maxIpc_ = ipc_ [0];
       for (unsigned int i = 1; i < nbFrequencies_; i++) {
@@ -192,6 +198,9 @@ public:
       }
    }
 
+   /**
+    * Get the maximum IPC among all the different frequencies
+    */
    inline float getMaxIPC () const{
       return ipc_ [maxIpc_];
    }

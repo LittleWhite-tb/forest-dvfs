@@ -33,23 +33,30 @@
 #include <iomanip>
 #include "DecisionMaker.h"
 
+/**
+ * Enum describing the different type of steps that exist
+ */
 typedef enum {       
 	EVALUATION = 0,
 	SEQUENCE_EXECUTION,
 	STATE_SIZE
 } State;
 
+/**
+ * Enum describint the different steps of the evaluation process
+ */
 typedef enum {
 	EVALUATION_INIT = 0,
 	FREQUENCY_EVALUATION,
-	STEPS_COMPUTATION,
 	SEQUENCE_COMPUTATION,
 	EVALSTATE_SIZE
 } EvalState;
 
 #define EXECUTION_SLOT (EVALSTATE_SIZE)
 
-// TODO Comment
+/**
+ * Function substracting two timespec structures appropriately
+ */
 inline timespec operator- (const timespec &end, const timespec &start)
 {
   timespec temp;
@@ -64,7 +71,11 @@ inline timespec operator- (const timespec &end, const timespec &start)
 	return temp;
 }
 
-// TODO comment
+/**
+ * Class TimeProfiler
+ *
+ * Provides an interface to profile the time spent in each of the algorithm steps
+ */
 class TimeProfiler {
 private:
 	unsigned int timeRefSize;

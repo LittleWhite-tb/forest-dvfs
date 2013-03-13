@@ -66,31 +66,6 @@ struct FreqChunkCouple
    FreqChunk step [2];
 };
 
-// TODO comment
-struct CoupleInfo {
-   float ipc;
-   unsigned int freqId;
-};
-
-
-/**
- * Decision taken by the decision maker.
- */
-typedef struct
-{
-   unsigned int freqId;    // new frequency to use
-   unsigned int sleepWin;  // new sleep window to use (usec)
-   unsigned int freqApplyDelay;   // amount of time to wait before reseting the counters (in usec)
-} Decision;
-
-/**
- * A couple of decisions
- */
-struct DecisionCouple
-{
-   Decision step [2];
-};
-
 /**
  * @class DecisionMaker
  *
@@ -118,16 +93,8 @@ class DecisionMaker
       ~DecisionMaker ();
 
       /**
-       * Decides what to do considering the last measurements.
-       *
-       * @param hwc The hardware counters values measured
-       *
-       * @return A decision object where a new core frequency and sleeping
-       * window is given.
+       * Set the DecisionMaker a reference to its DVFSUnit counterpart threads
        */
-      Decision takeDecision ();
-      
-      // TODO comment 
       void setupThreads (std::vector<Thread*>& thread);
 
       /**
@@ -322,29 +289,6 @@ class DecisionMaker
        * An active CPU is a core having an activity higher than threshold \a ACTIVITY_LEVEL
        */
       std::set<unsigned int>activeCores;
-      
-#ifdef REST_EXTRA_LOG
-      /**
-       * Print a marker in the log file.
-       */
-      inline void logMarker ()
-      {
-         struct timespec ts;
-         clock_gettime (CLOCK_MONOTONIC, &ts);
-         this->switchOFS << ts.tv_nsec + ts.tv_sec * 1000000000 << " #" << std::endl;
-      }
-
-      // TODO comment
-      inline void log(unsigned int freq,unsigned int window)
-      {
-      	this->switchOFS << "[realy applied] Freq : "<<freq<<" sleep : "<<window <<std::endl;
-      }
-      
-      /**
-       * File where to output the frequency switches.
-       */
-      std::ofstream switchOFS;
-#endif
 };
 
 } // namespace FoREST

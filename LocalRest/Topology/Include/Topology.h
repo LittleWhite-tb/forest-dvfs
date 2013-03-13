@@ -125,8 +125,11 @@ class Topology
       }
       
    private:
-      // TODO comment
+      /**
+       * Vector reference used to keep track of the DVFSUnits' thread context
+       */
       std::vector<ThreadContext*>& threadContext;
+      
       /**
        * Maps a core ID to every thread ID. Useful to determine the core of a
        * given thread.
