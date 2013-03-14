@@ -46,7 +46,6 @@ namespace FoREST {
 
 DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
                     const Mode mode, Config *config) :
-   decisionMaker (*this, mode, config),
    profiler (*this) 
 {
    this->id = id;
@@ -92,7 +91,7 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
       this->thread.push_back (newThread);
    }
 
-   this->decisionMaker.setupThreads (thread);
+   this->decisionMaker = new DecisionMaker (this, mode, config, thread);
 
    /* Now we want to take all the power economy ratio information from the
     * config file */
@@ -162,6 +161,8 @@ DVFSUnit::~DVFSUnit ()
 		}
       delete thread;
    }
+
+   delete this->decisionMaker;
 
    // close files
    for (std::vector<std::ofstream*>::iterator it = this->freqFs.begin ();

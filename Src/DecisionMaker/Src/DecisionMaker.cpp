@@ -52,9 +52,10 @@ static inline void sleepForAWhile (unsigned long nanoseconds) {
    nanosleep (&req, NULL);
 }
 
-DecisionMaker::DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
-                              Config *cfg) :
+DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
+                              Config *cfg, std::vector<Thread*>& thr) :
    unit (dvfsUnit),
+   thread (thr),
    IPC_EVAL_TIME(cfg->getInt("IPC_EVALUATION_TIME")),
    MIN_SLEEP_WIN(cfg->getInt("MIN_SLEEP_WIN")),
    MAX_SLEEP_WIN(cfg->getInt("MAX_SLEEP_WIN")),
@@ -68,7 +69,7 @@ DecisionMaker::DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
    timeProfiler (),
    oldMaxFreqId (0),
    totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),
-   freqSelector (dvfsUnit.getNbFreqs ()),
+   freqSelector (dvfsUnit->getNbFreqs ()),
    skipSequenceComputation (false)
 {
    // setup an initial state for the decision
@@ -76,10 +77,6 @@ DecisionMaker::DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
    lastSequence.step [STEP1].timeRatio = 0;
    lastSequence.step [STEP2].freqId = 0;
    lastSequence.step [STEP2].timeRatio = 0;
-}
-
-void DecisionMaker::setupThreads (std::vector<Thread*>& threads) {
-   this->thread = &threads; 
 }
 
 DecisionMaker::~DecisionMaker (void)
@@ -118,8 +115,8 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    }
 
    // compute max IPC per thread
-   for (std::vector<Thread*>::iterator it = this->thread->begin ();
-        it != this->thread->end ();
+   for (std::vector<Thread*>::iterator it = this->thread.begin ();
+        it != this->thread.end ();
         it++) {
       (*it)->computeMaxIPC ();
    } 
@@ -155,7 +152,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
    std::vector<float> e_ratios (this->nbFreqs);
-   const float Pref = this->unit.getPowerAt (*this->freqsToEvaluate.begin (), nbActiveCores);
+   const float Pref = this->unit->getPowerAt (*this->freqsToEvaluate.begin (), nbActiveCores);
    const float Psys = DecisionMaker::SYS_POWER;
    e_ratios [*this->freqsToEvaluate.begin ()] = nbActiveCores;
 
@@ -164,7 +161,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
         freq != this->freqsToEvaluate.end ();
         freq++)
    {
-      float Pi = this->unit.getPowerAt (*freq, nbActiveCores);
+      float Pi = this->unit->getPowerAt (*freq, nbActiveCores);
 
       e_ratios [*freq] = 0;
 
@@ -309,7 +306,7 @@ void DecisionMaker::logFrequency (unsigned int freqId) const
 {	
 #ifdef REST_LOG
    assert (freqId < this->nbFreqs);
-   Logger *log = Logger::getLog (this->unit.getId ());
+   Logger *log = Logger::getLog (this->unit->getId ());
    std::ostringstream logger;
    logger << freqId;
    log->logOut (logger);
@@ -367,13 +364,13 @@ void DecisionMaker::evaluateFrequency () {
    std::set<unsigned int>::iterator freq = freqsToEvaluate.begin ();
    while (freq != freqsToEvaluate.end ()) {
       // Apply the frequency
-      this->unit.setFrequency (*freq);
+      this->unit->setFrequency (*freq);
 
       // Wait for the frequency to be applied
-      sleepForAWhile (this->unit.getSwitchLatency ());
+      sleepForAWhile (this->unit->getSwitchLatency ());
 
       // Reset all values for each thread
-      for (thr = thread->begin (); thr != thread->end (); thr++) {
+      for (thr = thread.begin (); thr != thread.end (); thr++) {
          (*thr)->read (*freq);
       }
 
@@ -381,12 +378,12 @@ void DecisionMaker::evaluateFrequency () {
       sleepForAWhile (DecisionMaker::IPC_EVAL_TIME);
       
       // Read all values for each thread
-      for (thr = thread->begin (); thr != thread->end (); thr++) {
+      for (thr = thread.begin (); thr != thread.end (); thr++) {
          (*thr)->read (*freq);
       }
 
       // Compute IPCs
-      for (thr = thread->begin (); thr != thread->end (); thr++) {
+      for (thr = thread.begin (); thr != thread.end (); thr++) {
          if (!(*thr)->computeIPC (*freq)) {
             hwcPanic = true; // There were a problem computing ipc, restarting
             break;
@@ -398,7 +395,7 @@ void DecisionMaker::evaluateFrequency () {
    }
    
    // Compute usage of each thread
-   for (thr = thread->begin (); thr != thread->end (); thr++) {
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->computeUsage ();
    }
   
@@ -416,8 +413,8 @@ void DecisionMaker::computeSequence ()
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
    // active cpus
-   for (std::vector<Thread*>::iterator thr = thread->begin ();
-        thr != thread->end ();
+   for (std::vector<Thread*>::iterator thr = thread.begin ();
+        thr != thread.end ();
         thr++)
    {
       if ((*thr)->isActive (ACTIVITY_LEVEL))
@@ -517,7 +514,7 @@ void DecisionMaker::executeSequence ()
    // Apply steps
    for (unsigned int i = 0; i < 2; i++) {
       unsigned int freqId = this->sequence.step [i].freqId;
-      this->unit.setFrequency (freqId);
+      this->unit->setFrequency (freqId);
    
       // Apply it for some time...
       unsigned int sleepWin = this->sequence.step [i].timeRatio

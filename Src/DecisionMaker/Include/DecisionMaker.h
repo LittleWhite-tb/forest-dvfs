@@ -45,7 +45,7 @@
 #endif
 
 namespace FoREST {
-class DVFSUnit;
+
 // Frequency sequence data structure
 enum { STEP1 = 0, STEP2 };
 
@@ -84,18 +84,13 @@ class DecisionMaker
        * @param mode Run mode (energy or performance).
        * @param cfg The current configuration.
        */
-      DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
-                     Config *config);
+      DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
+                     Config *config, std::vector<Thread*>& thread);
 
       /**
        * Destructor
        */
       ~DecisionMaker ();
-
-      /**
-       * Set the DecisionMaker a reference to its DVFSUnit counterpart threads
-       */
-      void setupThreads (std::vector<Thread*>& thread);
 
       /**
        * Initializes the evaluation, does several steps : 
@@ -134,12 +129,12 @@ class DecisionMaker
       /**
        * Which DVFS unit we are handling.
       */
-      DVFSUnit& unit;
+      DVFSUnit *unit;
       
       /**
        * Threads the handled DVFS unit is holding
        */
-      std::vector<Thread*>* thread;
+      std::vector<Thread*>& thread;
 
       /**
        * List of threads active for the current evaluation process

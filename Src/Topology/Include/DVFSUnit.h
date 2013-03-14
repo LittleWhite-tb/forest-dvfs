@@ -37,7 +37,6 @@
 #include "DecisionMaker.h"
 
 namespace FoREST {
-struct ThreadContext;
 
 /**
  * @class DVFSUnit
@@ -168,14 +167,14 @@ class DVFSUnit
        * Get the DVFS Unit's Decision Maker
        */
       inline DecisionMaker *getDecisionMaker () {
-         return &decisionMaker;
+         return decisionMaker;
       }
 
    private:
       /**
        * The entity taking decision for the DVFS Unit
        */
-      DecisionMaker decisionMaker;
+      DecisionMaker *decisionMaker;
 
       /**
        * The entity profiling data for the DVFS Unit
@@ -234,11 +233,6 @@ class DVFSUnit
        * @param cpuIds The CPUs to control.
        */
       void takeControl (const Thread *thread);
-
-      /**
-       * The corresponding thread context structure
-       */
-      ThreadContext *threadContext;
 };
 
 } //namespace FoREST
