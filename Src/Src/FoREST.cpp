@@ -113,13 +113,13 @@ static void *FoRESTthread (void *arg) {
 
    // do it as long as we are not getting killed by a signal
 	while (true) {
-      std::cerr << "#" << id << " init evaluation" << std::endl;
+      //std::cerr << "#" << id << " init evaluation" << std::endl;
       dm->initEvaluation ();
-      std::cerr << "#" << id << " evaluate Frequency" << std::endl;
+      //std::cerr << "#" << id << " evaluate Frequency" << std::endl;
       dm->evaluateFrequency ();
-      std::cerr << "#" << id << " compute sequence" << std::endl;
+      //std::cerr << "#" << id << " compute sequence" << std::endl;
       dm->computeSequence ();
-      std::cerr << "#" << id << " execute sequence" << std::endl;
+      //std::cerr << "#" << id << " execute sequence" << std::endl;
       dm->executeSequence ();
    }
 
@@ -130,7 +130,7 @@ static void *FoRESTthread (void *arg) {
 static void sigHandler (int nsig)
 {
 	switch (nsig) {
-	case SIGINT:	
+	case SIGINT:
 			exit (EXIT_FAILURE);
 			break;
 	case SIGUSR1:
@@ -206,12 +206,6 @@ int main (int argc, char *argv[]) {
       launchThread (newContext);
    }
 
-   // Launch the first unit's thread
-   ThreadContext *newContext = new ThreadContext ();
-   context.threadContext.push_back (newContext);
-   newContext->unit = topo->getDVFSUnit (0);
-   FoRESTthread (reinterpret_cast <void*> (newContext));
-
 	// Handle USR1 signals in log if needed
 #ifdef REST_LOG
 	signal (SIGUSR1, sigHandler);
@@ -220,6 +214,12 @@ int main (int argc, char *argv[]) {
    // Handle Interrupt signal for proper cleanup
 	signal (SIGINT, sigHandler);
 	atexit (exitCleanup);
+
+   // Launch the first unit's thread
+   ThreadContext *newContext = new ThreadContext ();
+   context.threadContext.push_back (newContext);
+   newContext->unit = topo->getDVFSUnit (0);
+   FoRESTthread (reinterpret_cast <void*> (newContext));
 
    return EXIT_SUCCESS;
 }

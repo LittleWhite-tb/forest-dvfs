@@ -60,6 +60,7 @@ DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
    USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
    ACTIVITY_LEVEL(cfg->getFloat("ACTIVITY_LEVEL")),
    timeProfiler (),
+   nbFreqs (dvfsUnit->getNbFreqs ()),
    oldMaxFreqId (0),
    totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),
    freqSelector (dvfsUnit->getNbFreqs ()),
@@ -82,7 +83,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
    unsigned int nbActiveCores = this->activeCores.size ();
 
-   DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
+   //DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
    
    // no active cores?
    if (nbActiveCores == 0)
@@ -331,7 +332,7 @@ void DecisionMaker::initEvaluation ()
       freqWindowCenter + DecisionMaker::FREQ_WINDOW_SZ);
 
    for (unsigned int i = minFreqId; i <= maxFreqId; i++)
-   {
+   { 
       this->freqsToEvaluate.insert (i);
    }
 
@@ -342,20 +343,19 @@ void DecisionMaker::initEvaluation ()
       this->freqsToEvaluate.insert (this->nbFreqs - 1);
    }
 
-   assert (this->freqsToEvaluate.size () <= this->nbFreqs);
-   assert (this->freqsToEvaluate.size () > 0);
-
    // time the evaluation for debuging purposes
    this->timeProfiler.evaluate (EVALUATION_INIT); 
 }
 
 void DecisionMaker::evaluateFrequency () {
-   bool hwcPanic = false;
+
    std::vector<Thread*>::iterator thr;
 
    // For each frequency in our window
    std::set<unsigned int>::iterator freq = freqsToEvaluate.begin ();
-   while (freq != freqsToEvaluate.end ()) {
+   while (freq != freqsToEvaluate.end ()) {    
+      bool hwcPanic = false;
+      
       // Apply the frequency
       this->unit->setFrequency (*freq);
 
@@ -377,8 +377,10 @@ void DecisionMaker::evaluateFrequency () {
 
       // Compute IPCs
       for (thr = thread.begin (); thr != thread.end (); thr++) {
-         if (!(*thr)->computeIPC (*freq)) {
-            hwcPanic = true; // There were a problem computing ipc, restarting
+         hwcPanic = (*thr)->computeIPC (*freq);
+        // If something went wrong, no need to go further ; restart the
+        // whole evaluation for this frequency
+         if (hwcPanic) {
             break;
          }
       }

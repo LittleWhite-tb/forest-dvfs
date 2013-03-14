@@ -180,6 +180,7 @@ public:
          LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
          return 0;
       }
+      //std::cerr << "#" << id_ << ": retired = " << hwc.retired << ", time = " << hwc.time << std::endl;
       float ipc = hwc.retired / (1. * hwc.time); 
       ipc_ [frequencyId] = ipc;
       if (ipc < 0 || isnan (ipc)) {
