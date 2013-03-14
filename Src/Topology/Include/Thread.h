@@ -100,7 +100,16 @@ public:
     *
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
-   bool read (unsigned int frequencyId); 
+   bool read (unsigned int frequencyId);
+
+   /**
+    * Reset HW Counters for a specific frequencyId
+    *
+    * @param frequencyId the id corresponding to the frequency currently running on the system
+    */
+   bool reset (unsigned int frequencyId) {
+      read (frequencyId);
+   }
    
    /**
     * Get HW Counters at a specific frequency id
@@ -155,7 +164,9 @@ public:
        * A number which evaluates how much the cpu is used compared to
        * the memory. Zero means that the memory is not at all the bottleneck,
        * whereas large values means that the cpu is often paused and waits for
-       * the memory.*
+       * the memory.
+       *
+       * This function MUST be called AFTER the values has been first read
        *
        * @param frequencyId The frequency id to know which hw counters values to use
        *
@@ -180,6 +191,8 @@ public:
    /**
     * Get an IPC for a specific frequency
     *
+    * This function MUST be called after IPC has been computed
+    *
     * @param frequencyId the wanted frequency id
     */
    inline float getIPC (unsigned int frequencyId) const{
@@ -188,6 +201,8 @@ public:
 
    /**
     * Computes the maximum IPC among all the different frequencies
+    * 
+    * This function MUST be called after the IPC has been computed
     */
    inline void computeMaxIPC () {
       maxIpc_ = ipc_ [0];
@@ -200,6 +215,8 @@ public:
 
    /**
     * Get the maximum IPC among all the different frequencies
+    *
+    * This function MUST be called after the Max IPC has been computed
     */
    inline float getMaxIPC () const{
       return ipc_ [maxIpc_];

@@ -364,7 +364,7 @@ void DecisionMaker::evaluateFrequency () {
 
       // Reset all values for each thread
       for (thr = thread.begin (); thr != thread.end (); thr++) {
-         (*thr)->read (*freq);
+         (*thr)->reset (*freq);
       }
 
       // (Fo)rest for a while...
