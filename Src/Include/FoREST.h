@@ -18,12 +18,12 @@
  */
 
 /**
- @file LocalRest.h
- @brief The LocalRest class header is in this file
+ @file FoREST.h
+ @brief The FoREST class header is in this file
  */
 
-#ifndef LOCALREST_H
-#define LOCALREST_H
+#ifndef FOREST_H
+#define FOREST_H
 
 
 #endif

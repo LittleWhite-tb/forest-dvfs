@@ -54,8 +54,8 @@ class DVFSUnit
        *  used when the offline power information was generated.
        * @param cpuIds Set of CPU ids handled by this unit.
        */
-      DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds, const Mode mode,
-                Config& config, ThreadContext *threadContext);
+      DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
+                const Mode mode, Config *config);
 
       /**
        * Destructor
@@ -163,14 +163,12 @@ class DVFSUnit
          
          return this->power [(nbCoresOn - 1) * this->freqs.size () + freqId];
       }
-      
+
       /**
-       * Function used to get the thread context of the current unit
-       * It is mainly used for the thread to be aware of its components
-       * (including the DecisionMaker)
+       * Get the DVFS Unit's Decision Maker
        */
-      inline ThreadContext *getContext () {
-         return this->threadContext;
+      inline DecisionMaker *getDecisionMaker () {
+         return &decisionMaker;
       }
 
    private:

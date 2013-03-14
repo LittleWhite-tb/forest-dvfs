@@ -35,6 +35,8 @@
 
 #include "Logger.h"
 
+namespace FoREST {
+
 std::vector<Logger *>Logger::logList;
 
 void Logger::initLog (unsigned int nbTh)
@@ -98,3 +100,6 @@ void Logger::endBlock ()
 {
 	this->switchOFS << std::endl;
 }
+
+} // namespace FoREST
+

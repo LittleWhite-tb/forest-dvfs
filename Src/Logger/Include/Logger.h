@@ -23,6 +23,8 @@
 #include <fstream>
 #include <vector>
 
+namespace FoREST {
+
 /**
  * Logger class based on Singleton pattern and allowing to handle N logs
  * The number of logs is determined at the construction
@@ -87,4 +89,7 @@ class Logger
       ~Logger ();
 	
 };
+
+} // namespace FoREST
+
 #endif

@@ -30,7 +30,6 @@
 #include <set>
 
 #include "Topology.h"
-#include "ThreadContext.h"
 #include "PathBuilder.h"
 #include "Common.h"
 
@@ -38,9 +37,7 @@ namespace FoREST {
 
 std::map<unsigned int, unsigned int> Topology::threadToCore;
 
-Topology::Topology (const Mode mode, std::vector<ThreadContext*>& thrContext) :
-   threadContext (thrContext)
-{
+Topology::Topology (const Mode mode, Config *config) {
    unsigned int DVFSid = 0;
    std::ostringstream oss;
 
@@ -65,13 +62,8 @@ Topology::Topology (const Mode mode, std::vector<ThreadContext*>& thrContext) :
 
       this->getRelatedCores (cpuId, related);
 
-      // create the unique DVFS unit
-      ThreadContext *thrContext = new ThreadContext ();
-      threadContext.push_back (thrContext);
-      DVFSUnit *unit = new DVFSUnit (DVFSid, related, mode,
-                                     config,
-                                     thrContext);
-      DVFSid++;
+      // create the unique DVFS unit 
+      DVFSUnit *unit = new DVFSUnit (DVFSid++, related, mode, config);
       this->DVFSUnits.push_back (unit);
 
       // remove the related cores from the list of cores
@@ -93,12 +85,6 @@ Topology::~Topology ()
          it++)
    {
       delete *it;
-   }
-
-   for (std::vector<ThreadContext*>::iterator it = this->threadContext.begin ();
-        it != this->threadContext.end ();
-        it++) {
-      delete (*it);
    }
 }
 

@@ -18,8 +18,8 @@
  */
 
 /**
- * @file LocalRest.cpp
- * Entry point for LocalRest. A thread will be started for each unit.
+ * @file FoREST.cpp
+ * Entry point for FoREST. A thread will be started for each unit.
  * Main thread will handle the unit 0.
  */
 
@@ -34,7 +34,7 @@
 #include "glog/logging.h"
 
 #include "Common.h"
-#include "LocalRest.h"
+
 #include "Topology.h"
 #include "DecisionMaker.h"
 #include "Profiler.h"
@@ -47,13 +47,15 @@
 namespace FoREST {
 
 // local functions
-static void * FoREST (void * arg);
+static void * FoRESTthread (void * arg);
 static void exitCleanup ();
 static void sigHandler (int nsig);
 
+// TODO detail structure (COMMENT)
 struct Context {
    Topology *topology;
    std::vector<ThreadContext*> threadContext;
+   Config *config;
 };
 
 // the context
@@ -82,12 +84,8 @@ static inline bool handleArguments (int argc, char *argv[], Mode& mode) {
    return true;
 }
 
-bool launchThread (unsigned int unitId) {
-   DVFSUnit& unit = context.topology->getDVFSUnit (unitId);
-   ThreadContext *context = unit.getContext ();
-   ThreadArgs& args = context->args;
-   pthread_t thr = context->thr;
-   if (pthread_create (&thr, NULL, FoREST, &args) != 0) {
+bool launchThread (ThreadContext *context) {
+   if (pthread_create (&context->thr, NULL, FoRESTthread, context) != 0) {
       LOG (FATAL) << "Error: Failed to create FoREST thread" << std::endl;
       return false;
    }
@@ -95,14 +93,14 @@ bool launchThread (unsigned int unitId) {
    return true;
 }
 
-static void *FoREST (void *arg) {
+static void *FoRESTthread (void *arg) {
    assert (arg != NULL);
 
-   ThreadArgs *args = reinterpret_cast<ThreadArgs*> (arg);
-   DecisionMaker* dm = args->dm;
+   ThreadContext *context = reinterpret_cast<ThreadContext*> (arg);
+   DecisionMaker* dm = context->unit->getDecisionMaker ();
 
 	// only the main thread receives signals
-	if (args->id != 0)
+	if (context->unit->getId () != 0)
 	{
 		sigset_t set;
 
@@ -136,7 +134,7 @@ static void sigHandler (int nsig)
            it = context.threadContext.begin ();
            it != context.threadContext.end ();
            it++) {
-         Logger *log = Logger::getLog ((*it)->args.unit->getId ());
+         Logger *log = Logger::getLog ((*it)->unit->getId ());
    		log->logOut ("*");
       }
 #endif
@@ -159,26 +157,33 @@ static void exitCleanup () {
 #ifdef REST_LOG
 	Logger::destroyLog ();
 #endif
+   delete context.config;
    delete context.topology;
 }
 
 } // namespace FoREST
 
+using namespace FoREST;
+
 int main (int argc, char *argv[]) {
-   FoREST::Mode mode = FoREST::MODE_PERFORMANCE;
+   Mode mode = MODE_PERFORMANCE;
 
    // Google log library initialization
    google::InitGoogleLogging (argv[0]);
    google::LogToStderr (); 
 
    // Handle program arguments
-   if (!FoREST::handleArguments (argc, argv, mode)) {
+   if (!handleArguments (argc, argv, mode)) {
       exit (EXIT_SUCCESS);
    }
 
-   FoREST::Topology *topo = new FoREST::Topology (mode, FoREST::context.threadContext);
+   Config *config = new Config ();
+   Topology *topo = new Topology (mode, config);
    unsigned int nbUnits = topo->getNbDVFSUnits ();
-   FoREST::context.topology = topo; // Keep track of the topology in the context
+   
+   // Keep track of the context at global scope
+   FoREST::context.topology = topo; 
+   context.config = config;
  
    // Init FoREST log
 #ifdef REST_LOG
@@ -188,20 +193,26 @@ int main (int argc, char *argv[]) {
    // For each unit in the topology, except from the first one
    // The first one will be launched on the current (main) thread
    for (unsigned int unitId = 1; unitId < nbUnits; unitId++) {
-      FoREST::launchThread (unitId);
+      ThreadContext *newContext = new ThreadContext ();
+      context.threadContext.push_back (newContext);
+      newContext->unit = topo->getDVFSUnit (unitId);
+      launchThread (newContext);
    }
 
    // Launch the first unit's thread
-   FoREST::launchThread (0);
+   ThreadContext *newContext = new ThreadContext ();
+   context.threadContext.push_back (newContext);
+   newContext->unit = topo->getDVFSUnit (0);
+   FoRESTthread (reinterpret_cast <void*> (newContext));
 
 	// Handle USR1 signals in log if needed
 #ifdef REST_LOG
-	signal (SIGUSR1, FoREST::sigHandler);
+	signal (SIGUSR1, sigHandler);
 #endif
 
    // Handle Interrupt signal for proper cleanup
-	signal (SIGINT, FoREST::sigHandler);
-	atexit (FoREST::exitCleanup);
+	signal (SIGINT, sigHandler);
+	atexit (exitCleanup);
 
    return EXIT_SUCCESS;
 }

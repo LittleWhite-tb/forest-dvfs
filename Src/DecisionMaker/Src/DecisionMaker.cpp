@@ -36,6 +36,7 @@
 #include "Topology.h"
 #include "FreqSelector.h"
 #include "Thread.h"
+#include "Logger.h"
 
 #ifdef REST_LOG
 #include "Logger.h"
@@ -52,18 +53,18 @@ static inline void sleepForAWhile (unsigned long nanoseconds) {
 }
 
 DecisionMaker::DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
-                              Config &cfg) :
+                              Config *cfg) :
    unit (dvfsUnit),
-   IPC_EVAL_TIME(cfg.getInt("IPC_EVALUATION_TIME")),
-   MIN_SLEEP_WIN(cfg.getInt("MIN_SLEEP_WIN")),
-   MAX_SLEEP_WIN(cfg.getInt("MAX_SLEEP_WIN")),
-   FREQ_WINDOW_SZ(cfg.getInt("FREQ_WINDOW_SZ")),
-   STABILITY_WINDOW_SZ(cfg.getInt("STABILITY_WINDOW_SZ")),
-   SYS_POWER(cfg.getFloat("SYS_POWER")),
-   USER_PERF_REQ_PERF(cfg.getFloat("USER_PERF_REQ_PERF")),
-   USER_PERF_REQ_ENERGY(cfg.getFloat("USER_PERF_REQ_ENERGY")),
+   IPC_EVAL_TIME(cfg->getInt("IPC_EVALUATION_TIME")),
+   MIN_SLEEP_WIN(cfg->getInt("MIN_SLEEP_WIN")),
+   MAX_SLEEP_WIN(cfg->getInt("MAX_SLEEP_WIN")),
+   FREQ_WINDOW_SZ(cfg->getInt("FREQ_WINDOW_SZ")),
+   STABILITY_WINDOW_SZ(cfg->getInt("STABILITY_WINDOW_SZ")),
+   SYS_POWER(cfg->getFloat("SYS_POWER")),
+   USER_PERF_REQ_PERF(cfg->getFloat("USER_PERF_REQ_PERF")),
+   USER_PERF_REQ_ENERGY(cfg->getFloat("USER_PERF_REQ_ENERGY")),
    USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
-   ACTIVITY_LEVEL(cfg.getFloat("ACTIVITY_LEVEL")),
+   ACTIVITY_LEVEL(cfg->getFloat("ACTIVITY_LEVEL")),
    timeProfiler (),
    oldMaxFreqId (0),
    totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),

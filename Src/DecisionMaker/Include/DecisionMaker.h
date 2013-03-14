@@ -85,7 +85,7 @@ class DecisionMaker
        * @param cfg The current configuration.
        */
       DecisionMaker (DVFSUnit& dvfsUnit, const Mode mode,
-                     Config &cfg);
+                     Config *config);
 
       /**
        * Destructor

@@ -35,7 +35,6 @@
 #include <vector>
 
 namespace FoREST {
-struct ThreadContext;
 
 /**
  * @class Topology
@@ -47,7 +46,7 @@ class Topology
       /**
        * Constructor
        */
-      Topology (const Mode mode, std::vector<ThreadContext*>& threadContext);
+      Topology (const Mode mode, Config *config);
 
       /**
        * Destructor
@@ -69,11 +68,11 @@ class Topology
        *
        * @return The DVFS unit with the given id.
        */
-      inline DVFSUnit& getDVFSUnit (unsigned int id) const
+      inline DVFSUnit *getDVFSUnit (unsigned int id) const
       {
          assert (id < this->nbDVFSUnits);
 
-         return *this->DVFSUnits [id];
+         return this->DVFSUnits [id];
       }
 
       /**
@@ -126,11 +125,6 @@ class Topology
       
    private:
       /**
-       * Vector reference used to keep track of the DVFSUnits' thread context
-       */
-      std::vector<ThreadContext*>& threadContext;
-      
-      /**
        * Maps a core ID to every thread ID. Useful to determine the core of a
        * given thread.
        */
@@ -141,8 +135,6 @@ class Topology
        * core with independant DVFS capacity)
        */
       unsigned int nbDVFSUnits;
-
-      Config config;
 
       /**
        * All the available DVFS-capable computing units.
