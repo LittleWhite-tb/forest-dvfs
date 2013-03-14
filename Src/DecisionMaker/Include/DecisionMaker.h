@@ -264,7 +264,7 @@ class DecisionMaker
       unsigned int oldMaxFreqId;
 
       /**
-       * The sleep window consumed by the whole sequence
+       * The sleep window consumed by the whole sequence (in us)
        */
       unsigned int totalSleepWin;
 

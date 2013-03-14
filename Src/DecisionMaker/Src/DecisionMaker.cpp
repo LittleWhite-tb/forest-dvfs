@@ -271,11 +271,11 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
          float coupleE = step1.timeRatio * e_ratios [smaller] + step2.timeRatio * e_ratios [greater];
 
-         DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
+         /*DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
             << couple.step [STEP1].timeRatio << "),(" 
             << couple.step [STEP2].freqId << "," 
             << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE
-            << std::endl;
+            << std::endl;*/
 
          if (coupleE < bestCoupleE)
          {
@@ -404,10 +404,11 @@ void DecisionMaker::computeSequence ()
    bool logFrequency = false;
    unsigned int maxRatioFreqId = 0;
    float bestE = std::numeric_limits<float>::max ();
-   float bestD = 0;
+   //float bestD = 0;
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
    // active cpus
+   this->activeThread.clear ();
    for (std::vector<Thread*>::iterator thr = thread.begin ();
         thr != thread.end ();
         thr++)
@@ -436,13 +437,13 @@ void DecisionMaker::computeSequence ()
       {
          bestCouple = couple;
          bestE = coupleE;
-         bestD = d;
+         //bestD = d;
       }
    }
 
-   DLOG (INFO) << "d: " << bestD
+   /*DLOG (INFO) << "d: " << bestD
       << " couple: ((" << bestCouple.step [STEP1].freqId << "," << bestCouple.step [STEP1].timeRatio << "),(" << bestCouple.step [STEP2].freqId << "," << bestCouple.step [STEP2].timeRatio 
-      << ")) energy: " << bestE << std::endl;
+      << ")) energy: " << bestE << std::endl;*/
 
    // Set the sequence to the best couple found
    this->sequence = bestCouple;
@@ -478,6 +479,7 @@ void DecisionMaker::computeSequence ()
 	if (this->freqSelector.isFreqStable (maxRatioFreqId))
    {
 		this->totalSleepWin = rest_min (DecisionMaker::MAX_SLEEP_WIN, this->totalSleepWin * 2);
+      std::cerr << "mult2" << std::endl;
 	}
    else
    {
@@ -491,6 +493,7 @@ void DecisionMaker::computeSequence ()
 		if (maxRatioFreqId < minFreqWindow || maxRatioFreqId > maxFreqWindow)
       {
 			this->totalSleepWin = DecisionMaker::MIN_SLEEP_WIN;
+         std::cerr << "reset" << std::endl;
 		}
 	}
 
@@ -498,7 +501,9 @@ void DecisionMaker::computeSequence ()
 	if (logFrequency) {
 	 this->logFrequency (maxRatioFreqId);	
 	}
-
+   
+   std::cerr << "totalsleepwin = " << this->totalSleepWin << std::endl;
+   std::cerr << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
 	this->oldMaxFreqId = maxRatioFreqId;
 
    this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);

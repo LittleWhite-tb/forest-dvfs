@@ -145,6 +145,7 @@ public:
       res = hwc.refCycles / (1. * hwc.time);
       
       usage_ = rest_min (res, 1);
+      //std::cerr << "Usage : " << usage_ << std::endl;
       return usage_;
    }
 
@@ -155,7 +156,7 @@ public:
       return usage_;
    }
 
-   inline bool isActive (unsigned int activityThreshold) const{
+   inline bool isActive (float activityThreshold) const{
       return usage_ > activityThreshold;
    }
 
