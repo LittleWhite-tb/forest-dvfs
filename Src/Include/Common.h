@@ -28,10 +28,18 @@
 
 #include <stdint.h>
 #include <cstdlib>
+#include <time.h>
 
 namespace FoREST {
 
-   // a few utility functions which may be useful at some point
+inline void nsleep (unsigned long nanoseconds) {
+   timespec req;
+   req.tv_sec = 0;
+   req.tv_nsec = nanoseconds*1000;
+   nanosleep (&req, NULL);
+}
+
+// a few utility functions which may be useful at some point
 #define rest_max(a, b) ((a) > (b) ? (a) : (b))
 #define rest_min(a, b) ((a) < (b) ? (a) : (b))
 #define rest_abs(a) ((a) < 0 ? -(a) : (a))

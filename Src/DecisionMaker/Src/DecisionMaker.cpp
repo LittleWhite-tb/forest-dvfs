@@ -45,13 +45,6 @@
 
 namespace FoREST {
 
-static inline void sleepForAWhile (unsigned long nanoseconds) {
-   timespec req;
-   req.tv_sec = 0;
-   req.tv_nsec = nanoseconds*1000;
-   nanosleep (&req, NULL);
-}
-
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
                               Config *cfg, std::vector<Thread*>& thr) :
    unit (dvfsUnit),
@@ -367,7 +360,7 @@ void DecisionMaker::evaluateFrequency () {
       this->unit->setFrequency (*freq);
 
       // Wait for the frequency to be applied
-      sleepForAWhile (this->unit->getSwitchLatency ());
+      nsleep (this->unit->getSwitchLatency ());
 
       // Reset all values for each thread
       for (thr = thread.begin (); thr != thread.end (); thr++) {
@@ -375,7 +368,7 @@ void DecisionMaker::evaluateFrequency () {
       }
 
       // (Fo)rest for a while...
-      sleepForAWhile (DecisionMaker::IPC_EVAL_TIME);
+      nsleep (DecisionMaker::IPC_EVAL_TIME);
       
       // Read all values for each thread
       for (thr = thread.begin (); thr != thread.end (); thr++) {
@@ -522,7 +515,7 @@ void DecisionMaker::executeSequence ()
       sleepWin *= 1000; // Because we're sleeping in nanoseconds
       
       // Sleep now !
-      sleepForAWhile (sleepWin);
+      nsleep (sleepWin);
    }
    // Profiler, remind we leave execution
    this->timeProfiler.evaluate (EXECUTION_SLOT);
