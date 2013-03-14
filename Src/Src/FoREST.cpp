@@ -98,9 +98,10 @@ static void *FoRESTthread (void *arg) {
 
    ThreadContext *context = reinterpret_cast<ThreadContext*> (arg);
    DecisionMaker* dm = context->unit->getDecisionMaker ();
+   unsigned int id = context->unit->getId ();
 
 	// only the main thread receives signals
-	if (context->unit->getId () != 0)
+	if (id != 0)
 	{
 		sigset_t set;
 
@@ -112,9 +113,13 @@ static void *FoRESTthread (void *arg) {
 
    // do it as long as we are not getting killed by a signal
 	while (true) {
+      std::cerr << "#" << id << " init evaluation" << std::endl;
       dm->initEvaluation ();
+      std::cerr << "#" << id << " evaluate Frequency" << std::endl;
       dm->evaluateFrequency ();
+      std::cerr << "#" << id << " compute sequence" << std::endl;
       dm->computeSequence ();
+      std::cerr << "#" << id << " execute sequence" << std::endl;
       dm->executeSequence ();
    }
 
@@ -180,6 +185,8 @@ int main (int argc, char *argv[]) {
    Config *config = new Config ();
    Topology *topo = new Topology (mode, config);
    unsigned int nbUnits = topo->getNbDVFSUnits ();
+
+   std::cerr << "Launching " << nbUnits << " threads" << std::endl;
    
    // Keep track of the context at global scope
    FoREST::context.topology = topo; 

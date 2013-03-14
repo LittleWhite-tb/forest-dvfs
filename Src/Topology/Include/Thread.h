@@ -108,7 +108,7 @@ public:
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
    bool reset (unsigned int frequencyId) {
-      read (frequencyId);
+      return read (frequencyId);
    }
    
    /**
