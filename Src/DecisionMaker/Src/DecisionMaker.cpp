@@ -147,7 +147,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    std::set<unsigned int>::iterator beforeEnd = --(this->freqsToEvaluate.end ());
    const float Pref = this->unit->getPowerAt (*beforeEnd, nbActiveCores);
    const float Psys = DecisionMaker::SYS_POWER;
-   e_ratios [*this->freqsToEvaluate.begin ()] = nbActiveCores;
+   e_ratios [*beforeEnd] = nbActiveCores;
 
    for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
         freq != beforeEnd;
