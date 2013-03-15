@@ -172,8 +172,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    if (smallerIpc.size () == 0)
    {
       FreqChunk step1, step2;
-      // sets are sorted highest from highest to lowest
-      freqIt = this->freqsToEvaluate.end ();
+      // sets are sorted highest from highest to lowest 
       unsigned int minFreq = *this->freqsToEvaluate.begin ();
 
       step1.freqId = minFreq;
