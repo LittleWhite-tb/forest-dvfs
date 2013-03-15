@@ -144,13 +144,13 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
    std::vector<float> e_ratios (this->nbFreqs);
-   const float Pref = this->unit->getPowerAt (*(--this->freqsToEvaluate.end ()), nbActiveCores);
+   std::set<unsigned int>::iterator beforeEnd = --(this->freqsToEvaluate.end ());
+   const float Pref = this->unit->getPowerAt (*beforeEnd, nbActiveCores);
    const float Psys = DecisionMaker::SYS_POWER;
    e_ratios [*this->freqsToEvaluate.begin ()] = nbActiveCores;
 
-   std::set<unsigned int>::iterator freqIt = this->freqsToEvaluate.begin ();
-   for (std::set<unsigned int>::iterator freq = ++freqIt;
-        freq != this->freqsToEvaluate.end ();
+   for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
+        freq != beforeEnd;
         freq++)
    {
       float Pi = this->unit->getPowerAt (*freq, nbActiveCores);
@@ -161,7 +161,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
            thr != this->activeThread.end ();
            thr++)
       {
-         float IPCref = (*thr)->getIPC (*this->freqsToEvaluate.begin ());
+         float IPCref = (*thr)->getIPC (*beforeEnd);
          float IPCi = (*thr)->getIPC (*freq);
          
          e_ratios [*freq] += (IPCref / IPCi) * ((Pi + Psys) / (Pref + Psys));
