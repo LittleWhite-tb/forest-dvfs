@@ -81,9 +81,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    std::vector<unsigned int> smallerIpc;
    std::vector<unsigned int> greaterIpc;
 
-   unsigned int nbActiveCores = this->activeCores.size ();
-
-   //DLOG (INFO) << "# active cores: " << nbActiveCores << std::endl;
+   unsigned int nbActiveCores = this->activeCores.size (); 
    
    // no active cores?
    if (nbActiveCores == 0)
@@ -343,6 +341,14 @@ void DecisionMaker::initEvaluation ()
       this->freqsToEvaluate.insert (this->nbFreqs - 1);
    }
 
+   std::cerr << "Evaluating frequencies: ";
+   for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
+        it != this->freqsToEvaluate.end ();
+        it++) {
+      std::cerr << *it << " ";
+   }
+   std::cerr << std::endl;
+
    // time the evaluation for debuging purposes
    this->timeProfiler.evaluate (EVALUATION_INIT); 
 }
@@ -420,6 +426,7 @@ void DecisionMaker::computeSequence ()
    }
    this->activeCores.clear ();
    Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
+   DLOG (INFO) << "# active cores: " << this->activeCores.size () << std::endl;
 
    // test all perfmormance level by steps of 1%
    for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)

@@ -87,32 +87,6 @@ class FreqSelector
       }
 
       /**
-       * Returns the best frequency to use.
-       *
-       * @return The best frequency to use according to the current state.
-       */
-      inline unsigned int getBestFrequency ()
-      {
-         unsigned int i;
-         unsigned int max_coeff = 0;
-
-         for (i = 0; i < this->nbFreqs; i++)
-         {
-            max_coeff = rest_max (this->coeffs [i], max_coeff);
-         }
-
-         for (i = 0; i < this->nbFreqs; i++)
-         {
-            if (this->coeffs [i] == max_coeff)
-            {
-               return i;
-            }
-         }
-
-         return 0;
-      }
-
-      /**
        * Returns true if the given frequency can be safely considered as stable.
        * It is stable if its mark is above 75% of the maximal possible mark.
        *
@@ -123,20 +97,8 @@ class FreqSelector
       inline bool isFreqStable (unsigned int freqId) {
          assert (freqId < this->nbFreqs);
 
+
          return this->coeffs [freqId] >= 0.75f * MAX_PROMS;
-      }
-
-      /**
-       * Returns the current mark for a given frequency.
-       *
-       * @param freqId The id of the frequency
-       *
-       * @return The current mark of the frequency in the selector.
-       */
-      inline float getFrequencyMark (unsigned freqId) {
-         assert (freqId < this->nbFreqs);
-
-         return this->coeffs [freqId];
       }
 
    private:
