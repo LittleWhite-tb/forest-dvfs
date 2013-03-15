@@ -26,17 +26,12 @@
 #ifndef H_FORESTCOMMON
 #define H_FORESTCOMMON
 
-#include <stdint.h>
-#include <cstdlib>
-#include <time.h>
+#include <unistd.h>
 
 namespace FoREST {
 
 inline void nsleep (unsigned long nanoseconds) {
-   timespec req;
-   req.tv_sec = 0;
-   req.tv_nsec = nanoseconds*1000;
-   nanosleep (&req, NULL);
+	usleep (nanoseconds/1000);
 }
 
 // a few utility functions which may be useful at some point
