@@ -74,7 +74,7 @@ void Profiler::open (unsigned int threadId, int fd[NB_HW_COUNTERS]) {
       arg.attr = &attr;
       arg.fstr = 0;
       arg.size = sizeof (arg);
-
+      std::cerr << "counter opening " << counters [i] << std::endl;
       // encode the counter
       res = pfm_get_os_event_encoding (counters [i],  PFM_PLM0 | PFM_PLM1 |
                                                       PFM_PLM2 | PFM_PLM3,

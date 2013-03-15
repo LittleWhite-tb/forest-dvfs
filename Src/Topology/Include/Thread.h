@@ -138,8 +138,8 @@ public:
          return 0;
       }
       
-      DLOG (INFO) << "active cycles: " << hwc.refCycles << " rdtsc: "
-      << hwc.time << std::endl;
+      //DLOG (INFO) << "active cycles: " << hwc.refCycles << " rdtsc: "
+      //<< hwc.time << std::endl;
       
       // NOTE: RDTSC and refCycles run at the same freq
       res = hwc.refCycles / (1. * hwc.time);

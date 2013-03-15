@@ -62,7 +62,15 @@ bool Thread::read (unsigned int frequencyId) {
    }
    HWCounters& hwc = hwc_ [frequencyId];
    HWCounters& oldHwc = oldHwc_ [frequencyId];
-   return profiler_.read (fd, hwc, oldHwc);
+   bool ret = profiler_.read (fd, hwc, oldHwc);
+  /* 
+   std::cerr << "HWC #" << id_ << ": {(" << NB_HW_COUNTERS << ") " << hwc.time << ", ";
+   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++) {
+      std::cerr << hwc.values [i] << ", ";
+   }
+   std::cerr << "}" << std::endl;*/
+
+   return ret;
 }
 
 } // namespace FoREST

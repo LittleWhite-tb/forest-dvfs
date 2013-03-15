@@ -144,7 +144,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
    std::vector<float> e_ratios (this->nbFreqs);
-   const float Pref = this->unit->getPowerAt (*this->freqsToEvaluate.begin (), nbActiveCores);
+   const float Pref = this->unit->getPowerAt (*(--this->freqsToEvaluate.end ()), nbActiveCores);
    const float Psys = DecisionMaker::SYS_POWER;
    e_ratios [*this->freqsToEvaluate.begin ()] = nbActiveCores;
 
@@ -174,7 +174,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
       FreqChunk step1, step2;
       // sets are sorted highest from highest to lowest
       freqIt = this->freqsToEvaluate.end ();
-      unsigned int minFreq = *(--freqIt);
+      unsigned int minFreq = *this->freqsToEvaluate.begin ();
 
       step1.freqId = minFreq;
       step2.freqId = 0;
@@ -199,7 +199,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    {
       FreqChunk step1, step2;
       // sets are sorted
-      unsigned int maxFreq = *this->freqsToEvaluate.begin ();
+      unsigned int maxFreq = *(--this->freqsToEvaluate.end ());
 
       step1.freqId = maxFreq;
       step2.freqId = 0;
@@ -436,9 +436,9 @@ void DecisionMaker::computeSequence ()
 
       couple = getBestCouple (d, &coupleE);
 
-      //DLOG (INFO) << "IPC: " << targetIPC
-      //   << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
-      //   << ")) energy: " << coupleE << std::endl;
+      DLOG (INFO) << "IPC: " 
+         << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
+         << ")) energy: " << coupleE << std::endl;
 
       if (coupleE < bestE)
       {
