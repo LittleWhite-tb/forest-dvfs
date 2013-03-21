@@ -242,6 +242,10 @@ public:
       return ipc_ [frequencyId];
    }
 
+   inline void resetIPC () {
+      memset (ipc_, 0, nbFrequencies_*sizeof (*ipc_));
+   }
+
    /**
     * Computes the maximum IPC among all the different frequencies
     * 

@@ -369,6 +369,10 @@ void DecisionMaker::evaluateFrequency () {
 
    std::vector<Thread*>::iterator thr;
 
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+      (*thr)->resetIPC ();
+   }
+
    // For each frequency in our window
    std::set<unsigned int>::iterator freq = freqsToEvaluate.begin ();
    while (freq != freqsToEvaluate.end ()) {    
