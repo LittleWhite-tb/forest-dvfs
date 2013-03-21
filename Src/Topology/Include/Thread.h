@@ -137,17 +137,6 @@ public:
    }
 
    /**
-    * Prints debug information
-    */
-   void printTime () {
-      for (unsigned int i = 0; i < nbFrequencies_; i++) {
-         std::cerr << time [i].current << " ";
-      }
-      std::cerr << "RC: " << refCycles.values [0].current << " TT: " << diff;
-      std::cerr << std::endl;
-   }
-
-   /**
     * Returns the id of the current thread given during object
     * construction
     */
@@ -171,7 +160,6 @@ public:
     */
    inline void computeUsage () {
       if (hasToUpdateUsage ()) { // Only updates the usage if necessary
-         std::cerr << "diff = " << diff << ", threshold = " << TIME_THRESHOLD << std::endl;
          float res;
 
          // Gather refCycles data

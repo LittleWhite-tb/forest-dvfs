@@ -120,24 +120,35 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    {
       bool isLower = true, isHigher = true;
 
+      DLOG(INFO) << "Freq " << *freq << std::endl;
+
       // For each active thread
       for (std::set<Thread*>::iterator thread = this->activeThread.begin ();
            thread != this->activeThread.end ();
-           thread++) {
+           thread++)
+      {
          // Get the IPC at the requested freauency
          float threadIpc = (*thread)->getIPC (*freq);
          float maxIpc = (*thread)->getMaxIPC ();
+
+         DLOG(INFO) << "Thread " << (*thread)->getId() << " ipc: " << threadIpc << " max: " << maxIpc << std::endl;
          
-         if (threadIpc < d * maxIpc) {
+         if (threadIpc < d * maxIpc)
+         {
             isHigher = false;
-         } else {
+         }
+         else
+         {
             isLower = false;
          }
       }
 
-      if (isLower) {
+      if (isLower)
+      {
          smallerIpc.push_back (*freq);
-      } else if (isHigher) {
+      }
+      else if (isHigher)
+      {
          greaterIpc.push_back (*freq);
       }
    }
@@ -213,6 +224,8 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
       {
          *coupleEnergy = e_ratios [maxFreq];
       }
+
+      DLOG(WARNING) << "No greater freq" << std::endl;
 
       return couple;
    }
@@ -417,7 +430,7 @@ void DecisionMaker::computeSequence ()
    bool logFrequency = false;
    unsigned int maxRatioFreqId = 0;
    float bestE = std::numeric_limits<float>::max ();
-   //float bestD = 0;
+   float bestD = 0;
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
 
    // active cpus
@@ -433,7 +446,7 @@ void DecisionMaker::computeSequence ()
    }
    this->activeCores.clear ();
    Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
-   //std::cerr << "# active cores: " << this->activeCores.size () << std::endl;
+   std::cerr << "# active cores: " << this->activeCores.size () << std::endl;
 
    // test all perfmormance level by steps of 1%
    for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
@@ -443,21 +456,21 @@ void DecisionMaker::computeSequence ()
 
       couple = getBestCouple (d, &coupleE);
 
-      /*DLOG (INFO) << "IPC: " 
-         << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
-         << ")) energy: " << coupleE << std::endl;*/
+      DLOG (INFO) 
+         << "couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
+         << ")) energy: " << coupleE << std::endl;
 
       if (coupleE < bestE)
       {
          bestCouple = couple;
          bestE = coupleE;
-         //bestD = d;
+         bestD = d;
       }
    }
 
-   //DLOG (INFO) << "d: " << bestD
-   //   << " couple: ((" << bestCouple.step [STEP1].freqId << "," << bestCouple.step [STEP1].timeRatio << "),(" << bestCouple.step [STEP2].freqId << "," << bestCouple.step [STEP2].timeRatio 
-   //   << ")) energy: " << bestE << std::endl;
+   DLOG (INFO) << "d: " << bestD
+      << " couple: ((" << bestCouple.step [STEP1].freqId << "," << bestCouple.step [STEP1].timeRatio << "),(" << bestCouple.step [STEP2].freqId << "," << bestCouple.step [STEP2].timeRatio 
+      << ")) energy: " << bestE << std::endl;
 
    // Set the sequence to the best couple found
    this->sequence = bestCouple;
