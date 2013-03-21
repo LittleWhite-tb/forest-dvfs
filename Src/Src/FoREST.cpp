@@ -186,8 +186,6 @@ int main (int argc, char *argv[]) {
    Topology *topo = new Topology (mode, config);
    unsigned int nbUnits = topo->getNbDVFSUnits ();
 
-   std::cerr << "Launching " << nbUnits << " threads" << std::endl;
-   
    // Keep track of the context at global scope
    FoREST::context.topology = topo; 
    context.config = config;

@@ -57,7 +57,6 @@ void Profiler::open (Counter& counter, unsigned int threadId) {
    arg.attr = &attr;
    arg.fstr = 0;
    arg.size = sizeof (arg);
-   std::cerr << "counter opening " << counter.name << std::endl;
    // encode the counter
    res = pfm_get_os_event_encoding (counter.name,  PFM_PLM0 | PFM_PLM1 |
                                                    PFM_PLM2 | PFM_PLM3,
