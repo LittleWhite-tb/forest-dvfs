@@ -41,7 +41,6 @@ impact the actual frequency applied by TurboBoost.
 LPP_PATH="./lPowerProbe/"
 RESULT_FILE="/tmp/output.csv"
 
-
 #----------------------------------
 
 def runBench (nr, cores):
@@ -268,8 +267,8 @@ if len(freqs) == 1:
    try:
       fd = open (configFile, 'w')
    except IOError:
-      print "WARNING: Config file put in /tmp"
-      fd = open ("/tmp/"+configFile, 'w') #At this point, I can't do more, it's failing hard
+      print "WARNING: Config file written in /tmp"
+      fd = open ("/tmp/" + configFile, 'w') #At this point, I can't do more, it's failing hard
    fd.write (str (freqs [0]) + "\n")
    for i in cores:
       fd.write ("0\n")
@@ -362,7 +361,12 @@ for i in range(len(freqs)):
 sys.stdout.write("done\n")
 
 # Energy configuration file generation
-fdPerf = open (configFile, 'w')
+try:
+   fdPerf = open (configFile, 'w')
+except IOError:
+   print "WARNING: Config file written in /tmp"
+   fdPerf = open ("/tmp/" + configFile, 'w') #At this point, I can't do more, it's failing hard
+
 highestFreq = 0
 for i in range(len(freqs)):
    fdPerf.write (str (freqs [i]) + " ")
