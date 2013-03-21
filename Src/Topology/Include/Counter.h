@@ -1,7 +1,6 @@
 /*
  * FoREST - Reactive DVFS Control for Multicore Processors
  * Copyright (C) 2013 Universite de Versailles
- * Copyright (C) 2011-2012 Exascale Research Center
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,40 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef H_COUNTER
+#define H_COUNTER
 
-/**
- * @file HWCounters.h
- * HW counters structure file
- */
-
-#ifndef H_HWCOUNTERS
-#define H_HWCOUNTERS
-
-#include <cstdlib>
 #include <stdint.h>
 
 namespace FoREST {
 
-/**
- * Value of the watched hardware counters.
- */
-typedef union
-{
-   struct __attribute__ ((packed))
-   {
-      uint64_t retired;    // # of retired instructions
-      uint64_t refCycles;  // unhalted cycles elapsed at the reference frequency
-      uint64_t time;       // time as reported by rdtsc 
-   };
+struct CounterValues {
+   uint64_t current;
+   uint64_t old;
+};
 
-   uint64_t values [3];
-} HWCounters;
-
-/**
- * How many counters have to be profiled. Does not include time.
- */
-#define NB_HW_COUNTERS ((sizeof(HWCounters) / sizeof(uint64_t)) - 1)
-
+struct Counter {
+   const char *name;
+   int fd;
+   CounterValues *values;
+};
 
 } // namespace FoREST
 

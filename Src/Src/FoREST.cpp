@@ -113,13 +113,13 @@ static void *FoRESTthread (void *arg) {
 
    // do it as long as we are not getting killed by a signal
 	while (true) {
-      std::cerr << "#" << id << " init evaluation" << std::endl;
+      //std::cerr << "#" << id << " init evaluation" << std::endl;
       dm->initEvaluation ();
-      std::cerr << "#" << id << " evaluate Frequency" << std::endl;
+      //std::cerr << "#" << id << " evaluate Frequency" << std::endl;
       dm->evaluateFrequency ();
-      std::cerr << "#" << id << " compute sequence" << std::endl;
+      //std::cerr << "#" << id << " compute sequence" << std::endl;
       dm->computeSequence ();
-      std::cerr << "#" << id << " execute sequence" << std::endl;
+      //std::cerr << "#" << id << " execute sequence" << std::endl;
       dm->executeSequence ();
    }
 

@@ -26,10 +26,12 @@
 #define H_TOPOTHREAD
 
 #include <math.h>
+#include <stdint.h>
+#include <iomanip>
 
 #include "Profiler.h"
 #include "Common.h"
-#include "HWCounters.h"
+#include "rdtsc.h"
 
 namespace FoREST {
 
@@ -45,16 +47,37 @@ private:
     * Logical thread id
     */
    unsigned int id_;
-   
-   /**
-    * HW Counters array representing current hwc values for each available frequency
-    */
-   HWCounters *hwc_;
 
    /**
-    * HW Counters array representing previous hwc values for each available frequency
+    * Counter monitoring the UNHALTED_REFERENCE_CYCLES hwc
     */
-   HWCounters *oldHwc_;
+   Counter refCycles;
+
+   /**
+    * Counter monitoring the INST_RETIRED:ANY_P hwc
+    */
+   Counter retired;
+
+   /**
+    * Values of time (array for each frequency)
+    */
+   CounterValues *time;
+
+   /**
+    * Time when the last thread usage computation occured
+    */
+   uint64_t lastUsageComputation;
+   
+   /**
+    * Difference between the current time and lastUsageComputation
+    * It is used to know how old is the last usage computation
+    */
+   uint64_t diff;
+
+   /**
+    * Threshold under which usage computation is not considered as critical
+    */
+   const uint64_t TIME_THRESHOLD;
 
    /**
     * Array storing ipc values regarding of previous hw counters computation
@@ -77,11 +100,6 @@ private:
    Profiler& profiler_;
 
    /**
-    * File descriptors of the hw counters to be read by the profiler
-    */
-   int fd [NB_HW_COUNTERS];
-
-   /**
     * CPU usage (between 0 and 1)
     */
    float usage_;
@@ -90,63 +108,85 @@ public:
    /**
     * Constructor
     *
-    * @param Number of available frequencies on the processor
+    * @param id the logical OS id of the thread
+    * @param nbFrequencies number of available frequencies on the processor
+    * @param profiler The profiler that will be used to monitor the thread
     */
-   Thread (unsigned int id, unsigned int nbFrequencies, Profiler& profiler);
+   Thread (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold);
 
    ~Thread ();
+   
    /**
-    * Read HW Counters for a specific frequencyId
-    *
-    * @param frequencyId the id corresponding to the frequency currently running on the system
-    */
-   bool read (unsigned int frequencyId);
-
-   /**
-    * Reset HW Counters for a specific frequencyId
+    * Resets HW Counters for a specific frequencyId
     *
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
    bool reset (unsigned int frequencyId) {
-      return read (frequencyId);
+      Profiler::readTsc (time [frequencyId]);
+      return profiler_.read (retired, frequencyId); 
    }
    
    /**
-    * Get HW Counters at a specific frequency id
+    * Reads HW Counters for a specific frequencyId
     *
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
-   inline HWCounters& getHWCounters (unsigned int frequencyId) const{
-      return hwc_ [frequencyId];
+   bool read (unsigned int frequencyId) { 
+      Profiler::readTsc (time [frequencyId]); 
+      return profiler_.read (retired, frequencyId);
    }
 
+   /**
+    * Prints debug information
+    */
+   void printTime () {
+      for (unsigned int i = 0; i < nbFrequencies_; i++) {
+         std::cerr << time [i].current << " ";
+      }
+      std::cerr << "RC: " << refCycles.values [0].current << " TT: " << diff;
+      std::cerr << std::endl;
+   }
+
+   /**
+    * Returns the id of the current thread given during object
+    * construction
+    */
    inline unsigned int getId () const{
       return id_;
    }
 
    /**
-    * Computes and returns the CPU usage with the measurements done with the highest frequency
+    * Returns whether the usage computation has to be updated
+    * e.g usage computation is too old
     */
-   inline float computeUsage () {
-      float res;
-      // Take the highest frequency as the reference for computing thread usage
-      HWCounters& hwc = hwc_ [nbFrequencies_ - 1];
-      
-      if (hwc.time == 0)
-      {
-         LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
-         return 0;
+   bool hasToUpdateUsage () {
+      diff = rdtsc () - lastUsageComputation;
+      return diff > TIME_THRESHOLD;
+   }
+
+   /**
+    * Computes and returns the CPU usage with the measurements done with the highest frequency
+    * The update is done only if a time threshold is reached
+    * Otherwise the method does nothing
+    */
+   inline void computeUsage () {
+      if (hasToUpdateUsage ()) { // Only updates the usage if necessary
+         std::cerr << "diff = " << diff << ", threshold = " << TIME_THRESHOLD << std::endl;
+         float res;
+
+         // Gather refCycles data
+         profiler_.read (refCycles, 0); 
+         uint64_t ref = refCycles.values [0].current;
+         
+         // NOTE: RDTSC and refCycles run at the same freq
+         res = ref / (1. * diff);
+         
+         // Rationalize the usage if it goes beyond a ratio of 1
+         usage_ = rest_min (res, 1);
+         //std::cerr << "#" << id_ << ": " << usage_*100 << "% " << std::endl;
+         // Update lastUpdate to new time reference
+         lastUsageComputation = rdtsc ();
       }
-      
-      //DLOG (INFO) << "active cycles: " << hwc.refCycles << " rdtsc: "
-      //<< hwc.time << std::endl;
-      
-      // NOTE: RDTSC and refCycles run at the same freq
-      res = hwc.refCycles / (1. * hwc.time);
-      
-      usage_ = rest_min (res, 1);
-      //std::cerr << "Usage : " << usage_ << std::endl;
-      return usage_;
    }
 
    /**
@@ -156,37 +196,50 @@ public:
       return usage_;
    }
 
-   inline bool isActive (float activityThreshold) const{
-      return usage_ > activityThreshold;
+   /**
+    * Returns whether the thread is considered as active regarding of the given
+    * threshold value
+    *
+    * @param the threshold to compare the current thread activity to
+    */
+   inline bool isActive (float threshold) {
+      return usage_ > threshold;
    }
 
    /**
-       * Computes the thread IPC from the hardware counters at a given frequency.
-       * A number which evaluates how much the cpu is used compared to
-       * the memory. Zero means that the memory is not at all the bottleneck,
-       * whereas large values means that the cpu is often paused and waits for
-       * the memory.
-       *
-       * This function MUST be called AFTER the values has been first read
-       *
-       * @param frequencyId The frequency id to know which hw counters values to use
-       *
-       * @return Whether HW counters returned irrational values (nan or 0 values)
-       */
+    * Computes the thread IPC from the hardware counters at a given frequency.
+    * A number which evaluates how much the cpu is used compared to
+    * the memory. Zero means that the memory is not at all the bottleneck,
+    * whereas large values means that the cpu is often paused and waits for
+    * the memory.
+    *
+    * This function MUST be called AFTER the values has been first read
+    *
+    * @param frequencyId The frequency id to know which hw counters values to use
+    *
+    * @return Whether HW counters returned irrational values (nan or 0 values)
+    */
    inline bool computeIPC (unsigned int frequencyId) const{
-      HWCounters& hwc = hwc_ [frequencyId];
+      uint64_t retired = this->retired.values [frequencyId].current;
+      uint64_t time = this->time [frequencyId].current;
       bool hwcPanic = false;
 
-      if (hwc.time == 0) {
+      if (time == 0) {
          LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
-         return 0;
+         return false;
       }
-      //std::cerr << "#" << id_ << ": retired = " << hwc.retired << ", time = " << hwc.time << std::endl;
-      float ipc = hwc.retired / (1. * hwc.time); 
+      
+      //std::cerr << "#" << id_ << ": retired = " << retired << ", time = " << time << std::endl;
+
+      // Computes ipc value
+      float ipc = retired / (1. * time); 
       ipc_ [frequencyId] = ipc;
+
+      // Handle irrational ipc values
       if (ipc < 0 || isnan (ipc)) {
          hwcPanic = true;
       }
+
       return hwcPanic;
    }
 
@@ -209,7 +262,7 @@ public:
    inline void computeMaxIPC () {
       maxIpc_ = ipc_ [0];
       for (unsigned int i = 1; i < nbFrequencies_; i++) {
-         if (maxIpc_ < ipc_ [i]) {
+         if (ipc_ [maxIpc_] < ipc_ [i]) {
             maxIpc_ = i;
          }
       }

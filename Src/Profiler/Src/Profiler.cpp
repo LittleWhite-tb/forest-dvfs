@@ -26,16 +26,14 @@
 #include <unistd.h>
 #include <iostream>
 #include <sys/ioctl.h>
-#include <set>
 #include <stdint.h>
 #include <string.h>
-#include <cassert>
 
 #include "Profiler.h"
-#include "DVFSUnit.h"
 #include "perfmon/perf_event.h"
 #include "perfmon/pfmlib_perf_event.h"
 #include "glog/logging.h"
+#include "Counter.h"
 
 namespace FoREST {
 
@@ -43,58 +41,46 @@ namespace FoREST {
 pthread_mutex_t Profiler::pfmInitMtx = PTHREAD_MUTEX_INITIALIZER;
 unsigned int Profiler::nbPfmInit = 0;
 
-Profiler::Profiler (DVFSUnit & dvfsUnit) : unit (dvfsUnit) {
+Profiler::Profiler () {
    // libpfm init
    Profiler::pfmInit (); 
 }
 
-void Profiler::open (unsigned int threadId, int fd[NB_HW_COUNTERS]) { 
-  const char * counters [] =
-   {
-      "INST_RETIRED:ANY_P",
-#if defined (ARCH_SNB) || defined(ARCH_IVB)
-      "UNHALTED_REFERENCE_CYCLES"
-#else
-#warning "Unknown micro-architecture! CPU cycle counting may be wrong."
-      "UNHALTED_REFERENCE_CYCLES"
-#endif
-   };
-
+void Profiler::open (Counter& counter, unsigned int threadId) {
+   struct perf_event_attr attr;
+   pfm_perf_encode_arg_t arg;
    int res;
-   
-   // initialize counters for the current cpu
-   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
-   {
-      struct perf_event_attr attr;
-      pfm_perf_encode_arg_t arg;
 
-      // initialize the structure
-      memset (&attr, 0, sizeof (attr));
-      memset (&arg, 0, sizeof (arg));
-      arg.attr = &attr;
-      arg.fstr = 0;
-      arg.size = sizeof (arg);
-      std::cerr << "counter opening " << counters [i] << std::endl;
-      // encode the counter
-      res = pfm_get_os_event_encoding (counters [i],  PFM_PLM0 | PFM_PLM1 |
-                                                      PFM_PLM2 | PFM_PLM3,
-                                       PFM_OS_PERF_EVENT_EXT, &arg);
-      CHECK (res == PFM_SUCCESS) << "Failed to get counter " << counters [i]
-         << " on cpu " << threadId << std::endl;
+   // initialize the structure
+   memset (&attr, 0, sizeof (attr));
+   memset (&arg, 0, sizeof (arg));
+   arg.attr = &attr;
+   arg.fstr = 0;
+   arg.size = sizeof (arg);
+   std::cerr << "counter opening " << counter.name << std::endl;
+   // encode the counter
+   res = pfm_get_os_event_encoding (counter.name,  PFM_PLM0 | PFM_PLM1 |
+                                                   PFM_PLM2 | PFM_PLM3,
+                                    PFM_OS_PERF_EVENT_EXT, &arg);
+   CHECK (res == PFM_SUCCESS) << "Failed to get counter " << counter.name
+      << " on cpu " << threadId << std::endl;
 
-      // request scaling in case of shared counters
-      arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+   // request scaling in case of shared counters
+   arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
-      // open the corresponding file on the system
-      fd [i] = perf_event_open (arg.attr, -1, threadId, -1, 0);
-      CHECK (fd [i] != -1) << "Cannot open counter "
-         << counters [i] << " on cpu " << threadId << std::endl;
+   // open the corresponding file on the system
+   counter.fd = perf_event_open (arg.attr, -1, threadId, -1, 0);
+   CHECK (counter.fd != -1) << "Cannot open counter "
+      << counter.name << " on cpu " << threadId << std::endl;
 
-      // Activate the counter
-      CHECK (ioctl (fd [i], PERF_EVENT_IOC_ENABLE, 0) == 0)
-         << "Cannot enable event " << counters [i] << " on cpu " << threadId
-         << std::endl;
-   }
+   // Activate the counter
+   CHECK (ioctl (counter.fd, PERF_EVENT_IOC_ENABLE, 0) == 0)
+      << "Cannot enable event " << counter.name << " on cpu " << threadId
+      << std::endl;
+}
+
+void Profiler::close (Counter& counter) {
+   ::close (counter.fd);
 }
 
 Profiler::~Profiler ()
@@ -103,47 +89,35 @@ Profiler::~Profiler ()
    Profiler::pfmTerminate ();
 }
 
-bool Profiler::read (int fd [NB_HW_COUNTERS], HWCounters & hwc, HWCounters& old)
+bool Profiler::read (Counter& counter, unsigned int frequencyId)
 {
+   CounterValues& values = counter.values [frequencyId];
    int res;
 
-   //DLOG (INFO) << "reading hwc for cpu " << cpu << std::endl;
-   
-   // specific case of the time stamp counter
-   uint32_t tsa, tsd;
-   uint64_t val;
-   asm volatile ("rdtsc" : "=a" (tsa), "=d" (tsd));
-   val = ((uint64_t) tsa) | (((uint64_t) tsd) << 32);
-   hwc.time = val - old.time;
-   old.time = val;
+   //DLOG (INFO) << "reading hwc for cpu " << cpu << std::endl; 
+   uint64_t buf [3];
+   uint64_t value;
 
-   // for each hw counter of this cpu
-   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++)
+   res = ::read (counter.fd, buf, sizeof (buf));
+   if (res != sizeof (buf))
    {
-      uint64_t buf [3];
-      uint64_t value;
-
-      res = ::read (fd [i], buf, sizeof (buf));
-      if (res != sizeof (buf))
-      {
-         LOG (ERROR) << "Failed to read counter #" << i << std::endl;
-         return false;
-      }
-
-      // handle scaling to allow PMU sharing
-      value = (uint64_t)((double) buf [0] * (double) buf [1] / buf [2]);
-      if (old.values [i] <= value)
-      {
-         hwc.values [i] = value - old.values [i];
-      }
-      else  // overflow
-      {
-         hwc.values [i] = 0xFFFFFFFFFFFFFFFFUL - old.values [i] + value;
-      }
-
-      // remember this value
-      old.values [i] = value;
+      LOG (ERROR) << "Failed to read counter " << counter.name << std::endl;
+      return false;
    }
+
+   // handle scaling to allow PMU sharing
+   value = (uint64_t)((double) buf [0] * (double) buf [1] / buf [2]);
+   if (values.old <= value)
+   {
+      values.current = value - values.old;
+   }
+   else  // overflow
+   {
+      values.current = 0xFFFFFFFFFFFFFFFFUL - values.old + value;
+   }
+
+   // remember this value
+   values.old = value;
 
    return true;
 }

@@ -27,12 +27,13 @@
 #include <iostream>
 #include <pthread.h>
 
-#include "HWCounters.h"
 #include "perfmon/pfmlib.h"
 #include "glog/logging.h"
+#include "Counter.h"
+#include "rdtsc.h"
 
 namespace FoREST {
-class DVFSUnit;
+
 /**
  * @class Profiler
  * Profiler implementation based on libpfm.
@@ -43,10 +44,8 @@ class Profiler
    public:
       /**
        * Constructor
-       *
-       * @param unit The DVFS unit we are profiling.
        */
-      Profiler (DVFSUnit & unit);
+      Profiler ();
 
       /**
        * Destructor
@@ -54,20 +53,40 @@ class Profiler
       virtual ~Profiler ();
 
       /**
-       * Reads the counter values and "resets" them.
+       * Reads the counter values
        *
-       * @param hwc The hardware counter structure to fill with the results.
-       * @param cpu The id of the cpu in the internal profiler table
+       * @param counter the counter to read. The counter is assumed as opened.
+       * This means the open method has to be called before the read method
+       * @param frequencyId the frequencyId to know where to store the results
        */
-      bool read (int fd [NB_HW_COUNTERS], HWCounters & hwc, HWCounters& cpu);
+      bool read (Counter& counter, unsigned int frequencyId); 
 
       /**
-       * Opens the HW counters file descriptors for the given thread id
+       * Opens the HW counter file descriptors for the given thread id
        *
-       * @param given thread id
-       * @param fd the array of file descriptors (must be NB_HW_COUNTERS wide)
+       * @param counter the counter to open
+       * @param threadId the id of the thread to monitor
        */
-      void open (unsigned int threadId, int fd [NB_HW_COUNTERS]);
+      void open (Counter& counter, unsigned int threadId);
+
+      /**
+       * Closes the HW counter file descriptor
+       *
+       * @param counter the counter to close. The counter is assumed
+       * as opened when this method is called
+       */
+      void close (Counter& counter);
+
+      /**
+       * Reads the timestamp counter value
+       *
+       * @time the values to update
+       */
+      static inline void readTsc (CounterValues& time) {
+         uint64_t val = rdtsc ();
+         time.current = val - time.old;
+         time.old = val;
+      }
 
    private:
 
@@ -108,36 +127,15 @@ class Profiler
          pthread_mutex_unlock (&Profiler::pfmInitMtx);
       }
 
-      inline unsigned int getNbCpuIds () const{
-          return this->nbCpuIds;
-      }
-
-      /**
-       * Number of cpu handled by the Profiler
-       */
-      unsigned int nbCpuIds;
-
       /**
        * Mutex to access the pfm initialization variables.
        */
       static pthread_mutex_t pfmInitMtx;
 
       /**
-       * How many threads have initialized the library?
+       * How many threads have initialized the library ?
        */
       static unsigned int nbPfmInit;
-
-      /**
-       * List of fds opened to read the HW counters.
-       */
-      int *pfmFds;
-
-      /**
-       * Former result to allow difference computations.
-       */
-      HWCounters *formerMeasurement;
-
-      DVFSUnit& unit;
 };
 
 }

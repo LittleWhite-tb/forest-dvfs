@@ -33,11 +33,11 @@
 
 #include "Common.h"
 #include "Config.h"
-#include "Profiler.h"
 #include "TimeProfiler.h"
 #include "FreqSelector.h"
 #include "Mode.h"
 #include "Thread.h"
+#include "Counter.h"
 
 #ifdef REST_LOG
 #include <vector>
@@ -45,6 +45,8 @@
 #endif
 
 namespace FoREST {
+
+class DVFSUnit;
 
 // Frequency sequence data structure
 enum { STEP1 = 0, STEP2 };

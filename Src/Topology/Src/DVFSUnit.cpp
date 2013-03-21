@@ -26,12 +26,9 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <sstream>
 #include <fstream>
-#include <cstring>
 #include <string>
 #include <vector>
-#include <hwloc.h>
 
 #include "glog/logging.h"
 
@@ -46,7 +43,7 @@ namespace FoREST {
 
 DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
                     const Mode mode, Config *config) :
-   profiler (*this) 
+   profiler () 
 {
    this->id = id;
 
@@ -86,7 +83,9 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
    for (std::set<unsigned int>::const_iterator it = cpuIds.begin ();
         it != cpuIds.end ();
         it++) {
-      Thread *newThread = new Thread (i++, nbFreqs, profiler);
+      // Number of cycles needed to achieve ~100ms
+      uint64_t cyclesFor100ms = this->freqs [nbFreqs - 1] * 100;
+      Thread *newThread = new Thread (i++, nbFreqs, profiler, cyclesFor100ms);
       this->takeControl (newThread);
       this->thread.push_back (newThread);
    }

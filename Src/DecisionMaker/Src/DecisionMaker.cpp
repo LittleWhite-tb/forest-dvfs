@@ -64,7 +64,7 @@ DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
    oldMaxFreqId (0),
    totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),
    freqSelector (dvfsUnit->getNbFreqs ()),
-   skipSequenceComputation (false)
+   skipSequenceComputation (false) 
 {
    // setup an initial state for the decision
    lastSequence.step [STEP1].freqId = 0;
@@ -340,13 +340,13 @@ void DecisionMaker::initEvaluation ()
       this->freqsToEvaluate.insert (this->nbFreqs - 1);
    }
 
-   std::cerr << "Evaluating frequencies: ";
+   /*std::cerr << "Evaluating frequencies: ";
    for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
         it != this->freqsToEvaluate.end ();
         it++) {
       std::cerr << *it << " ";
    }
-   std::cerr << std::endl;
+   std::cerr << std::endl;*/
 
    // time the evaluation for debuging purposes
    this->timeProfiler.evaluate (EVALUATION_INIT); 
@@ -393,12 +393,20 @@ void DecisionMaker::evaluateFrequency () {
          freq++;
       }
    }
-   
-   // Compute usage of each thread
-   for (thr = thread.begin (); thr != thread.end (); thr++) {
-      (*thr)->computeUsage ();
+
+   // Debug information
+   /*for (thr = thread.begin (); thr != thread.end (); thr++) {
+      (*thr)->printTime ();
    }
-  
+   std::cerr << std::endl;*/
+
+   // Updates the usage of each thread
+   // NOTE: Not necessarily updates it every time, the object decides
+   // internally whether or not it should proceed to the update
+   for (thr = thread.begin (); thr != thread.end (); thr++) { 
+      (*thr)->computeUsage ();
+   } 
+ 
    // Evaluate time spent in this evaluation step
    this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
 
@@ -425,7 +433,7 @@ void DecisionMaker::computeSequence ()
    }
    this->activeCores.clear ();
    Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
-   DLOG (INFO) << "# active cores: " << this->activeCores.size () << std::endl;
+   //std::cerr << "# active cores: " << this->activeCores.size () << std::endl;
 
    // test all perfmormance level by steps of 1%
    for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
@@ -435,9 +443,9 @@ void DecisionMaker::computeSequence ()
 
       couple = getBestCouple (d, &coupleE);
 
-      DLOG (INFO) << "IPC: " 
+      /*DLOG (INFO) << "IPC: " 
          << " couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
-         << ")) energy: " << coupleE << std::endl;
+         << ")) energy: " << coupleE << std::endl;*/
 
       if (coupleE < bestE)
       {
@@ -447,9 +455,9 @@ void DecisionMaker::computeSequence ()
       }
    }
 
-   /*DLOG (INFO) << "d: " << bestD
-      << " couple: ((" << bestCouple.step [STEP1].freqId << "," << bestCouple.step [STEP1].timeRatio << "),(" << bestCouple.step [STEP2].freqId << "," << bestCouple.step [STEP2].timeRatio 
-      << ")) energy: " << bestE << std::endl;*/
+   //DLOG (INFO) << "d: " << bestD
+   //   << " couple: ((" << bestCouple.step [STEP1].freqId << "," << bestCouple.step [STEP1].timeRatio << "),(" << bestCouple.step [STEP2].freqId << "," << bestCouple.step [STEP2].timeRatio 
+   //   << ")) energy: " << bestE << std::endl;
 
    // Set the sequence to the best couple found
    this->sequence = bestCouple;
@@ -485,7 +493,6 @@ void DecisionMaker::computeSequence ()
 	if (this->freqSelector.isFreqStable (maxRatioFreqId))
    {
 		this->totalSleepWin = rest_min (DecisionMaker::MAX_SLEEP_WIN, this->totalSleepWin * 2);
-      std::cerr << "mult2" << std::endl;
 	}
    else
    {
@@ -499,7 +506,6 @@ void DecisionMaker::computeSequence ()
 		if (maxRatioFreqId < minFreqWindow || maxRatioFreqId > maxFreqWindow)
       {
 			this->totalSleepWin = DecisionMaker::MIN_SLEEP_WIN;
-         std::cerr << "reset" << std::endl;
 		}
 	}
 
@@ -508,8 +514,8 @@ void DecisionMaker::computeSequence ()
 	 this->logFrequency (maxRatioFreqId);	
 	}
    
-   std::cerr << "totalsleepwin = " << this->totalSleepWin << std::endl;
-   std::cerr << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
+   //std::cerr << "totalsleepwin = " << this->totalSleepWin << std::endl;
+   //std::cerr << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
 	this->oldMaxFreqId = maxRatioFreqId;
 
    this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);

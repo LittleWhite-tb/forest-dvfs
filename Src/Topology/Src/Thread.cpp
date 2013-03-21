@@ -26,51 +26,43 @@
 
 #include "Common.h"
 #include "Thread.h"
-#include "HWCounters.h"
+#include "Counter.h"
 #include "Profiler.h"
 
 namespace FoREST {
 
-Thread::Thread (unsigned id, unsigned int nbFrequencies, Profiler& profiler) :
+Thread::Thread (unsigned id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold) :
 id_ (id),
+lastUsageComputation (0),
+TIME_THRESHOLD (threshold),
+maxIpc_ (0),
 nbFrequencies_ (nbFrequencies),
-profiler_ (profiler) {
-   // Allocate data
-   hwc_ = new HWCounters [2*nbFrequencies_];
-   oldHwc_ = hwc_ + nbFrequencies_;
-   ipc_ = new float [nbFrequencies_];
+profiler_ (profiler),
+usage_ (0) {
+   // Initialize the counter structures
+   retired.name = "INST_RETIRED:ANY_P";
+   refCycles.name = "UNHALTED_REFERENCE_CYCLES";
 
-   // reset the values
-   memset (hwc_, 0, sizeof (*hwc_)*2*nbFrequencies_);
+   // Allocate data
+   ipc_ = new float [nbFrequencies_];
+   retired.values = new CounterValues [2*nbFrequencies_+1];
+   time = retired.values + nbFrequencies_;
+   refCycles.values = time + nbFrequencies_;
+
+   // reset the values 
    memset (ipc_, 0, sizeof (*ipc_)*nbFrequencies_);
+   memset (retired.values, 0, sizeof (*retired.values)*(2*nbFrequencies_+1)); 
 
    // Open the HW counters file descriptors
-   profiler_.open (id_, fd);
+   profiler_.open (retired, id_);
+   profiler_.open (refCycles, id_);
 }
 
 Thread::~Thread () {
-   delete [] hwc_;
    delete [] ipc_;
-   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++) {
-      close (fd[i]);
-   }
-}
-
-bool Thread::read (unsigned int frequencyId) {
-   if (nbFrequencies_ < frequencyId) {
-      return false;
-   }
-   HWCounters& hwc = hwc_ [frequencyId];
-   HWCounters& oldHwc = oldHwc_ [frequencyId];
-   bool ret = profiler_.read (fd, hwc, oldHwc);
-  /* 
-   std::cerr << "HWC #" << id_ << ": {(" << NB_HW_COUNTERS << ") " << hwc.time << ", ";
-   for (unsigned int i = 0; i < NB_HW_COUNTERS; i++) {
-      std::cerr << hwc.values [i] << ", ";
-   }
-   std::cerr << "}" << std::endl;*/
-
-   return ret;
+   delete [] retired.values;
+   profiler_.close (retired);
+   profiler_.close (refCycles); 
 }
 
 } // namespace FoREST
