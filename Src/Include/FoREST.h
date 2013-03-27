@@ -25,5 +25,36 @@
 #ifndef FOREST_H
 #define FOREST_H
 
+#include "Topology.h"
+#include "ThreadContext.h"
+#include "Config.h"
+
+namespace FoREST {
+
+/**
+ * Context structure keeping globally track of the main program structures
+ * Allow the program to exit properly when atexit handler or signal handlers
+ * are called
+ */
+struct Context {
+   /**
+    * A structure containing the machine topology, but also holds DVFS Units, 
+    * and corresponding decision makers / profilers
+    */
+   Topology *topology;
+
+   /**
+    * A vector of thread contexts to keep track of correspnding DVFSUnit structures
+    * Each DVFSUnit profiles, decides and executes with its own separate thread, its own DecisionMaker and its own Profiler
+    */
+   std::vector<ThreadContext*> threadContext;
+
+   /**
+    * The Config structure represents the program tuning parameters, as provided in config.cfg
+    */
+   Config *config;
+};
+
+} // namespace FoREST
 
 #endif

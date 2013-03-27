@@ -78,40 +78,10 @@ DecisionMaker::~DecisionMaker (void)
 
 FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 {
-   std::vector<unsigned int> smallerIpc;
-   std::vector<unsigned int> greaterIpc;
+   std::set<unsigned int> smallerIpc;
+   std::set<unsigned int> greaterIpc;
 
-   unsigned int nbActiveCores = this->activeCores.size (); 
-   
-   // no active cores?
-   if (nbActiveCores == 0)
-   {
-      FreqChunk step1, step2;
-
-      step1.freqId = 0;
-      step2.freqId = 0;
-      step1.timeRatio = 1;
-      step2.timeRatio = 0;
-
-      FreqChunkCouple couple;
-      couple.step [STEP1] = step1;
-      couple.step [STEP2] = step2;
-
-      if (coupleEnergy != NULL)
-      {
-         *coupleEnergy = 0;
-      }
-
-      //DLOG (INFO) << "All cores idle" << std::endl;
-      return couple;
-   }
-
-   // compute max IPC per thread
-   for (std::vector<Thread*>::iterator it = this->thread.begin ();
-        it != this->thread.end ();
-        it++) {
-      (*it)->computeMaxIPC ();
-   } 
+   unsigned int nbActiveCores = this->activeCores.size ();
 
    // split frequencies depending on their IPCs
    for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
@@ -119,7 +89,6 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
         freq++)
    {
       bool isLower = true, isHigher = true;
-
       DLOG(INFO) << "Freq " << *freq << std::endl;
 
       // For each active thread
@@ -131,7 +100,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
          float threadIpc = (*thread)->getIPC (*freq);
          float maxIpc = (*thread)->getMaxIPC ();
 
-         DLOG(INFO) << "Thread " << (*thread)->getId() << " ipc: " << threadIpc << " max: " << maxIpc << std::endl;
+         DLOG(INFO) << "Thread " << (*thread)->getId() << " ipc: " << threadIpc << " max: " << maxIpc <<  " degraded = " << maxIpc*d << std::endl;
          
          if (threadIpc < d * maxIpc)
          {
@@ -145,25 +114,28 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
       if (isLower)
       {
-         smallerIpc.push_back (*freq);
+         smallerIpc.insert (*freq);
       }
       else if (isHigher)
       {
-         greaterIpc.push_back (*freq);
+         greaterIpc.insert (*freq);
       }
    }
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
    std::vector<float> e_ratios (this->nbFreqs);
-   std::set<unsigned int>::iterator start = this->freqsToEvaluate.begin ();
-   const float Pref = this->unit->getPowerAt (*start, nbActiveCores);
+   std::set<unsigned int>::iterator smallestFrequency = this->freqsToEvaluate.begin ();
+   std::set<unsigned int>::iterator highestFrequency = --this->freqsToEvaluate.end ();
+   const float Pref = this->unit->getPowerAt (*highestFrequency, nbActiveCores);
    const float Psys = DecisionMaker::SYS_POWER;
-   e_ratios [*start] = nbActiveCores;
+   e_ratios [*highestFrequency] = nbActiveCores;
 
-   for (std::set<unsigned int>::iterator freq = ++this->freqsToEvaluate.begin ();
-        freq != this->freqsToEvaluate.end ();
+   // Evalute energy ratios for each frequency except the highest one (which is the reference one)
+   for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
+        freq != highestFrequency;
         freq++)
    {
+      DLOG (INFO) << "computing ratio for freq " << *freq << std::endl;
       float Pi = this->unit->getPowerAt (*freq, nbActiveCores);
 
       e_ratios [*freq] = 0;
@@ -172,7 +144,7 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
            thr != this->activeThread.end ();
            thr++)
       {
-         float IPCref = (*thr)->getIPC (*start);
+         float IPCref = (*thr)->getIPC (*highestFrequency);
          float IPCi = (*thr)->getIPC (*freq);
          
          e_ratios [*freq] += (IPCref / IPCi) * ((Pi + Psys) / (Pref + Psys));
@@ -180,53 +152,30 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    }
 
    // only greater freqs? IPC is ensured, whatever we choose, go to the smallest known frequency
-   if (smallerIpc.size () == 0)
-   {
-      FreqChunk step1, step2;
-      // sets are sorted highest from highest to lowest 
-      unsigned int minFreq = *this->freqsToEvaluate.begin ();
-
-      step1.freqId = minFreq;
-      step2.freqId = 0;
-      step1.timeRatio = 1;
-      step2.timeRatio = 0;
-
-      FreqChunkCouple couple;
-      couple.step [STEP1] = step1;
-      couple.step [STEP2] = step2;
-
-      if (coupleEnergy != NULL)
-      {
-         *coupleEnergy = e_ratios [minFreq];
+   if (smallerIpc.size () == 0) {
+      DLOG (INFO) << "special case : no smaller ipc" << std::endl;
+      FreqChunkCouple couple = {{
+         {*smallestFrequency, 1},
+         {0, 0}
+      }};
+      if (coupleEnergy != NULL) {
+         *coupleEnergy = e_ratios [*smallestFrequency];
       }
 
       return couple;
    }
-
+ 
    // note: case with only smaller freqs is only due to mistakes in measurements
    // for safety we go to maximal freq here
-   if (greaterIpc.size () == 0)
-   {
-      FreqChunk step1, step2;
-      // sets are sorted
-      unsigned int maxFreq = *(--this->freqsToEvaluate.end ());
-
-      step1.freqId = maxFreq;
-      step2.freqId = 0;
-      step1.timeRatio = 1;
-      step2.timeRatio = 0;
-
-      FreqChunkCouple couple;
-      couple.step [STEP1] = step1;
-      couple.step [STEP2] = step2;
-
-      if (coupleEnergy != NULL)
-      {
-         *coupleEnergy = e_ratios [maxFreq];
+   if (greaterIpc.size () == 0) {
+      DLOG (INFO) << "special case : no greater ipc" << std::endl;
+      FreqChunkCouple couple = {{
+         {*highestFrequency, 1},
+         {0, 0}
+      }};
+      if (coupleEnergy != NULL) {
+         *coupleEnergy = e_ratios [*highestFrequency];
       }
-
-      DLOG(WARNING) << "No greater freq" << std::endl;
-
       return couple;
    }
 
@@ -238,11 +187,11 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
    float bestCoupleE = std::numeric_limits<float>::max ();
 
-   for (std::vector<unsigned int>::iterator sit = smallerIpc.begin ();
+   for (std::set<unsigned int>::iterator sit = smallerIpc.begin ();
         sit != smallerIpc.end ();
         sit++)
    {
-      for (std::vector<unsigned int>::iterator git = greaterIpc.begin ();
+      for (std::set<unsigned int>::iterator git = greaterIpc.begin ();
            git != greaterIpc.end ();
            git++)
       {
@@ -250,6 +199,8 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
          unsigned int smaller = (*sit);
          unsigned int greater = (*git);
+
+         DLOG (INFO) << "OK, comparing smaller (" << smaller << ") and greater (" << greater << ")" << std::endl;
          
          step1.freqId = smaller;
          step2.freqId = greater;
@@ -264,13 +215,19 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
             float greaterIpc = (*thread)->getIPC (greater);
             float smallerIpc = (*thread)->getIPC (smaller);
             float maxIpc = (*thread)->getMaxIPC ();
+            DLOG (INFO) << "greaterIpc = " << greaterIpc
+                      << " smallerIpc = " << smallerIpc << std::endl;
             minRatio = rest_min (minRatio, 
                   (greaterIpc - d * maxIpc)
                / (greaterIpc - smallerIpc));
+            DLOG (INFO) << "minRatio = " << minRatio << ", greater - smaller = " << (greaterIpc - smallerIpc) << std::endl;
          }
 
          step1.timeRatio = minRatio;
          step2.timeRatio = 1 - step1.timeRatio;
+
+         DLOG (INFO) << "step1.tr = " << minRatio <<
+                      "step2.tr = " << step2.timeRatio << std::endl;
 
          assert (step1.timeRatio <= 1);
          assert (step2.timeRatio <= 1);
@@ -281,11 +238,11 @@ FreqChunkCouple DecisionMaker::getBestCouple (float d, float *coupleEnergy)
 
          float coupleE = step1.timeRatio * e_ratios [smaller] + step2.timeRatio * e_ratios [greater];
 
-         /*DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
+         DLOG (INFO) << "couple ((" << couple.step [STEP1].freqId << ","
             << couple.step [STEP1].timeRatio << "),(" 
             << couple.step [STEP2].freqId << "," 
             << couple.step [STEP2].timeRatio << ")) energy = "  << coupleE
-            << std::endl;*/
+            << std::endl;
 
          if (coupleE < bestCoupleE)
          {
@@ -320,6 +277,7 @@ void DecisionMaker::logFrequency (unsigned int freqId) const
 void DecisionMaker::initEvaluation ()
 { 
    unsigned int freqWindowCenter;
+   std::vector<Thread*>::iterator thr;
 
    // Reset the list of frequencies to evaluate
    this->freqsToEvaluate.clear ();
@@ -361,6 +319,11 @@ void DecisionMaker::initEvaluation ()
    }
    std::cerr << std::endl;*/
 
+   // Reset the IPC for each thread
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+      (*thr)->resetIPC ();
+   }
+
    // time the evaluation for debuging purposes
    this->timeProfiler.evaluate (EVALUATION_INIT); 
 }
@@ -368,10 +331,6 @@ void DecisionMaker::initEvaluation ()
 void DecisionMaker::evaluateFrequency () {
 
    std::vector<Thread*>::iterator thr;
-
-   for (thr = thread.begin (); thr != thread.end (); thr++) {
-      (*thr)->resetIPC ();
-   }
 
    // For each frequency in our window
    std::set<unsigned int>::iterator freq = freqsToEvaluate.begin ();
@@ -390,16 +349,17 @@ void DecisionMaker::evaluateFrequency () {
       }
 
       // (Fo)rest for a while...
-      nsleep (DecisionMaker::IPC_EVAL_TIME);
+      nsleep (DecisionMaker::IPC_EVAL_TIME*1000);
       
       // Read all values for each thread
       for (thr = thread.begin (); thr != thread.end (); thr++) {
          (*thr)->read (*freq);
       }
 
-      // Compute IPCs
+      // Compute IPCs 
       for (thr = thread.begin (); thr != thread.end (); thr++) {
          hwcPanic = (*thr)->computeIPC (*freq);
+
         // If something went wrong, no need to go further ; restart the
         // whole evaluation for this frequency
          if (hwcPanic) {
@@ -412,10 +372,9 @@ void DecisionMaker::evaluateFrequency () {
    }
 
    // Debug information
-   /*for (thr = thread.begin (); thr != thread.end (); thr++) {
-      (*thr)->printTime ();
-   }
-   std::cerr << std::endl;*/
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+      (*thr)->smoothIPC (); 
+   } 
 
    // Updates the usage of each thread
    // NOTE: Not necessarily updates it every time, the object decides
@@ -450,25 +409,39 @@ void DecisionMaker::computeSequence ()
    }
    this->activeCores.clear ();
    Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
-   std::cerr << "# active cores: " << this->activeCores.size () << std::endl;
 
-   // test all perfmormance level by steps of 1%
-   for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
-   {
-      FreqChunkCouple couple;
-      float coupleE;
+   // compute max IPC per thread
+   for (std::vector<Thread*>::iterator it = this->thread.begin ();
+        it != this->thread.end ();
+        it++) {
+      (*it)->computeMaxIPC ();
+   }
 
-      couple = getBestCouple (d, &coupleE);
-
-      DLOG (INFO) 
-         << "couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
-         << ")) energy: " << coupleE << std::endl;
-
-      if (coupleE < bestE)
+   // If there is no active cores, we take the smaller frequency available
+   if (activeThread.size () == 0) {
+      FreqChunkCouple zero = {{{0,1},{0,0}}};
+      bestCouple = zero;
+      bestE = 0;
+   } else {
+      // else, we test all perfmormance level by steps of 1%
+      for (float d = 1; d >= USER_PERF_REQ; d -= 0.01)
       {
-         bestCouple = couple;
-         bestE = coupleE;
-         bestD = d;
+         DLOG (INFO) << "Degradation = " << d << std::endl;
+         FreqChunkCouple couple;
+         float coupleE;
+   
+         couple = getBestCouple (d, &coupleE);
+   
+         DLOG (INFO) 
+            << "couple: ((" << couple.step [STEP1].freqId << "," << couple.step [STEP1].timeRatio << "),(" << couple.step [STEP2].freqId << "," << couple.step [STEP2].timeRatio 
+            << ")) energy: " << coupleE << std::endl;
+   
+         if (coupleE < bestE)
+         {
+            bestCouple = couple;
+            bestE = coupleE;
+            bestD = d;
+         }
       }
    }
 
@@ -531,8 +504,8 @@ void DecisionMaker::computeSequence ()
 	 this->logFrequency (maxRatioFreqId);	
 	}
    
-   //std::cerr << "totalsleepwin = " << this->totalSleepWin << std::endl;
-   //std::cerr << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
+   DLOG (INFO) << "totalsleepwin = " << this->totalSleepWin << std::endl;
+   DLOG (INFO) << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
 	this->oldMaxFreqId = maxRatioFreqId;
 
    this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
@@ -548,10 +521,9 @@ void DecisionMaker::executeSequence ()
       // Apply it for some time...
       unsigned int sleepWin = this->sequence.step [i].timeRatio
                         * this->totalSleepWin;
-      sleepWin *= 1000; // Because we're sleeping in nanoseconds
       
       // Sleep now !
-      nsleep (sleepWin);
+      nsleep (sleepWin*1000);
    }
    // Profiler, remind we leave execution
    this->timeProfiler.evaluate (EXECUTION_SLOT);

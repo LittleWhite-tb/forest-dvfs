@@ -18,7 +18,7 @@
 #
 
 CXX=g++
-CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DREST_LOG -DARCH_SNB
+CXXFLAGS=-O3 -msse3 -Wall -Wextra -Werror -DREST_LOG
 CXXFLAGS_DEBUG=-g
 CXXFLAGS_RELEASE=-DNDEBUG
 LD=$(CXX)

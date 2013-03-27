@@ -39,136 +39,23 @@
 #include "DecisionMaker.h"
 #include "Profiler.h"
 #include "ThreadContext.h"
+#include "FoREST.h"
 
 #ifdef REST_LOG
 	#include "Logger.h"
 #endif
 
-namespace FoREST {
+using namespace FoREST;
 
-// local functions
-static void * FoRESTthread (void * arg);
+// Local Functions
+static void *FoRESTthread (void * arg);
 static void exitCleanup ();
 static void sigHandler (int nsig);
+static inline bool handleArguments (int argc, char *argv [], Mode& mode);
+static inline bool launchThread (ThreadContext *context);
 
-// TODO detail structure (COMMENT)
-struct Context {
-   Topology *topology;
-   std::vector<ThreadContext*> threadContext;
-   Config *config;
-};
-
-// the context
+// The program context to keep track of important data structures at global level
 static Context context;
-
-static inline bool handleArguments (int argc, char *argv[], Mode& mode) {
-   if (argc != 2) {
-      LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
-      return false;
-   }
-
-   std::string energy ("energy");
-   std::string performance ("performance");
-
-   if (energy.compare (argv [1]) == 0) {
-      mode = MODE_ENERGY;
-   }
-   else if (performance.compare (argv [1]) == 0) {
-      mode = MODE_PERFORMANCE;
-   }
-   else {
-      LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
-      return false;
-   }
-
-   return true;
-}
-
-bool launchThread (ThreadContext *context) {
-   if (pthread_create (&context->thr, NULL, FoRESTthread, context) != 0) {
-      LOG (FATAL) << "Error: Failed to create FoREST thread" << std::endl;
-      return false;
-   }
-
-   return true;
-}
-
-static void *FoRESTthread (void *arg) {
-   assert (arg != NULL);
-
-   ThreadContext *context = reinterpret_cast<ThreadContext*> (arg);
-   DecisionMaker* dm = context->unit->getDecisionMaker ();
-   unsigned int id = context->unit->getId ();
-
-	// only the main thread receives signals
-	if (id != 0)
-	{
-		sigset_t set;
-
-		sigemptyset (&set);
-		sigaddset (&set, SIGINT);
-		sigaddset (&set, SIGUSR1);
-		pthread_sigmask (SIG_BLOCK, &set, NULL);
-	}
-
-   // do it as long as we are not getting killed by a signal
-	while (true) {
-      //std::cerr << "#" << id << " init evaluation" << std::endl;
-      dm->initEvaluation ();
-      //std::cerr << "#" << id << " evaluate Frequency" << std::endl;
-      dm->evaluateFrequency ();
-      //std::cerr << "#" << id << " compute sequence" << std::endl;
-      dm->computeSequence ();
-      //std::cerr << "#" << id << " execute sequence" << std::endl;
-      dm->executeSequence ();
-   }
-
-	// pacify compiler but we never get out of while loop
-	return NULL;
-}
-
-static void sigHandler (int nsig)
-{
-	switch (nsig) {
-	case SIGINT:
-			exit (EXIT_FAILURE);
-			break;
-	case SIGUSR1:
-#ifdef REST_LOG
-      for (std::vector<ThreadContext*>::iterator
-           it = context.threadContext.begin ();
-           it != context.threadContext.end ();
-           it++) {
-         Logger *log = Logger::getLog ((*it)->unit->getId ());
-   		log->logOut ("*");
-      }
-#endif
-	   break;
-	default:
-			LOG (INFO) << "Received signal #" << nsig << std::endl;
-	};
-}
-
-static void exitCleanup () {
-	// cancel all threads (0 = main process, not a thread)
-	for (std::vector<ThreadContext*>::iterator
-        it = context.threadContext.begin ();
-        it != context.threadContext.end ();
-        it++) {
-		pthread_cancel ((*it)->thr);
-		pthread_join ((*it)->thr, NULL);
-	}
-
-#ifdef REST_LOG
-	Logger::destroyLog ();
-#endif
-   delete context.config;
-   delete context.topology;
-}
-
-} // namespace FoREST
-
-using namespace FoREST;
 
 int main (int argc, char *argv[]) {
    Mode mode = MODE_PERFORMANCE;
@@ -185,9 +72,9 @@ int main (int argc, char *argv[]) {
    Config *config = new Config ();
    Topology *topo = new Topology (mode, config);
    unsigned int nbUnits = topo->getNbDVFSUnits ();
-
+   
    // Keep track of the context at global scope
-   FoREST::context.topology = topo; 
+   context.topology = topo; 
    context.config = config;
  
    // Init FoREST log
@@ -221,3 +108,134 @@ int main (int argc, char *argv[]) {
 
    return EXIT_SUCCESS;
 }
+
+/**
+ * handleArguments
+ * Gets which mode is selected by the user as the program arguments
+ *
+ * @param argc main argc argument
+ * @param argv main argv argument
+ * @param mode the mode reference to be set according to the given
+ * program parameters
+ */
+static inline bool handleArguments (int argc, char *argv[], Mode& mode) {
+   if (argc != 2) {
+      LOG (INFO) << "Usage: " << argv [0] << " {energy,performance}" << std::endl;
+      return false;
+   }
+
+   std::string energy ("energy");
+   std::string performance ("performance");
+
+   if (energy.compare (argv [1]) == 0) {
+      mode = MODE_ENERGY;
+   }
+   else if (performance.compare (argv [1]) == 0) {
+      mode = MODE_PERFORMANCE;
+   }
+   else {
+      LOG (FATAL) << "Error: Unknown/Unsupported runtime mode. Currently only \"performance\" and \"energy\" are supported." << std::endl;
+      return false;
+   }
+
+   return true;
+}
+
+/**
+ * launchThread
+ * Wrappers that spawns a new thread appropriately given a ThreadContext
+ */
+bool launchThread (ThreadContext *context) {
+   if (pthread_create (&context->thr, NULL, FoRESTthread, context) != 0) {
+      LOG (FATAL) << "Error: Failed to create FoREST thread" << std::endl;
+      return false;
+   }
+
+   return true;
+}
+
+/**
+ * Function to be executed by each thread
+ */
+static void *FoRESTthread (void *arg) {
+   assert (arg != NULL);
+
+   ThreadContext *context = reinterpret_cast<ThreadContext*> (arg);
+   DecisionMaker* dm = context->unit->getDecisionMaker ();
+   unsigned int id = context->unit->getId ();
+
+	// only the main thread receives signals
+	if (id != 0)
+	{
+		sigset_t set;
+
+		sigemptyset (&set);
+		sigaddset (&set, SIGINT);
+		sigaddset (&set, SIGUSR1);
+		pthread_sigmask (SIG_BLOCK, &set, NULL);
+	}
+
+   // do it as long as we are not getting killed by a signal
+	while (true) {
+      dm->initEvaluation ();
+      dm->evaluateFrequency ();
+      dm->computeSequence ();
+      dm->executeSequence ();
+   }
+
+	// pacify compiler but we never get out of while loop
+	return NULL;
+}
+
+/**
+ * sigHandler
+ * Handles standard signals
+ *
+ * @param nsig the signal number to handle
+ */
+static void sigHandler (int nsig)
+{
+	switch (nsig) {
+	case SIGINT:
+			exit (EXIT_FAILURE);
+			break;
+	case SIGUSR1:
+   // In this case we want to add a marker in each
+   // thread log file
+#ifdef REST_LOG
+      for (std::vector<ThreadContext*>::iterator
+           it = context.threadContext.begin ();
+           it != context.threadContext.end ();
+           it++) {
+         Logger *log = Logger::getLog ((*it)->unit->getId ());
+   		log->logOut ("*");
+      }
+#endif
+	   break;
+	default:
+			LOG (INFO) << "Received signal #" << nsig << std::endl;
+	};
+}
+
+/**
+ * exitCleanup
+ * Function called at program exit which takes advantage of a global program
+ * context to join threads, free memory and exit the program properly
+ */
+static void exitCleanup () {
+	// cancel all threads (0 = main process, not a thread)
+	for (std::vector<ThreadContext*>::iterator
+        it = context.threadContext.begin ();
+        it != context.threadContext.end ();
+        it++) {
+		pthread_cancel ((*it)->thr);
+		pthread_join ((*it)->thr, NULL);
+	}
+
+#ifdef REST_LOG
+	Logger::destroyLog ();
+#endif
+   delete context.config;
+   delete context.topology;
+}
+

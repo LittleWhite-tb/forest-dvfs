@@ -122,8 +122,8 @@ public:
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
    bool reset (unsigned int frequencyId) {
-      Profiler::readTsc (time [frequencyId]);
-      return profiler_.read (retired, frequencyId); 
+      Profiler::readTsc (this->time [frequencyId]);
+      return this->profiler_.read (this->retired, frequencyId); 
    }
    
    /**
@@ -132,8 +132,8 @@ public:
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
    bool read (unsigned int frequencyId) { 
-      Profiler::readTsc (time [frequencyId]); 
-      return profiler_.read (retired, frequencyId);
+      Profiler::readTsc (this->time [frequencyId]); 
+      return this->profiler_.read (this->retired, frequencyId);
    }
 
    /**
@@ -141,7 +141,7 @@ public:
     * construction
     */
    inline unsigned int getId () const{
-      return id_;
+      return this->id_;
    }
 
    /**
@@ -149,8 +149,8 @@ public:
     * e.g usage computation is too old
     */
    bool hasToUpdateUsage () {
-      diff = rdtsc () - lastUsageComputation;
-      return diff > TIME_THRESHOLD;
+      this->diff = rdtsc () - this->lastUsageComputation;
+      return this->diff > TIME_THRESHOLD;
    }
 
    /**
@@ -159,21 +159,21 @@ public:
     * Otherwise the method does nothing
     */
    inline void computeUsage () {
-      if (hasToUpdateUsage ()) { // Only updates the usage if necessary
+      if (this->hasToUpdateUsage ()) { // Only updates the usage if necessary
          float res;
 
          // Gather refCycles data
-         profiler_.read (refCycles, 0); 
-         uint64_t ref = refCycles.values [0].current;
+         this->profiler_.read (refCycles, 0); 
+         uint64_t ref = this->refCycles.values [0].current;
          
          // NOTE: RDTSC and refCycles run at the same freq
-         res = ref / (1. * diff);
+         res = ref / (1. * this->diff);
          
          // Rationalize the usage if it goes beyond a ratio of 1
-         usage_ = rest_min (res, 1);
-         //std::cerr << "#" << id_ << ": " << usage_*100 << "% " << std::endl;
+         this->usage_ = rest_min (res, 1);
+
          // Update lastUpdate to new time reference
-         lastUsageComputation = rdtsc ();
+         this->lastUsageComputation = rdtsc ();
       }
    }
 
@@ -181,7 +181,7 @@ public:
     * Returns the CPU usage of the current thread
     */
    inline float getUsage () const{
-      return usage_;
+      return this->usage_;
    }
 
    /**
@@ -191,7 +191,7 @@ public:
     * @param the threshold to compare the current thread activity to
     */
    inline bool isActive (float threshold) {
-      return usage_ > threshold;
+      return this->usage_ > threshold;
    }
 
    /**
@@ -216,12 +216,10 @@ public:
          LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
          return false;
       }
-      
-      //std::cerr << "#" << id_ << ": retired = " << retired << ", time = " << time << std::endl;
 
       // Computes ipc value
       float ipc = retired / (1. * time); 
-      ipc_ [frequencyId] = ipc;
+      this->ipc_ [frequencyId] = ipc;
 
       // Handle irrational ipc values
       if (ipc < 0 || isnan (ipc)) {
@@ -239,11 +237,29 @@ public:
     * @param frequencyId the wanted frequency id
     */
    inline float getIPC (unsigned int frequencyId) const{
-      return ipc_ [frequencyId];
+      return this->ipc_ [frequencyId];
    }
 
+   /**
+    * Smooth the IPC to delete measurement noise
+    */
+   inline void smoothIPC () {
+      unsigned int j = this->nbFrequencies_ - 1;
+      for (unsigned int i = this->nbFrequencies_ - 1; i != 0; i--) {
+         if (this->ipc_ [i] != 0) {
+            if (this->ipc_ [i] > this->ipc_ [j]) {
+               this->ipc_ [i] = this->ipc_ [j];
+               j = i;
+            }
+         }
+      }
+   }
+
+   /**
+    * Reset the ipc array at the beginning of the evaluation
+    */
    inline void resetIPC () {
-      memset (ipc_, 0, nbFrequencies_*sizeof (*ipc_));
+      memset (this->ipc_, 0, this->nbFrequencies_*sizeof (*this->ipc_));
    }
 
    /**
@@ -252,10 +268,10 @@ public:
     * This function MUST be called after the IPC has been computed
     */
    inline void computeMaxIPC () {
-      maxIpc_ = ipc_ [0];
-      for (unsigned int i = 1; i < nbFrequencies_; i++) {
-         if (ipc_ [maxIpc_] < ipc_ [i]) {
-            maxIpc_ = i;
+      this->maxIpc_ = this->ipc_ [0];
+      for (unsigned int i = 1; i < this->nbFrequencies_; i++) {
+         if (this->ipc_ [this->maxIpc_] < this->ipc_ [i]) {
+            this->maxIpc_ = i;
          }
       }
    }
@@ -266,7 +282,7 @@ public:
     * This function MUST be called after the Max IPC has been computed
     */
    inline float getMaxIPC () const{
-      return ipc_ [maxIpc_];
+      return this->ipc_ [this->maxIpc_];
    }
 };
 
