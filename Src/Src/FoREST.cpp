@@ -228,7 +228,6 @@ static void exitCleanup () {
         it = context.threadContext.begin ();
         it != context.threadContext.end ();
         it++) {
-      DecisionMaker *dm = (*it)->unit->getDecisionMaker ();
 		pthread_cancel ((*it)->thr);
 		pthread_join ((*it)->thr, NULL);
 	}

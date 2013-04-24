@@ -328,6 +328,9 @@ void DecisionMaker::initEvaluation ()
       this->freqsToEvaluate.insert (i);
    }
 
+   // Consensus decision
+   this->freqsToEvaluate.insert ( (this->nbFreqs - 1 + freqWindowCenter) / 2);
+
    // also request evaluation for the maximal frequency as it must serve as a
    // reference point to compute the degradation rate
    if (maxFreqId < this->nbFreqs - 1)
@@ -336,13 +339,13 @@ void DecisionMaker::initEvaluation ()
       this->addedFreqMax = true;
    }
 
-   /*std::cerr << "Evaluating frequencies: ";
+   std::cerr << "Evaluating frequencies: ";
    for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
         it != this->freqsToEvaluate.end ();
         it++) {
       std::cerr << *it << " ";
    }
-   std::cerr << std::endl;*/
+   std::cerr << std::endl;
 
    // Reset the IPC for each thread
    for (thr = thread.begin (); thr != thread.end (); thr++) {
