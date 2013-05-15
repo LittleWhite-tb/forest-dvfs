@@ -101,14 +101,14 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
    //
    // If this statement is deactivated, it can cause higher energy consumption
    // because of volative high ipc values
-   /*if (this->addedFreqMax) {
+   if (this->addedFreqMax) {
       --endFreq;
       --highestFreq;
-   }*/
+   }
 
    // split frequencies depending on their IPCs
    for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
-        freq != this->freqsToEvaluate.end ();
+        freq != endFreq;
         freq++)
    {
       bool isLower = true, isHigher = true;
