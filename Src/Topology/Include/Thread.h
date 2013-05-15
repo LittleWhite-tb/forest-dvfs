@@ -255,6 +255,13 @@ public:
       }
    }
 
+   inline void printIPC () {
+      for (unsigned int i = 0; i < this->nbFrequencies_; i++) {
+         std::cerr << std::setw (5) << this->ipc_ [i] <<  " ";
+      }
+      std::cerr << std::endl;
+   }
+
    /**
     * Reset the ipc array at the beginning of the evaluation
     */

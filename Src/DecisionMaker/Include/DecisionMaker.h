@@ -77,7 +77,6 @@ struct FreqChunkCouple
 class DecisionMaker
 {
    public:
-
       /**
        * Genenerates a new decision maker in charge of the given
        * dvfs unit and targeting the given mode.
@@ -119,7 +118,7 @@ class DecisionMaker
        * Compute the sequence corresponding to the aggregation of the 2-steps
        * computation of all the cores previously computed
        */
-      void computeSequence ();
+      bool computeSequence ();
 
       /**
        * Executes the sequence of frequency/timeRatio couples in the runtime
@@ -127,7 +126,14 @@ class DecisionMaker
       void executeSequence ();
 
    private:
-
+      unsigned int freqWindowCenter;
+      /**
+       * The maximum frequency is always evaluated
+       * This boolean states whether it has been naturally added to the list of
+       * freqs to evalute (eg we really want to evaluate it) or just because
+       * we need it to compute the reference energy ratios
+       */
+      bool addedFreqMax;
       /**
        * Which DVFS unit we are handling.
       */
@@ -210,15 +216,16 @@ class DecisionMaker
        * Computes the best frequency couple for achieving the target IPC with
        * the frequencies whose IPC is provided in IPCs.
        *
-       * @param IPCs an array of IPC per frequency. On entry per frequency.
-       * @param d Current degradation ratio to consider.
+       * @param d degradation ratio to consider.
+       * @param bestCouple Structure that will be filled by the function
+       * containing the best couple for the given degradation ratio
        * @param coupleEnergy Output parameter filled with the couple energy
        * estimation (not in J.) if non NULL.
        *
-       * @return The frequency couple leading to the minimal energy consumption
-       * and achieving the targetIPC.
+       * @return Whether it is necessary to call back this method with a smaller
+       * degradation ratio
        */
-      FreqChunkCouple getBestCouple (float d, float *coupleEnergy);
+      bool getBestCouple (float d, FreqChunkCouple *bestCouple, float *coupleEnergy, bool *isSpecialCase);
 
       /**
        * Outputs the frequency in the log file
