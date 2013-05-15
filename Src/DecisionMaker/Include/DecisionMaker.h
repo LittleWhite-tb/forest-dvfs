@@ -118,7 +118,7 @@ class DecisionMaker
        * Compute the sequence corresponding to the aggregation of the 2-steps
        * computation of all the cores previously computed
        */
-      void computeSequence ();
+      bool computeSequence ();
 
       /**
        * Executes the sequence of frequency/timeRatio couples in the runtime
@@ -126,6 +126,7 @@ class DecisionMaker
       void executeSequence ();
 
    private:
+      unsigned int freqWindowCenter;
       /**
        * The maximum frequency is always evaluated
        * This boolean states whether it has been naturally added to the list of
@@ -224,7 +225,7 @@ class DecisionMaker
        * @return Whether it is necessary to call back this method with a smaller
        * degradation ratio
        */
-      bool getBestCouple (float d, FreqChunkCouple *bestCouple, float *coupleEnergy);
+      bool getBestCouple (float d, FreqChunkCouple *bestCouple, float *coupleEnergy, bool *isSpecialCase);
 
       /**
        * Outputs the frequency in the log file

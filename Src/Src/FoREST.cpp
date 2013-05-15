@@ -179,8 +179,8 @@ static void *FoRESTthread (void *arg) {
 	while (true) {
       dm->initEvaluation ();
       dm->evaluateFrequency ();
-      dm->computeSequence ();
-      dm->executeSequence ();
+      /*bool exec = */dm->computeSequence ();
+      /*if (exec) */dm->executeSequence ();
    }
 
 	// pacify compiler but we never get out of while loop
