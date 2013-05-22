@@ -571,15 +571,17 @@ void DecisionMaker::executeSequence ()
 {
    // Apply steps
    for (unsigned int i = 0; i < 2; i++) {
-      unsigned int freqId = this->sequence.step [i].freqId;
-      this->unit->setFrequency (freqId);
+      if (this->sequence.step [i].timeRatio > 0) {
+         unsigned int freqId = this->sequence.step [i].freqId;
+         this->unit->setFrequency (freqId);
    
-      // Apply it for some time...
-      unsigned int sleepWin = this->sequence.step [i].timeRatio
-                        * this->totalSleepWin;
+         // Apply it for some time...
+         unsigned int sleepWin = this->sequence.step [i].timeRatio
+                           * this->totalSleepWin;
       
-      // Sleep now !
-      nsleep (sleepWin*1000);
+         // Sleep now !
+         nsleep (sleepWin*1000);
+      }
    }
    // Profiler, remind we leave execution
    this->timeProfiler.evaluate (EXECUTION_SLOT);
