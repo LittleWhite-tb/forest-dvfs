@@ -123,9 +123,10 @@ class DecisionMaker
       /**
        * Executes the sequence of frequency/timeRatio couples in the runtime
        */
-      void executeSequence ();
+      bool executeSequence ();
 
    private:
+      bool newEval;
       unsigned int freqWindowCenter;
       /**
        * The maximum frequency is always evaluated
@@ -143,6 +144,8 @@ class DecisionMaker
        * Threads the handled DVFS unit is holding
        */
       std::vector<Thread*>& thread;
+      // TODO comment
+      std::vector<float> referenceIPC;
 
       /**
        * List of threads active for the current evaluation process

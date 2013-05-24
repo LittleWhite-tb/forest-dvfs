@@ -46,16 +46,22 @@ usage_ (0) {
    // Allocate data
    ipc_ = new float [nbFrequencies_];
    retired.values = new CounterValues [2*nbFrequencies_+1];
+   execRetired.values = new CounterValues;
+
    time = retired.values + nbFrequencies_;
    refCycles.values = time + nbFrequencies_;
 
    // reset the values 
    memset (ipc_, 0, sizeof (*ipc_)*nbFrequencies_);
-   memset (retired.values, 0, sizeof (*retired.values)*(2*nbFrequencies_+1)); 
+   memset (retired.values, 0, sizeof (*retired.values)*(2*nbFrequencies_+1));
+   memset (execRetired.values, 0, sizeof (*execRetired.values));
+   memset (&execTime, 0, sizeof (execTime));
 
    // Open the HW counters file descriptors
    profiler_.open (retired, id_);
    profiler_.open (refCycles, id_);
+
+   execRetired.fd = retired.fd;
 }
 
 Thread::~Thread () {

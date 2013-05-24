@@ -177,10 +177,11 @@ static void *FoRESTthread (void *arg) {
 
    // do it as long as we are not getting killed by a signal
 	while (true) {
+      std::cerr << "New evaluation" << std::endl;
       dm->initEvaluation ();
       dm->evaluateFrequency ();
-      /*bool exec = */dm->computeSequence ();
-      /*if (exec) */dm->executeSequence ();
+      dm->computeSequence ();
+      while (!dm->executeSequence ());
    }
 
 	// pacify compiler but we never get out of while loop

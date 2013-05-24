@@ -47,9 +47,12 @@ namespace FoREST {
 
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
                               Config *cfg, std::vector<Thread*>& thr) :
+   newEval (true),
+   freqWindowCenter (0),
    addedFreqMax (false),
    unit (dvfsUnit),
    thread (thr),
+   referenceIPC (thr.size ()),
    IPC_EVAL_TIME(cfg->getInt("IPC_EVALUATION_TIME")),
    MIN_SLEEP_WIN(cfg->getInt("MIN_SLEEP_WIN")),
    MAX_SLEEP_WIN(cfg->getInt("MAX_SLEEP_WIN")),
@@ -101,14 +104,14 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
    //
    // If this statement is deactivated, it can cause higher energy consumption
    // because of volative high ipc values
-   if (this->addedFreqMax) {
+   /*if (this->addedFreqMax) {
       --endFreq;
       --highestFreq;
-   }
+   }*/
 
    // split frequencies depending on their IPCs
    for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
-        freq != endFreq;
+        freq != this->freqsToEvaluate.end ();
         freq++)
    {
       bool isLower = true, isHigher = true;
@@ -320,7 +323,6 @@ void DecisionMaker::initEvaluation ()
    // Reset the list of frequencies to evaluate
    this->freqsToEvaluate.clear ();
 
-
    // Computing the new freq window
    if (this->lastSequence.step [STEP1].timeRatio
        > this->lastSequence.step [STEP2].timeRatio)
@@ -368,7 +370,7 @@ void DecisionMaker::initEvaluation ()
    }
 
    // time the evaluation for debuging purposes
-   this->timeProfiler.evaluate (EVALUATION_INIT); 
+   //this->timeProfiler.evaluate (EVALUATION_INIT); 
 }
 
 void DecisionMaker::evaluateFrequency () {
@@ -429,7 +431,7 @@ void DecisionMaker::evaluateFrequency () {
    } 
  
    // Evaluate time spent in this evaluation step
-   this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
+   //this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
 
 }
 
@@ -562,27 +564,80 @@ bool DecisionMaker::computeSequence ()
    DLOG (INFO) << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
 	this->oldMaxFreqId = maxRatioFreqId;
 
-   this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
-
+   //this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
+   
    return isSpecial;
 }
 
-void DecisionMaker::executeSequence ()
+bool DecisionMaker::executeSequence ()
 {
+   std::vector<Thread*>::iterator thr;
+   
+   std::cerr << "Execute Sequence" << std::endl;
+
+   // Resets the read of the ipc
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+         (*thr)->resetExec ();
+   }
+   
    // Apply steps
    for (unsigned int i = 0; i < 2; i++) {
-      unsigned int freqId = this->sequence.step [i].freqId;
-      this->unit->setFrequency (freqId);
+      if (this->sequence.step [i].timeRatio > 0) {
+         unsigned int freqId = this->sequence.step [i].freqId;
+         this->unit->setFrequency (freqId);
    
-      // Apply it for some time...
-      unsigned int sleepWin = this->sequence.step [i].timeRatio
-                        * this->totalSleepWin;
-      
-      // Sleep now !
-      nsleep (sleepWin*1000);
+         // Apply it for some time...
+         unsigned int sleepWin = this->sequence.step [i].timeRatio
+                           * this->totalSleepWin;
+     
+         //std::cerr << "sleepWin = " << sleepWin << std::endl;
+         // Sleep now !
+         nsleep (sleepWin*1000);
+      }
    }
+ 
+   // Read all values for each thread
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+      (*thr)->readExec ();
+   }
+
+   // Compute IPCs
+   std::vector<float>::iterator refIPC = this->referenceIPC.begin ();
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+      (*thr)->computeIPCExec ();
+      if (this->newEval) {
+         (*refIPC) = (*thr)->getIPCExec ();
+         refIPC++;
+      }
+   }
+
+   bool ret = this->newEval;
+
+   if (!this->newEval) {
+      //std::cerr << "was no new eval" << std::endl;
+      // Check if it's stable
+      std::vector<float>::iterator refIPC = this->referenceIPC.begin ();
+      for (thr = thread.begin (); thr != thread.end (); thr++) {
+         float min = rest_max (0, (*refIPC) - 0.05);
+         float max = (*refIPC) + 0.05;
+         //std::cerr << "thr #" << (*thr)->getId () << ": ipcExec = " << (*thr)->getIPCExec () << ", min = " << min << ", max = " << max << std::endl;
+         if ((*thr)->getIPCExec () < min
+             || (*thr)->getIPCExec () > max) {
+            this->newEval = ret = true;
+            //std::cerr << "I WAS HERE" << std::endl;
+            break;
+         }
+         refIPC++;
+      }
+   } else {
+      //std::cerr << "Setting new eval to false" << std::endl;
+      this->newEval = false;
+   }
+
    // Profiler, remind we leave execution
-   this->timeProfiler.evaluate (EXECUTION_SLOT);
+   //this->timeProfiler.evaluate (EXECUTION_SLOT);
+   
+   return this->newEval;
 }
 
 } //namespace FoREST

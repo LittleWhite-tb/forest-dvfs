@@ -63,6 +63,10 @@ private:
     */
    CounterValues *time;
 
+   Counter execRetired;
+   CounterValues execTime;
+   float execIPC;
+
    /**
     * Time when the last thread usage computation occured
     */
@@ -125,6 +129,11 @@ public:
       Profiler::readTsc (this->time [frequencyId]);
       return this->profiler_.read (this->retired, frequencyId); 
    }
+
+   bool resetExec () {
+      Profiler::readTsc (this->execTime);
+      return this->profiler_.read (this->execRetired, 0);
+   }
    
    /**
     * Reads HW Counters for a specific frequencyId
@@ -134,6 +143,11 @@ public:
    bool read (unsigned int frequencyId) { 
       Profiler::readTsc (this->time [frequencyId]); 
       return this->profiler_.read (this->retired, frequencyId);
+   }
+
+   bool readExec () {
+      Profiler::readTsc (this->execTime);
+      return this->profiler_.read (this->execRetired, 0);
    }
 
    /**
@@ -229,6 +243,20 @@ public:
       return hwcPanic;
    }
 
+   inline void computeIPCExec () {
+      uint64_t retired = this->execRetired.values [0].current;
+      uint64_t time = this->execTime.current;
+
+      if (time == 0) {
+         LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
+         return;
+      }
+
+      // Computes ipc value
+      float ipc = retired / (1. * time); 
+      this->execIPC = ipc;
+   }
+
    /**
     * Get an IPC for a specific frequency
     *
@@ -238,6 +266,10 @@ public:
     */
    inline float getIPC (unsigned int frequencyId) const{
       return this->ipc_ [frequencyId];
+   }
+
+   inline float getIPCExec () const{
+      return this->execIPC;
    }
 
    /**
