@@ -47,12 +47,12 @@ namespace FoREST {
 
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
                               Config *cfg, std::vector<Thread*>& thr) :
-   newEval (true),
+   newEval (2),
    freqWindowCenter (0),
    addedFreqMax (false),
    unit (dvfsUnit),
    thread (thr),
-   referenceIPC (thr.size ()),
+   referenceL3misses (thr.size ()),
    IPC_EVAL_TIME(cfg->getInt("IPC_EVALUATION_TIME")),
    MIN_SLEEP_WIN(cfg->getInt("MIN_SLEEP_WIN")),
    MAX_SLEEP_WIN(cfg->getInt("MAX_SLEEP_WIN")),
@@ -573,7 +573,7 @@ bool DecisionMaker::executeSequence ()
 {
    std::vector<Thread*>::iterator thr;
    
-   std::cerr << "Execute Sequence" << std::endl;
+   //std::cerr << "Execute Sequence" << std::endl;
 
    // Resets the read of the ipc
    for (thr = thread.begin (); thr != thread.end (); thr++) {
@@ -599,45 +599,45 @@ bool DecisionMaker::executeSequence ()
    // Read all values for each thread
    for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->readExec ();
+      (*thr)->computeL3MissRatio ();
+      //std::cerr << "thr #" << (*thr)->getId () << ": " << (*thr)->getL3missesExec () << std::endl;
    }
 
    // Compute IPCs
-   std::vector<float>::iterator refIPC = this->referenceIPC.begin ();
-   for (thr = thread.begin (); thr != thread.end (); thr++) {
-      (*thr)->computeIPCExec ();
-      if (this->newEval) {
-         (*refIPC) = (*thr)->getIPCExec ();
-         refIPC++;
+   std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
+   for (thr = thread.begin (); thr != thread.end (); thr++) { 
+      if (this->newEval > 0) {
+         (*refL3) = (*thr)->getL3MissRatioExec ();
+         refL3++;
       }
    }
 
-   bool ret = this->newEval;
-
-   if (!this->newEval) {
-      //std::cerr << "was no new eval" << std::endl;
+   if (this->newEval == 0) {
+      std::cerr << "stable" << std::endl;
       // Check if it's stable
-      std::vector<float>::iterator refIPC = this->referenceIPC.begin ();
+      std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
       for (thr = thread.begin (); thr != thread.end (); thr++) {
-         float min = rest_max (0, (*refIPC) - 0.05);
-         float max = (*refIPC) + 0.05;
-         //std::cerr << "thr #" << (*thr)->getId () << ": ipcExec = " << (*thr)->getIPCExec () << ", min = " << min << ", max = " << max << std::endl;
-         if ((*thr)->getIPCExec () < min
-             || (*thr)->getIPCExec () > max) {
-            this->newEval = ret = true;
-            //std::cerr << "I WAS HERE" << std::endl;
+         float min = rest_max (0, (*refL3) - (*refL3) * 0.20);
+         float max = (*refL3) + (*refL3) * 0.20;
+         float current = (*thr)->getL3MissRatioExec ();
+         std::cerr << "current = " << current << ", min = " << min << ", max = " << max << std::endl;
+         if (current < min
+             || current > max) {
+            this->newEval = 2;
+            std::cerr << "BREAK" << std::endl;
             break;
          }
-         refIPC++;
+         refL3++;
       }
    } else {
-      //std::cerr << "Setting new eval to false" << std::endl;
-      this->newEval = false;
+      std::cerr << "newEval close to stable = " << this->newEval << std::endl;
+      this->newEval--;
    }
 
    // Profiler, remind we leave execution
    //this->timeProfiler.evaluate (EXECUTION_SLOT);
    
-   return this->newEval;
+   return this->newEval == 0;
 }
 
 } //namespace FoREST

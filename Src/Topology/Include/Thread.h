@@ -63,9 +63,9 @@ private:
     */
    CounterValues *time;
 
-   Counter execRetired;
+   Counter execL3misses;
    CounterValues execTime;
-   float execIPC;
+   float execL3MissRatio;
 
    /**
     * Time when the last thread usage computation occured
@@ -132,7 +132,7 @@ public:
 
    bool resetExec () {
       Profiler::readTsc (this->execTime);
-      return this->profiler_.read (this->execRetired, 0);
+      return this->profiler_.read (this->execL3misses, 0);
    }
    
    /**
@@ -147,7 +147,7 @@ public:
 
    bool readExec () {
       Profiler::readTsc (this->execTime);
-      return this->profiler_.read (this->execRetired, 0);
+      return this->profiler_.read (this->execL3misses, 0);
    }
 
    /**
@@ -241,21 +241,7 @@ public:
       }
 
       return hwcPanic;
-   }
-
-   inline void computeIPCExec () {
-      uint64_t retired = this->execRetired.values [0].current;
-      uint64_t time = this->execTime.current;
-
-      if (time == 0) {
-         LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
-         return;
-      }
-
-      // Computes ipc value
-      float ipc = retired / (1. * time); 
-      this->execIPC = ipc;
-   }
+   } 
 
    /**
     * Get an IPC for a specific frequency
@@ -268,8 +254,21 @@ public:
       return this->ipc_ [frequencyId];
    }
 
-   inline float getIPCExec () const{
-      return this->execIPC;
+   inline void computeL3MissRatio () {
+      uint64_t l3misses = this->execL3misses.values [0].current;
+      uint64_t time = this->execTime.current;
+
+      if (time == 0) {
+         DLOG (WARNING) << "No time elapsed since last measurement" << std::endl;
+         return;
+      }
+
+      float ratio = l3misses*1000 / (1. * time);
+      this->execL3MissRatio = ratio;
+   }
+
+   inline float getL3MissRatioExec () const{
+      return this->execL3MissRatio;
    }
 
    /**

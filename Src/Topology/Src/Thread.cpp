@@ -42,11 +42,12 @@ usage_ (0) {
    // Initialize the counter structures
    retired.name = "INST_RETIRED:ANY_P";
    refCycles.name = "UNHALTED_REFERENCE_CYCLES";
+   execL3misses.name = "LLC_MISSES";
 
    // Allocate data
    ipc_ = new float [nbFrequencies_];
    retired.values = new CounterValues [2*nbFrequencies_+1];
-   execRetired.values = new CounterValues;
+   execL3misses.values = new CounterValues;
 
    time = retired.values + nbFrequencies_;
    refCycles.values = time + nbFrequencies_;
@@ -54,19 +55,19 @@ usage_ (0) {
    // reset the values 
    memset (ipc_, 0, sizeof (*ipc_)*nbFrequencies_);
    memset (retired.values, 0, sizeof (*retired.values)*(2*nbFrequencies_+1));
-   memset (execRetired.values, 0, sizeof (*execRetired.values));
+   memset (execL3misses.values, 0, sizeof (*execL3misses.values));
    memset (&execTime, 0, sizeof (execTime));
 
    // Open the HW counters file descriptors
    profiler_.open (retired, id_);
    profiler_.open (refCycles, id_);
-
-   execRetired.fd = retired.fd;
+   profiler_.open (execL3misses, id_);
 }
 
 Thread::~Thread () {
    delete [] ipc_;
    delete [] retired.values;
+   delete execL3misses.values;
    profiler_.close (retired);
    profiler_.close (refCycles); 
 }

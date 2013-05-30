@@ -177,7 +177,6 @@ static void *FoRESTthread (void *arg) {
 
    // do it as long as we are not getting killed by a signal
 	while (true) {
-      std::cerr << "New evaluation" << std::endl;
       dm->initEvaluation ();
       dm->evaluateFrequency ();
       dm->computeSequence ();

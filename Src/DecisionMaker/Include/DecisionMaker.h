@@ -126,7 +126,7 @@ class DecisionMaker
       bool executeSequence ();
 
    private:
-      bool newEval;
+      unsigned int newEval;
       unsigned int freqWindowCenter;
       /**
        * The maximum frequency is always evaluated
@@ -145,7 +145,7 @@ class DecisionMaker
        */
       std::vector<Thread*>& thread;
       // TODO comment
-      std::vector<float> referenceIPC;
+      std::vector<float> referenceL3misses;
 
       /**
        * List of threads active for the current evaluation process
