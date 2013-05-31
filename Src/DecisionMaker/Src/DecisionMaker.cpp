@@ -428,11 +428,10 @@ void DecisionMaker::evaluateFrequency () {
    // internally whether or not it should proceed to the update
    for (thr = thread.begin (); thr != thread.end (); thr++) { 
       (*thr)->computeUsage ();
-   } 
+   }
  
    // Evaluate time spent in this evaluation step
    //this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
-
 }
 
 bool DecisionMaker::computeSequence () 
@@ -457,6 +456,8 @@ bool DecisionMaker::computeSequence ()
    }
    this->activeCores.clear ();
    Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
+   std::cerr << "cores = " << this->activeCores.size () << 
+                "threads = " << this->activeThread.size () << std::endl;
 
    // compute max IPC per thread
    for (std::vector<Thread*>::iterator it = this->thread.begin ();
@@ -599,22 +600,38 @@ bool DecisionMaker::executeSequence ()
    // Read all values for each thread
    for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->readExec ();
-      (*thr)->computeL3MissRatio ();
       //std::cerr << "thr #" << (*thr)->getId () << ": " << (*thr)->getL3missesExec () << std::endl;
-   }
+   } 
 
-   // Compute IPCs
-   std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
-   for (thr = thread.begin (); thr != thread.end (); thr++) { 
-      if (this->newEval > 0) {
-         (*refL3) = (*thr)->getL3MissRatioExec ();
-         refL3++;
-      }
-   }
-
+   std::cerr << "you fcking slut" << std::endl;
    if (this->activeCores.size () == 0) {
       return 1;
    }
+   std::cerr << "you fcking bitch" << std::endl;
+
+   
+   if (this->newEval > 0) {
+      std::cerr << " I was even here !! " << std::endl;
+      bool cont = true;
+      for (thr = thread.begin (); thr != thread.end (); thr++) { 
+         if (!(*thr)->hasToComputeRatio ()) {
+            cont = false;
+            break;
+         }
+         std::cerr << "I was here " << std::endl;
+      }
+      if (!cont) {
+         std::cerr << "BREAKCONT" << std::endl;
+         return false;
+      }
+      std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
+      for (thr = thread.begin (); thr != thread.end (); thr++) { 
+         (*thr)->computeL3MissRatio ();
+         (*refL3) = (*thr)->getL3MissRatioExec ();
+         refL3++;
+      }
+   } 
+
 
    if (this->newEval == 0) {
       //std::cerr << "stable" << std::endl;

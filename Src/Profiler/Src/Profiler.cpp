@@ -90,6 +90,7 @@ Profiler::~Profiler ()
 
 bool Profiler::read (Counter& counter, unsigned int frequencyId)
 {
+   std::cerr << "reading " << counter.name << std::endl;
    CounterValues& values = counter.values [frequencyId];
    int res;
 

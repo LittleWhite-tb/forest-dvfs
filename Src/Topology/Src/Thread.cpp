@@ -33,6 +33,8 @@ namespace FoREST {
 
 Thread::Thread (unsigned id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold) :
 id_ (id),
+l3MissesAcc (0),
+l3TotalAcc (0),
 lastUsageComputation (0),
 TIME_THRESHOLD (threshold),
 maxIpc_ (0),
