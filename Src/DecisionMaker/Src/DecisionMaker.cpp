@@ -47,7 +47,7 @@ namespace FoREST {
 
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
                               Config *cfg, std::vector<Thread*>& thr) :
-   newEval (2),
+   newEval (1),
    freqWindowCenter (0),
    addedFreqMax (false),
    unit (dvfsUnit),
@@ -612,25 +612,31 @@ bool DecisionMaker::executeSequence ()
       }
    }
 
+   if (this->activeCores.size () == 0) {
+      return 1;
+   }
+
    if (this->newEval == 0) {
-      std::cerr << "stable" << std::endl;
+      //std::cerr << "stable" << std::endl;
       // Check if it's stable
       std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
+      this->totalSleepWin = rest_min (this->totalSleepWin*2, DecisionMaker::MAX_SLEEP_WIN);
       for (thr = thread.begin (); thr != thread.end (); thr++) {
-         float min = rest_max (0, (*refL3) - (*refL3) * 0.20);
-         float max = (*refL3) + (*refL3) * 0.20;
+         float min = rest_max (0, (*refL3) - 0.20);
+         float max = (*refL3) + 0.20;
          float current = (*thr)->getL3MissRatioExec ();
-         std::cerr << "current = " << current << ", min = " << min << ", max = " << max << std::endl;
-         if (current < min
-             || current > max) {
-            this->newEval = 2;
-            std::cerr << "BREAK" << std::endl;
+         //std::cerr << "freq = " << this->oldMaxFreqId << " current = " << current << ", min = " << min << ", max = " << max << std::endl;
+         if (current > 0.3 && (current < min
+             || current > max)) {
+            this->newEval = 1;
+            //std::cerr << "BREAK" << std::endl;
+            //this->totalSleepWin = DecisionMaker::MIN_SLEEP_WIN;
             break;
          }
          refL3++;
       }
    } else {
-      std::cerr << "newEval close to stable = " << this->newEval << std::endl;
+      //std::cerr << "newEval close to stable = " << this->newEval << std::endl;
       this->newEval--;
    }
 

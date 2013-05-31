@@ -64,6 +64,7 @@ private:
    CounterValues *time;
 
    Counter execL3misses;
+   Counter execL3total;
    CounterValues execTime;
    float execL3MissRatio;
 
@@ -129,12 +130,12 @@ public:
       Profiler::readTsc (this->time [frequencyId]);
       return this->profiler_.read (this->retired, frequencyId); 
    }
-
+ 
    bool resetExec () {
-      Profiler::readTsc (this->execTime);
-      return this->profiler_.read (this->execL3misses, 0);
-   }
-   
+      bool ret = this->profiler_.read (this->execL3total, 0);
+      ret |= this->profiler_.read (this->execL3misses, 0);
+      return ret;
+   } 
    /**
     * Reads HW Counters for a specific frequencyId
     *
@@ -146,8 +147,9 @@ public:
    }
 
    bool readExec () {
-      Profiler::readTsc (this->execTime);
-      return this->profiler_.read (this->execL3misses, 0);
+      bool ret = this->profiler_.read (this->execL3total, 0);
+      ret |= this->profiler_.read (this->execL3misses, 0);
+      return ret;
    }
 
    /**
@@ -256,14 +258,10 @@ public:
 
    inline void computeL3MissRatio () {
       uint64_t l3misses = this->execL3misses.values [0].current;
-      uint64_t time = this->execTime.current;
+      uint64_t l3total = this->execL3total.values [0].current;
 
-      if (time == 0) {
-         DLOG (WARNING) << "No time elapsed since last measurement" << std::endl;
-         return;
-      }
-
-      float ratio = l3misses*1000 / (1. * time);
+      //std::cerr << "l3 misses = " << l3misses << ", l3total = " << l3total << std::endl;
+      float ratio = l3misses /(1. * l3total);
       this->execL3MissRatio = ratio;
    }
 

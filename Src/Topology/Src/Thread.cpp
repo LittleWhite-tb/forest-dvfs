@@ -43,11 +43,13 @@ usage_ (0) {
    retired.name = "INST_RETIRED:ANY_P";
    refCycles.name = "UNHALTED_REFERENCE_CYCLES";
    execL3misses.name = "LLC_MISSES";
+   execL3total.name = "LLC_REFERENCES";
 
    // Allocate data
    ipc_ = new float [nbFrequencies_];
    retired.values = new CounterValues [2*nbFrequencies_+1];
    execL3misses.values = new CounterValues;
+   execL3total.values = new CounterValues;
 
    time = retired.values + nbFrequencies_;
    refCycles.values = time + nbFrequencies_;
@@ -62,12 +64,14 @@ usage_ (0) {
    profiler_.open (retired, id_);
    profiler_.open (refCycles, id_);
    profiler_.open (execL3misses, id_);
+   profiler_.open (execL3total, id_);
 }
 
 Thread::~Thread () {
    delete [] ipc_;
    delete [] retired.values;
    delete execL3misses.values;
+   delete execL3total.values;
    profiler_.close (retired);
    profiler_.close (refCycles); 
 }
