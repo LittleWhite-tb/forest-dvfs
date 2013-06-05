@@ -179,7 +179,6 @@ public:
     * Otherwise the method does nothing
     */
    inline void computeUsage () {
-      std::cerr << "diff = " << this->diff << std::endl;
       if (this->hasToUpdateUsage ()) { // Only updates the usage if necessary
          float res;
 
@@ -192,8 +191,6 @@ public:
          
          // Rationalize the usage if it goes beyond a ratio of 1
          this->usage_ = rest_min (res, 1);
-
-         std::cerr << "usage = " << this->usage_ << "ref = " << ref << ", diff = " << this->diff << std::endl;
 
          // Update lastUpdate to new time reference
          this->lastUsageComputation = rdtsc ();
