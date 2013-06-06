@@ -75,7 +75,9 @@ Thread::~Thread () {
    delete execL3misses.values;
    delete execL3total.values;
    profiler_.close (retired);
-   profiler_.close (refCycles); 
+   profiler_.close (refCycles);
+   profiler_.close (execL3misses);
+   profiler_.close (execL3total);
 }
 
 } // namespace FoREST

@@ -231,6 +231,11 @@ class DecisionMaker
       bool getBestCouple (float d, FreqChunkCouple *bestCouple, float *coupleEnergy, bool *isSpecialCase);
 
       /**
+       * Checks cores and threads that are active
+       * Changes the activeThread and activeCores vectors content
+       */
+      void checkActiveCores ();
+      /**
        * Outputs the frequency in the log file
        */
       void logFrequency (unsigned int freqId) const; 

@@ -422,16 +422,34 @@ void DecisionMaker::evaluateFrequency () {
       //std::cerr << "Thread #" << (*thr)->getId () <<  " ";
       //(*thr)->printIPC ();
    } 
+ 
+   // Evaluate time spent in this evaluation step
+   //this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
+}
 
+void DecisionMaker::checkActiveCores () {
+   std::vector<Thread*>::iterator thr;
+   
    // Updates the usage of each thread
    // NOTE: Not necessarily updates it every time, the object decides
    // internally whether or not it should proceed to the update
    for (thr = thread.begin (); thr != thread.end (); thr++) { 
       (*thr)->computeUsage ();
    }
- 
-   // Evaluate time spent in this evaluation step
-   //this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
+   
+   // active cpus
+   this->activeThread.clear ();
+   for (thr = thread.begin ();
+        thr != thread.end ();
+        thr++)
+   {
+      if ((*thr)->isActive (ACTIVITY_LEVEL))
+      {
+         this->activeThread.insert (*thr);
+      }
+   }
+   this->activeCores.clear ();
+   Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
 }
 
 bool DecisionMaker::computeSequence () 
@@ -443,19 +461,8 @@ bool DecisionMaker::computeSequence ()
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
    bool isSpecial = false, isSpecialCase;
 
-   // active cpus
-   this->activeThread.clear ();
-   for (std::vector<Thread*>::iterator thr = thread.begin ();
-        thr != thread.end ();
-        thr++)
-   {
-      if ((*thr)->isActive (ACTIVITY_LEVEL))
-      {
-         this->activeThread.insert (*thr);
-      }
-   }
-   this->activeCores.clear ();
-   Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
+   // Get active threads / cores
+   this->checkActiveCores ();
 
    // compute max IPC per thread
    for (std::vector<Thread*>::iterator it = this->thread.begin ();
@@ -601,9 +608,12 @@ bool DecisionMaker::executeSequence ()
       //std::cerr << "thr #" << (*thr)->getId () << ": " << (*thr)->getL3missesExec () << std::endl;
    } 
 
-
+   this->checkActiveCores ();
    if (this->activeCores.size () == 0) {
+      //std::cerr << "no active cores" << std::endl;
       return 1;
+   } else {
+      //std::cerr << "# active cores = " << this->activeCores.size () << std::endl;
    }
    
    if (this->newEval > 0) {
@@ -611,35 +621,41 @@ bool DecisionMaker::executeSequence ()
       bool cont = true;
       for (thr = thread.begin (); thr != thread.end (); thr++) { 
          if (!(*thr)->hasToComputeRatio ()) {
+            //std::cerr << "#" << (*thr)->getId() << " no compute ratio" << std::endl;
             cont = false;
             break;
+         } else {
+            //std::cerr << "#" << (*thr)->getId() << "yes compute ratio" << std::endl; 
          }
          //std::cerr << "I was here " << std::endl;
       }
+   
       if (!cont) {
          //std::cerr << "BREAKCONT" << std::endl;
          return false;
       }
+
       std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
       for (thr = thread.begin (); thr != thread.end (); thr++) { 
          (*thr)->computeL3MissRatio ();
          (*refL3) = (*thr)->getL3MissRatioExec ();
+         //std::cerr << "#" << (*thr)->getId() << " ratio = " << (*refL3) << std::endl;
          refL3++;
       }
-   } 
-
+   }
 
    if (this->newEval == 0) {
       //std::cerr << "stable" << std::endl;
       // Check if it's stable
       std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
-      this->totalSleepWin = rest_min (this->totalSleepWin*2, DecisionMaker::MAX_SLEEP_WIN);
+      //this->totalSleepWin = rest_min (this->totalSleepWin*2, DecisionMaker::MAX_SLEEP_WIN);
       for (thr = thread.begin (); thr != thread.end (); thr++) {
-         float min = rest_max (0, (*refL3) - 0.20);
-         float max = (*refL3) + 0.20;
+         float min = rest_max (0, (*refL3) - 0.05);
+         float max = (*refL3) + 0.05;
+         (*thr)->computeL3MissRatio ();
          float current = (*thr)->getL3MissRatioExec ();
          //std::cerr << "freq = " << this->oldMaxFreqId << " current = " << current << ", min = " << min << ", max = " << max << std::endl;
-         if (current > 0.3 && (current < min
+         if ((current < min
              || current > max)) {
             this->newEval = 1;
             //std::cerr << "BREAK" << std::endl;
@@ -656,7 +672,7 @@ bool DecisionMaker::executeSequence ()
    // Profiler, remind we leave execution
    //this->timeProfiler.evaluate (EXECUTION_SLOT);
    
-   return this->newEval == 0;
+   return this->newEval;
 }
 
 } //namespace FoREST

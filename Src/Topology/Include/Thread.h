@@ -152,7 +152,7 @@ public:
       bool ret = this->profiler_.read (this->execL3total, 0);
       ret |= this->profiler_.read (this->execL3misses, 0);
       l3MissesAcc += this->execL3misses.values [0].current;
-      l3TotalAcc += this->execL3misses.values [0].current;
+      l3TotalAcc += this->execL3total.values [0].current;
       return ret;
    }
 
@@ -261,10 +261,10 @@ public:
    }
 
    inline bool hasToComputeRatio () {
-      if (this->l3TotalAcc < 100000 || this->l3MissesAcc < 100000) {
-         return false;
+      if (this->l3TotalAcc > 10000 || this->l3MissesAcc > 10000) {
+         return true;
       }
-      return true;
+      return false;
    }
 
    inline void resetAcc () {
@@ -278,6 +278,7 @@ public:
       //std::cerr << "l3 misses = " << l3misses << ", l3total = " << l3total << std::endl;
       float ratio = l3misses /(1. * l3total);
       this->execL3MissRatio = ratio;
+      resetAcc ();
    }
 
    inline float getL3MissRatioExec () const{
