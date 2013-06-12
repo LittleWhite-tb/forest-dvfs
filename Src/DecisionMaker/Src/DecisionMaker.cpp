@@ -47,7 +47,7 @@ namespace FoREST {
 
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
                               Config *cfg, std::vector<Thread*>& thr) :
-   newEval (1),
+   reevaluate (true),
    freqWindowCenter (0),
    addedFreqMax (false),
    unit (dvfsUnit),
@@ -563,7 +563,7 @@ bool DecisionMaker::computeSequence ()
 
    // Log the new frequency if necessary
 	if (logFrequency) {
-	 this->logFrequency (maxRatioFreqId);	
+      this->logFrequency (maxRatioFreqId);	
 	}
    
    DLOG (INFO) << "totalsleepwin = " << this->totalSleepWin << std::endl;
@@ -578,10 +578,8 @@ bool DecisionMaker::computeSequence ()
 bool DecisionMaker::executeSequence ()
 {
    std::vector<Thread*>::iterator thr;
-   
-   //std::cerr << "Execute Sequence" << std::endl;
 
-   // Resets the read of the ipc
+   // Resets the read of the l3MissRatio
    for (thr = thread.begin (); thr != thread.end (); thr++) {
          (*thr)->resetExec ();
    }
@@ -602,41 +600,36 @@ bool DecisionMaker::executeSequence ()
       }
    }
  
-   // Read all values for each thread
+   // Read all values l3MissRatio for each thread
    for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->readExec ();
-      //std::cerr << "thr #" << (*thr)->getId () << ": " << (*thr)->getL3missesExec () << std::endl;
    } 
 
+   // Is there any active cores ?
    this->checkActiveCores ();
    if (this->activeCores.size () == 0) {
-      //std::cerr << "no active cores" << std::endl;
-      return 1;
-   } else {
-      //std::cerr << "# active cores = " << this->activeCores.size () << std::endl;
+      return true; // If any, skip the stability process
    }
-   
-   if (this->newEval > 0) {
-      //std::cerr << " I was even here !! " << std::endl;
-      bool cont = true;
-      for (thr = thread.begin (); thr != thread.end (); thr++) { 
-         if (!(*thr)->hasToComputeRatio ()) {
-            //std::cerr << "#" << (*thr)->getId() << " no compute ratio" << std::endl;
-            cont = false;
-            break;
-         } else {
-            //std::cerr << "#" << (*thr)->getId() << "yes compute ratio" << std::endl; 
-         }
-         //std::cerr << "I was here " << std::endl;
-      }
-   
-      if (!cont) {
-         //std::cerr << "BREAKCONT" << std::endl;
-         return false;
-      }
 
+   /**
+    * Stability process
+    *
+    * Goal: Reexecute the same frequency decision chosen in the last evaluation
+    * step while there is a stability in some relevant metric.
+    *
+    * In our case, we use the L3missRatio metric to know if we can assume
+    * the decision to be still relevant. If it is, we execute the decision 
+    * again until the metric significantly changes.
+    *
+    * Such mechanism is used to avoid unnecessary evaluation overhead
+    * (especially energy overheead due to useless frequency application
+    * in the evaluation process)
+    */
+   if (this->reevaluate) { // If we have just evaluated something
       std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
       for (thr = thread.begin (); thr != thread.end (); thr++) { 
+         // We take the l3MissRatio as the reference to be compared to in the
+         // next re-executions (if any)
          (*thr)->computeL3MissRatio ();
          (*refL3) = (*thr)->getL3MissRatioExec ();
          //std::cerr << "#" << (*thr)->getId() << " ratio = " << (*refL3) << std::endl;
@@ -644,35 +637,29 @@ bool DecisionMaker::executeSequence ()
       }
    }
 
-   if (this->newEval == 0) {
-      //std::cerr << "stable" << std::endl;
-      // Check if it's stable
+   if (!this->reevaluate) { // If we are in a stable phase (reexecution)
+      // We check if the L3missRatio is stable
       std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
-      //this->totalSleepWin = rest_min (this->totalSleepWin*2, DecisionMaker::MAX_SLEEP_WIN);
+      this->totalSleepWin = rest_min (this->totalSleepWin*2, DecisionMaker::MAX_SLEEP_WIN);
       for (thr = thread.begin (); thr != thread.end (); thr++) {
          float min = rest_max (0, (*refL3) - 0.05);
          float max = (*refL3) + 0.05;
          (*thr)->computeL3MissRatio ();
-         float current = (*thr)->getL3MissRatioExec ();
-         //std::cerr << "freq = " << this->oldMaxFreqId << " current = " << current << ", min = " << min << ", max = " << max << std::endl;
-         if ((current < min
-             || current > max)) {
-            this->newEval = 1;
-            //std::cerr << "BREAK" << std::endl;
-            //this->totalSleepWin = DecisionMaker::MIN_SLEEP_WIN;
+         float current = (*thr)->getL3MissRatioExec (); 
+         if ((current < min || current > max)) {
+            this->reevaluate = true; // Break and back to evaluation
             break;
          }
          refL3++;
       }
    } else {
-      //std::cerr << "newEval close to stable = " << this->newEval << std::endl;
-      this->newEval--;
+      this->reevaluate = false;
    }
 
    // Profiler, remind we leave execution
    //this->timeProfiler.evaluate (EXECUTION_SLOT);
    
-   return this->newEval;
+   return this->reevaluate;
 }
 
 } //namespace FoREST
