@@ -33,6 +33,8 @@ namespace FoREST {
 
 Thread::Thread (unsigned id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold) :
 id_ (id),
+l3MissesAcc (0),
+l3TotalAcc (0),
 lastUsageComputation (0),
 TIME_THRESHOLD (threshold),
 maxIpc_ (0),
@@ -42,27 +44,40 @@ usage_ (0) {
    // Initialize the counter structures
    retired.name = "INST_RETIRED:ANY_P";
    refCycles.name = "UNHALTED_REFERENCE_CYCLES";
+   execL3misses.name = "LLC_MISSES";
+   execL3total.name = "LLC_REFERENCES";
 
    // Allocate data
    ipc_ = new float [nbFrequencies_];
    retired.values = new CounterValues [2*nbFrequencies_+1];
+   execL3misses.values = new CounterValues;
+   execL3total.values = new CounterValues;
+
    time = retired.values + nbFrequencies_;
    refCycles.values = time + nbFrequencies_;
 
    // reset the values 
    memset (ipc_, 0, sizeof (*ipc_)*nbFrequencies_);
-   memset (retired.values, 0, sizeof (*retired.values)*(2*nbFrequencies_+1)); 
+   memset (retired.values, 0, sizeof (*retired.values)*(2*nbFrequencies_+1));
+   memset (execL3misses.values, 0, sizeof (*execL3misses.values));
+   memset (&execTime, 0, sizeof (execTime));
 
    // Open the HW counters file descriptors
    profiler_.open (retired, id_);
    profiler_.open (refCycles, id_);
+   profiler_.open (execL3misses, id_);
+   profiler_.open (execL3total, id_);
 }
 
 Thread::~Thread () {
    delete [] ipc_;
    delete [] retired.values;
+   delete execL3misses.values;
+   delete execL3total.values;
    profiler_.close (retired);
-   profiler_.close (refCycles); 
+   profiler_.close (refCycles);
+   profiler_.close (execL3misses);
+   profiler_.close (execL3total);
 }
 
 } // namespace FoREST

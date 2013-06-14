@@ -179,8 +179,9 @@ static void *FoRESTthread (void *arg) {
 	while (true) {
       dm->initEvaluation ();
       dm->evaluateFrequency ();
-      /*bool exec = */dm->computeSequence ();
-      /*if (exec) */dm->executeSequence ();
+      dm->computeSequence ();
+      // While some metric is stable, keep executing the last decision sequence
+      while (dm->executeSequence ());
    }
 
 	// pacify compiler but we never get out of while loop

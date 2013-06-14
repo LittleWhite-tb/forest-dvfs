@@ -105,7 +105,8 @@ class DecisionMaker
        * Call iteratively the getHWExploitationRatio method to evaluate each
        * frequency in the window computed before
        *
-       * @return The decision corresponding to the next frequency to be evaluated (or a zeroDecision if it was the last frequency)
+       * @return The decision corresponding to the next frequency to be
+       * evaluated (or a zeroDecision if it was the last frequency)
        */
       void evaluateFrequency ();
 
@@ -123,9 +124,19 @@ class DecisionMaker
       /**
        * Executes the sequence of frequency/timeRatio couples in the runtime
        */
-      void executeSequence ();
+      bool executeSequence ();
 
    private:
+      /**
+       * Value stating whether the last evaluation decision is still relevant
+       * to apply
+       */
+      bool reevaluate;
+      
+      /**
+       * Center of the frequency window that is being evaluated in the
+       * evaluation step
+       */
       unsigned int freqWindowCenter;
       /**
        * The maximum frequency is always evaluated
@@ -143,6 +154,12 @@ class DecisionMaker
        * Threads the handled DVFS unit is holding
        */
       std::vector<Thread*>& thread;
+      
+      /**
+       * Vector storing l3MissRatio reference values to check whether
+       * the execution is in a stable phase
+       */
+      std::vector<float> referenceL3misses;
 
       /**
        * List of threads active for the current evaluation process
@@ -227,6 +244,11 @@ class DecisionMaker
        */
       bool getBestCouple (float d, FreqChunkCouple *bestCouple, float *coupleEnergy, bool *isSpecialCase);
 
+      /**
+       * Checks cores and threads that are active
+       * Changes the activeThread and activeCores vectors content
+       */
+      void checkActiveCores ();
       /**
        * Outputs the frequency in the log file
        */

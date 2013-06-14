@@ -47,9 +47,12 @@ namespace FoREST {
 
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
                               Config *cfg, std::vector<Thread*>& thr) :
+   reevaluate (true),
+   freqWindowCenter (0),
    addedFreqMax (false),
    unit (dvfsUnit),
    thread (thr),
+   referenceL3misses (thr.size ()),
    IPC_EVAL_TIME(cfg->getInt("IPC_EVALUATION_TIME")),
    MIN_SLEEP_WIN(cfg->getInt("MIN_SLEEP_WIN")),
    MAX_SLEEP_WIN(cfg->getInt("MAX_SLEEP_WIN")),
@@ -368,7 +371,7 @@ void DecisionMaker::initEvaluation ()
    }
 
    // time the evaluation for debuging purposes
-   this->timeProfiler.evaluate (EVALUATION_INIT); 
+   //this->timeProfiler.evaluate (EVALUATION_INIT); 
 }
 
 void DecisionMaker::evaluateFrequency () {
@@ -420,17 +423,34 @@ void DecisionMaker::evaluateFrequency () {
       //std::cerr << "Thread #" << (*thr)->getId () <<  " ";
       //(*thr)->printIPC ();
    } 
+ 
+   // Evaluate time spent in this evaluation step
+   //this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
+}
 
+void DecisionMaker::checkActiveCores () {
+   std::vector<Thread*>::iterator thr;
+   
    // Updates the usage of each thread
    // NOTE: Not necessarily updates it every time, the object decides
    // internally whether or not it should proceed to the update
    for (thr = thread.begin (); thr != thread.end (); thr++) { 
       (*thr)->computeUsage ();
-   } 
- 
-   // Evaluate time spent in this evaluation step
-   this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
-
+   }
+   
+   // active cpus
+   this->activeThread.clear ();
+   for (thr = thread.begin ();
+        thr != thread.end ();
+        thr++)
+   {
+      if ((*thr)->isActive (ACTIVITY_LEVEL))
+      {
+         this->activeThread.insert (*thr);
+      }
+   }
+   this->activeCores.clear ();
+   Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
 }
 
 bool DecisionMaker::computeSequence () 
@@ -442,19 +462,8 @@ bool DecisionMaker::computeSequence ()
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
    bool isSpecial = false, isSpecialCase;
 
-   // active cpus
-   this->activeThread.clear ();
-   for (std::vector<Thread*>::iterator thr = thread.begin ();
-        thr != thread.end ();
-        thr++)
-   {
-      if ((*thr)->isActive (ACTIVITY_LEVEL))
-      {
-         this->activeThread.insert (*thr);
-      }
-   }
-   this->activeCores.clear ();
-   Topology::threadIdsToCoreIds (this->activeThread, this->activeCores);
+   // Get active threads / cores
+   this->checkActiveCores ();
 
    // compute max IPC per thread
    for (std::vector<Thread*>::iterator it = this->thread.begin ();
@@ -555,20 +564,27 @@ bool DecisionMaker::computeSequence ()
 
    // Log the new frequency if necessary
 	if (logFrequency) {
-	 this->logFrequency (maxRatioFreqId);	
+      this->logFrequency (maxRatioFreqId);	
 	}
    
    DLOG (INFO) << "totalsleepwin = " << this->totalSleepWin << std::endl;
    DLOG (INFO) << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
 	this->oldMaxFreqId = maxRatioFreqId;
 
-   this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
-
+   //this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
+   
    return isSpecial;
 }
 
-void DecisionMaker::executeSequence ()
+bool DecisionMaker::executeSequence ()
 {
+   std::vector<Thread*>::iterator thr;
+
+   // Resets the read of the l3MissRatio
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+         (*thr)->resetExec ();
+   }
+   
    // Apply steps
    for (unsigned int i = 0; i < 2; i++) {
       if (this->sequence.step [i].timeRatio > 0) {
@@ -578,13 +594,73 @@ void DecisionMaker::executeSequence ()
          // Apply it for some time...
          unsigned int sleepWin = this->sequence.step [i].timeRatio
                            * this->totalSleepWin;
-      
+     
+         //std::cerr << "sleepWin = " << sleepWin << std::endl;
          // Sleep now !
          nsleep (sleepWin*1000);
       }
    }
+ 
+   // Read all values l3MissRatio for each thread
+   for (thr = thread.begin (); thr != thread.end (); thr++) {
+      (*thr)->readExec ();
+   } 
+
+   // Is there any active cores ?
+   this->checkActiveCores ();
+   if (this->activeCores.size () == 0) {
+      return true; // If any, skip the stability process
+   }
+
+   /**
+    * Stability process
+    *
+    * Goal: Reexecute the same frequency decision chosen in the last evaluation
+    * step while there is a stability in some relevant metric.
+    *
+    * In our case, we use the L3missRatio metric to know if we can assume
+    * the decision to be still relevant. If it is, we execute the decision 
+    * again until the metric significantly changes.
+    *
+    * Such mechanism is used to avoid unnecessary evaluation overhead
+    * (especially energy overheead due to useless frequency application
+    * in the evaluation process)
+    */
+   if (this->reevaluate) { // If we have just evaluated something
+      std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
+      for (thr = thread.begin (); thr != thread.end (); thr++) { 
+         // We take the l3MissRatio as the reference to be compared to in the
+         // next re-executions (if any)
+         (*thr)->computeL3MissRatio ();
+         (*refL3) = (*thr)->getL3MissRatioExec ();
+         //std::cerr << "#" << (*thr)->getId() << " ratio = " << (*refL3) << std::endl;
+         refL3++;
+      }
+   }
+
+   if (!this->reevaluate) { // If we are in a stable phase (reexecution)
+      // We check if the L3missRatio is stable
+      std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
+      this->totalSleepWin = rest_min (this->totalSleepWin*2, DecisionMaker::MAX_SLEEP_WIN);
+      for (thr = thread.begin (); thr != thread.end (); thr++) {
+         float min = rest_max (0, (*refL3) - 0.05);
+         float max = (*refL3) + 0.05;
+         (*thr)->computeL3MissRatio ();
+         float current = (*thr)->getL3MissRatioExec (); 
+         if ((current < min || current > max)) {
+            this->reevaluate = true; // Break and back to evaluation
+            break;
+         }
+         refL3++;
+      }
+   } else {
+      this->reevaluate = false;
+   }
+
    // Profiler, remind we leave execution
-   this->timeProfiler.evaluate (EXECUTION_SLOT);
+   //this->timeProfiler.evaluate (EXECUTION_SLOT);
+   
+   return this->reevaluate;
 }
 
 } //namespace FoREST

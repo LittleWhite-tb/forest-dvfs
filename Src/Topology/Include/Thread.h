@@ -63,6 +63,13 @@ private:
     */
    CounterValues *time;
 
+   Counter execL3misses;
+   Counter execL3total;
+   CounterValues execTime;
+   float execL3MissRatio;
+   uint64_t l3MissesAcc;
+   uint64_t l3TotalAcc;
+
    /**
     * Time when the last thread usage computation occured
     */
@@ -125,7 +132,12 @@ public:
       Profiler::readTsc (this->time [frequencyId]);
       return this->profiler_.read (this->retired, frequencyId); 
    }
-   
+ 
+   bool resetExec () {
+      bool ret = this->profiler_.read (this->execL3total, 0);
+      ret |= this->profiler_.read (this->execL3misses, 0);
+      return ret;
+   } 
    /**
     * Reads HW Counters for a specific frequencyId
     *
@@ -134,6 +146,14 @@ public:
    bool read (unsigned int frequencyId) { 
       Profiler::readTsc (this->time [frequencyId]); 
       return this->profiler_.read (this->retired, frequencyId);
+   }
+
+   bool readExec () {
+      bool ret = this->profiler_.read (this->execL3total, 0);
+      ret |= this->profiler_.read (this->execL3misses, 0);
+      l3MissesAcc += this->execL3misses.values [0].current;
+      l3TotalAcc += this->execL3total.values [0].current;
+      return ret;
    }
 
    /**
@@ -227,7 +247,7 @@ public:
       }
 
       return hwcPanic;
-   }
+   } 
 
    /**
     * Get an IPC for a specific frequency
@@ -238,6 +258,31 @@ public:
     */
    inline float getIPC (unsigned int frequencyId) const{
       return this->ipc_ [frequencyId];
+   }
+
+   inline bool hasToComputeRatio () {
+      if (this->l3TotalAcc > 10000 || this->l3MissesAcc > 10000) {
+         return true;
+      }
+      return false;
+   }
+
+   inline void resetAcc () {
+      l3TotalAcc = l3MissesAcc = 0;
+   }
+
+   inline void computeL3MissRatio () {
+      uint64_t l3misses = this->l3MissesAcc;
+      uint64_t l3total = this->l3TotalAcc;
+
+      //std::cerr << "l3 misses = " << l3misses << ", l3total = " << l3total << std::endl;
+      float ratio = l3misses /(1. * l3total);
+      this->execL3MissRatio = ratio;
+      resetAcc ();
+   }
+
+   inline float getL3MissRatioExec () const{
+      return this->execL3MissRatio;
    }
 
    /**
