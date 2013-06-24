@@ -210,7 +210,7 @@ class DVFSUnit
       /**
        * File where to write to set the frequency.
        */
-      std::vector<std::ofstream*> freqFs;
+      std::vector<std::fstream*> freqFs;
 
       /**
        * Latency imposed to switch the frequency (nanoseconds).
@@ -230,9 +230,15 @@ class DVFSUnit
       /**
        * Initializes the given CPUs to begin controlling them.
        *
-       * @param cpuIds The CPUs to control.
+       * @param threadId the id of the thread to take control of
        */
-      void takeControl (const Thread *thread);
+      void takeControl (unsigned int threadId);
+
+      /**
+       * Put back previous values in the given CPU to hand over to
+       * previous DVFS controller
+       */
+      void handOver (unsigned int threadId);
 };
 
 } //namespace FoREST

@@ -27,8 +27,7 @@
 
 #include "Mode.h"
 #include "DVFSUnit.h"
-#include "DataFileReader.h"
-#include "PathBuilder.h"
+#include "FileUtils.h"
 
 #include "glog/logging.h"
 
@@ -89,9 +88,15 @@ class Topology
          if (it == Topology::threadToCore.end ())
          {
             unsigned int pkgId;
-            DataFileReader reader (PathBuilder<PT_TOPOLOGY_CORE_ID,PathCache>::buildPath (thId));
+            std::vector<std::string> filenames;
+            std::fstream ifs;
+            std::ostringstream oss;
+            oss << "/sys/devices/system/cpu/cpu" << thId << "/topology/core_id";
+            filenames.push_back (oss.str ());
 
-            if (!reader.isOpen () || !reader.read (pkgId))
+            FileUtils::tryToOpen (filenames, ifs, std::fstream::in);
+
+            if (!(ifs >> pkgId))
             {
                LOG (FATAL) << "Cannot detect which core owns the thread "
                   << thId << std::endl;

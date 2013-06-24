@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Config.h"
-#include "Common.h"
-#include "DataFileReader.h"
-#include "glog/logging.h"
-
 #include <string>
+#include <fstream>
 #include <vector>
 
+#include "Config.h"
+#include "Common.h"
+#include "glog/logging.h"
+#include "FileUtils.h"
 
 Config::Config()
 {
@@ -39,15 +39,14 @@ Config::~Config()
 
 void Config::loadValues()
 {
-   DataFileReader fd("config.cfg");
+   std::vector<std::string> filenames;
+   std::fstream fs;
+   filenames.push_back ("config.cfg");
 
-   if (!fd.isOpen())
-   {
-      LOG(FATAL) << "Configuration file not found." << std::endl;
-   }
+   FileUtils::tryToOpen (filenames, fs, std::fstream::in);
 
    std::vector<std::string> ln;
-   while (fd.readLine(ln))
+   while (FileUtils::readLine(ln, fs))
    {
       // ignore empty lines
       if (ln.size() == 0)
@@ -83,5 +82,7 @@ void Config::loadValues()
 
       ln.clear();
    }
+
+   fs.close ();
 }
 

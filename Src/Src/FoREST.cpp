@@ -181,7 +181,7 @@ static void *FoRESTthread (void *arg) {
       dm->evaluateFrequency ();
       dm->computeSequence ();
       // While some metric is stable, keep executing the last decision sequence
-      while (dm->executeSequence ());
+      while (dm->executeSequence ()) {}
    }
 
 	// pacify compiler but we never get out of while loop

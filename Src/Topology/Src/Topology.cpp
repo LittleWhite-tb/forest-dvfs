@@ -30,8 +30,9 @@
 #include <set>
 
 #include "Topology.h"
-#include "PathBuilder.h"
 #include "Common.h"
+#include "FileUtils.h"
+#include "glog/logging.h"
 
 namespace FoREST {
 
@@ -90,13 +91,21 @@ Topology::~Topology ()
 
 void Topology::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &related) const{
    unsigned int val;
+   std::vector<std::string> filenames;
+   std::fstream ifs;
+   std::ostringstream folder;
 
-   DataFileReader reader (PathBuilder<PT_CPUINFO_RELATED_CPU,PathCache>::buildPath (cpuId));
+   folder << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/";
+   filenames.push_back (folder.str () + "domain_cpus");
+   filenames.push_back (folder.str () + "related_cpus");
 
-   while (reader.isOpen () && reader.read (val))
-   {
+   FileUtils::tryToOpen (filenames, ifs, std::fstream::in);
+
+   while (ifs >> val) {
       related.insert (val);
    }
+
+   ifs.close ();
 }
 
 } // namespace FoREST
