@@ -12,13 +12,13 @@ Dependencies :
 
 Compilation :
 
-    make
+    make [debug|release]
 
 Note that make will run the offline screen to determine the impact of frequency transition on power consumption. The script can take several minutes to run.
 
 Usage :
 
-    ./localRest powersave|energy
+    ./FoREST [performance|energy]
 
 Licence :
     GPLv3

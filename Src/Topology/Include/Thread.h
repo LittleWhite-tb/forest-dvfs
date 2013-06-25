@@ -320,7 +320,7 @@ public:
     * This function MUST be called after the IPC has been computed
     */
    inline void computeMaxIPC () {
-      this->maxIpc_ = this->ipc_ [0];
+      this->maxIpc_ = 0;
       for (unsigned int i = 1; i < this->nbFrequencies_; i++) {
          if (this->ipc_ [this->maxIpc_] < this->ipc_ [i]) {
             this->maxIpc_ = i;
