@@ -96,7 +96,7 @@ void Topology::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &rela
    std::ostringstream folder;
 
    folder << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/";
-   filenames.push_back (folder.str () + "domain_cpus");
+   filenames.push_back (folder.str () + "freqdomain_cpus");
    filenames.push_back (folder.str () + "related_cpus");
 
    FileUtils::tryToOpen (filenames, ifs, std::fstream::in);
