@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- encoding: utf8 -*-
+
 
 #
 # FoREST - Reactive DVFS Control for Multicore Processors
@@ -22,70 +22,61 @@
 import subprocess as sp, multiprocessing as mp, sys
 import os
 
-"""
-The power consumption of a CPU is C * f * V² = W
-C depends on the program
-considering the consumption of a program at two frequencies f1 and f2 (W1 and W2), W1/W2 = f1*V1²/f2*V2² (<- program independant!!!)
-The execution time of the program under the two frequencies is t1 and t2
-t1/t2 * W1/W2 = e1/e2 (e1 and e2 are energy consumption for both frequencies)
-Note the minimal value for t1/t2 is (1/f1)/(1/f2)
-if the program as the lowest possible value for t1/t2 (i.e. it is purely CPU bound), then the ratio e1/e2 is minimal
-and all programs have higher ratios
-now if e1/e2 for this program is > 1, then all programs have e1/e2 > 1, meaning that they will never save energy when going into f1 compared to f2
-
-This concept is exploited here to evaluate the usefulness of all frequencies. A CPU bound benchmark is used to estimate the minimal t1/t2 as
-some frequencies such as TurboBoost lie on the frequency declared to the OS. Different number of active cores are tested as this number of active core can
-impact the actual frequency applied by TurboBoost.
-"""
-
 LPP_PATH="./lPowerProbe/"
 RESULT_FILE="/tmp/output.csv"
+LIBS=LPP_PATH + "/probes/mic_energy/mic_energy.so;" + LPP_PATH + "/probes/wallclock/wallclock.so"
 
 #----------------------------------
 
 def runBench (nr, cores):
-    '''
-    Returns the power and execution time for the benchmark.
-    Returns None in case of measurement error. Otherwise result is a couple
-    (time_in_ms, cpu_power_in_W)
+   '''
+   Returns the power and execution time for the benchmark.
+   Returns None in case of measurement error. Otherwise result is a couple
+   (time_in_ms, cpu_power_in_W)
 
-    nr is the number of iterations to use
-    cores is the id of the cores on whitch the test must be replicated
-    '''
+   nr is the number of iterations to use
+   cores is the id of the cores on whitch the test must be replicated
+   '''
 
-    taskMask = ";".join([str(c) for c in cores])
+   taskMask = ";".join([str(c) for c in cores])
 
-    cmd = LPP_PATH + 'lPowerProbe -r 5 -d ' + str(len(cores)) + ' -p "' + taskMask + '" -o ' + RESULT_FILE + ' ./add ' + str(nr)
-    # print cmd
-    ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
-    ex.communicate()[0]
+   cmd = LPP_PATH + 'lPowerProbe -r 5 -d ' + str(len(cores)) + ' -p "' + taskMask \
+     + '" -o ' + RESULT_FILE + ' -l "' + LIBS + '" ./add ' + str(nr)
+   #print cmd
+   ex = sp.Popen(cmd, shell=True, stderr=sp.STDOUT, stdout=sp.PIPE)
+   output = ex.communicate()[0]
+  
 
-    if ex.returncode != 0:
+   if ex.returncode != 0:
+      print output 
+      print "An error occured while launching benchmark"
       sys.exit (0)
 
-    try:
+   try:
       fd = open(RESULT_FILE)
-    except IOError as e:
+   except IOError as e:
       sys.stderr.write ("Error: Cannot launch lPowerProbe.\n- Is it cloned at the base of your nfs directory ?\n")
       sys.stderr.write ("- Are you connected to the local network ?\n- Did you modprobe msr and chmod it properly ?\n- Did you chmod cpufreq folder correctly ?\n- Did you echo -1 in the event_paranoid file ?\n- Are you running a SandyBridge or more recent architecture ?\n")
       sys.exit (0)
 
-    data = []
-    for ln in fd.readlines()[1:]: 
+   data = []
+   for ln in fd.readlines()[1:]: 
       ln = ln.split(";")
+      #print ln
 
       # error in data file
       if len(ln) > 7:
-          return None
+         print "ERROR"
+         return None
 
       # Data format: {ms, Watts}, ml output: {J, us}
       data.append((float(ln[1]) / 1e3, float(ln[0]) / float (ln [1]) * 1e6))
-    fd.close()
-    data.sort()
-    
-    os.remove(RESULT_FILE)
+   fd.close()
+   data.sort()
+   
+   os.remove(RESULT_FILE)
 
-    return data[len(data) / 2]
+   return data[len(data) / 2]
 
 #----------------------------------
 
@@ -151,8 +142,17 @@ def getPhysicalCores (cpuid):
       fd = open ("/sys/devices/system/cpu/cpu" + str (c) + "/topology/thread_siblings_list")
       data = fd.read ()
       fd.close()
-      data = data.split (",")
       physicalCores.append(int(data[0]))
+      data = data.split (",")
+      myList = []
+      for d in data:
+         minMax = d.split ("-")
+         if len (minMax) > 1:
+            for i in range (int (minMax [0]), int (minMax [1])):
+               myList.append (i)
+         else:
+            myList.append (minMax [0])
+      physicalCores.append(int(myList[0]))
 
    physicalCores = list(set(physicalCores))
    physicalCores.sort()
@@ -229,7 +229,7 @@ if len (sys.argv) != 2:
    print sys.argv[0] + " {cpuid}"
    sys.exit (0)
 
-if not os.path.exists("/dev/cpu/0/msr"):
+if not os.path.exists("/dev/cpu/0/msr") and not os.path.exists("/dev/msr0"):
    print "MSR is not available on your machine. Please install it and start it with modprobe"
    sys.exit (0)
    
@@ -270,7 +270,7 @@ if len(freqs) == 1:
       print "WARNING: Config file written in /tmp"
       fd = open ("/tmp/" + configFile, 'w') #At this point, I can't do more, it's failing hard
    fd.write (str (freqs [0]) + "\n")
-   for i in cores:
+   for i in range (len (cores)):
       fd.write ("0\n")
    fd.close ()
    sys.exit(0)
@@ -336,7 +336,7 @@ for i in range(len(freqs)):
       deleteFreq = True
 
       if freqs [i] > freqs [l]:
-         for k in cores:
+         for k in range ( len (cores)):
             if res [l][k][1] / res [i][k][1] < 1.05:
                deleteFreq = False
                break
@@ -344,7 +344,7 @@ for i in range(len(freqs)):
          if deleteFreq:
             freqsToDelete [l] = True
       else:
-         for k in cores:
+         for k in range (len (cores)):
             # for turboboost, use actual execution times
             if hasTB() and i == len(freqs) - 1 or l == len(freqs) - 1:
                if (res[l][k][0] * res[l][k][1]) / (res[i][k][0] * res[i][k][1]) < 1.05:
@@ -372,7 +372,7 @@ for i in range(len(freqs)):
    fdPerf.write (str (freqs [i]) + " ")
 fdPerf.write ("\n")
 
-for i in cores:
+for i in range (len (cores)):
    for j in range(len(freqs)):
       fdPerf.write (str (res [j][i][1]) + " ")
    fdPerf.write ("\n")

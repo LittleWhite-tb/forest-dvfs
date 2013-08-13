@@ -28,6 +28,7 @@
 #include "Mode.h"
 #include "DVFSUnit.h"
 #include "FileUtils.h"
+#include "ThreadArch.h"
 
 #include "glog/logging.h"
 
@@ -116,10 +117,10 @@ class Topology
        * @param coreIds Ouput parameter, filled with the list of cores to which
        *  the threads are associated.
        */
-      static void threadIdsToCoreIds (const std::set<Thread*> &thIds,
+      static void threadIdsToCoreIds (const std::set<THREADCLASS*> &thIds,
                                      std::set<unsigned int> &coreIds)
       {
-         for (std::set<Thread*>::const_iterator it = thIds.begin ();
+         for (std::set<THREADCLASS*>::const_iterator it = thIds.begin ();
               it != thIds.end ();
               it++)
          {

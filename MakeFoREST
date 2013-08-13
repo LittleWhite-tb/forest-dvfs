@@ -1,0 +1,88 @@
+#
+# FoREST - Reactive DVFS Control for Multicore Processors
+# Copyright (C) 2013 Universite de Versailles
+# Copyright (C) 2011-2012 Exascale Research Center
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+LD=$(CXX)
+LDFLAGS=-lpthread -lrt
+
+LIBPFM_VER=4.4.0
+LIBPFM_FOLDER=libpfm-$(LIBPFM_VER)
+LIBPFM_BIN=$(LIBPFM_FOLDER)/lib/libpfm.a
+LIBPFM_INC=$(LIBPFM_FOLDER)/include/
+
+GLOG_VER=0.3.3
+GLOG_FOLDER=glog-$(GLOG_VER)
+GLOG_MAKEFILE=$(GLOG_FOLDER)/Makefile
+GLOG_BIN=$(GLOG_FOLDER)/.libs/libglog.a
+GLOG_INC=$(GLOG_FOLDER)/src
+
+LOCAL_HDR=$(shell find Src/ -type f -name '*.h')
+LOCAL_SRC=$(shell find Src/ -type f -name '*.cpp')
+LOCAL_OBJ_RELEASE=$(addprefix obj/, $(patsubst %.cpp, %.o, $(LOCAL_SRC)))
+LOCAL_OBJ_DEBUG=$(addprefix obj/, $(patsubst %.cpp, %_debug.o, $(LOCAL_SRC)))
+LOCAL_INC_FLAG=$(addprefix -I, $(dir $(LOCAL_HDR)))
+
+ALL_OBJ=$(LOCAL_OBJ)
+ALL_INC_FLAGS=$(LOCAL_INC_FLAG) -I$(LIBPFM_INC) -I$(GLOG_INC)
+
+.PHONY: check-arch offline clean distclean distclean $(GLOG_BIN)
+
+# Offline Rules
+offline: offline/add.c
+	@$(MAKE) -C offline CXX="$(CC)"
+
+offline-run:
+	$(MAKE) -C offline run
+
+# FoREST files Rules
+obj/%_debug.o: %.cpp obj/%.d
+	$(CXX) $(MCXXFLAGS) $(ALL_INC_FLAGS) -c $< -o $@
+
+obj/%.o: %.cpp obj/%.d
+	$(CXX) $(MCXXFLAGS) $(ALL_INC_FLAGS) -c $< -o $@
+
+# build glog headers before searching for deps
+obj/%.d: %.cpp $(GLOG_MAKEFILE)
+	mkdir -p $(@D)
+	$(CXX) -MM $(MCXXFLAGS) $(ALL_INC_FLAGS) $< > $@ #2> /dev/null
+
+release: $(LIBPFM_BIN) $(GLOG_BIN) $(LOCAL_OBJ_RELEASE) 
+	$(LD) $(MCXXFLAGS) $^ $(LDFLAGS) $(LIBPFM_BIN) $(GLOG_BIN) -o FoREST
+
+debug: $(LIBPFM_BIN) $(GLOG_BIN) $(LOCAL_OBJ_DEBUG) 
+	$(LD) $(MCXXFLAGS) $^ $(LDFLAGS) $(LIBPFM_BIN) $(GLOG_BIN) -o FoREST
+
+$(LIBPFM_BIN):
+	@$(MAKE) -C $(LIBPFM_FOLDER) CC="$(CC)"
+
+$(GLOG_BIN):
+	@cd $(GLOG_FOLDER); ./configure $(GLOG_CONFIGURE)	
+	@$(MAKE) -C $(GLOG_FOLDER) CXX="$(CXX)"
+
+clean:
+	@rm -rf obj FoREST
+	@$(MAKE) -C ./offline/lPowerProbe/ clean
+	@$(MAKE) -C ./offline clean
+
+distclean: clean
+	$(MAKE) -C $(LIBPFM_FOLDER) distclean
+	$(MAKE) -C $(GLOG_FOLDER) distclean
+
+
+-include $(patsubst %.o, %.d, $(ALL_OBJ))
+
+

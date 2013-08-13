@@ -35,7 +35,7 @@
 #include "Common.h"
 #include "Topology.h"
 #include "FreqSelector.h"
-#include "Thread.h"
+#include "ThreadArch.h"
 #include "Logger.h"
 
 #ifdef REST_LOG
@@ -46,7 +46,7 @@
 namespace FoREST {
 
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
-                              Config *cfg, std::vector<Thread*>& thr) :
+                              Config *cfg, std::vector<THREADCLASS*>& thr) :
    reevaluate (true),
    freqWindowCenter (0),
    addedFreqMax (false),
@@ -118,7 +118,7 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
       DLOG(INFO) << "Freq " << *freq << std::endl;
 
       // For each active thread
-      for (std::set<Thread*>::iterator thread = this->activeThread.begin ();
+      for (std::set<THREADCLASS*>::iterator thread = this->activeThread.begin ();
            thread != this->activeThread.end ();
            thread++)
       {
@@ -171,7 +171,7 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
 
       e_ratios [*freq] = 0;
 
-      for (std::set<Thread*>::iterator thr = this->activeThread.begin ();
+      for (std::set<THREADCLASS*>::iterator thr = this->activeThread.begin ();
            thr != this->activeThread.end ();
            thr++)
       {
@@ -248,7 +248,7 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
          // apply the highest frequency as much as possible, find the smallest
          // time ratio for the smallest freq
          float minRatio = 2;
-         for (std::set<Thread*>::iterator thread = this->activeThread.begin ();
+         for (std::set<THREADCLASS*>::iterator thread = this->activeThread.begin ();
               thread != this->activeThread.end ();
               thread++)
          {
@@ -318,7 +318,7 @@ void DecisionMaker::logFrequency (unsigned int freqId) const
 void DecisionMaker::initEvaluation ()
 {
    this->addedFreqMax = false;
-   std::vector<Thread*>::iterator thr;
+   std::vector<THREADCLASS*>::iterator thr;
 
    // Reset the list of frequencies to evaluate
    this->freqsToEvaluate.clear ();
@@ -376,7 +376,7 @@ void DecisionMaker::initEvaluation ()
 
 void DecisionMaker::evaluateFrequency () {
 
-   std::vector<Thread*>::iterator thr;
+   std::vector<THREADCLASS*>::iterator thr;
 
    // For each frequency in our window
    std::set<unsigned int>::iterator freq = freqsToEvaluate.begin ();
@@ -414,6 +414,7 @@ void DecisionMaker::evaluateFrequency () {
       }
       if (!hwcPanic) {
          freq++;
+         //std::cerr << std::endl;
       }
    }
 
@@ -429,7 +430,7 @@ void DecisionMaker::evaluateFrequency () {
 }
 
 void DecisionMaker::checkActiveCores () {
-   std::vector<Thread*>::iterator thr;
+   std::vector<THREADCLASS*>::iterator thr;
    
    // Updates the usage of each thread
    // NOTE: Not necessarily updates it every time, the object decides
@@ -466,7 +467,7 @@ bool DecisionMaker::computeSequence ()
    this->checkActiveCores ();
 
    // compute max IPC per thread
-   for (std::vector<Thread*>::iterator it = this->thread.begin ();
+   for (std::vector<THREADCLASS*>::iterator it = this->thread.begin ();
         it != this->thread.end ();
         it++) {
       (*it)->computeMaxIPC ();
@@ -474,10 +475,12 @@ bool DecisionMaker::computeSequence ()
 
    // If there is no active cores, we take the smaller frequency available
    if (activeThread.size () == 0) {
+      LOG (INFO) << "No active threads" << std::endl;
       FreqChunkCouple zero = {{{0,1},{0,0}}};
       bestCouple = zero;
       bestE = 0;
    } else {
+      LOG (INFO) << "There are " << activeThread.size () << " active threads" << std::endl;
       bool continueLoop = true;
       // else, we test all perfmormance level by steps of 1%
       for (float d = 1; d >= USER_PERF_REQ && continueLoop; d -= 0.01)
@@ -578,7 +581,7 @@ bool DecisionMaker::computeSequence ()
 
 bool DecisionMaker::executeSequence ()
 {
-   std::vector<Thread*>::iterator thr;
+   std::vector<THREADCLASS*>::iterator thr;
 
    // Resets the read of the l3MissRatio
    for (thr = thread.begin (); thr != thread.end (); thr++) {
@@ -631,8 +634,8 @@ bool DecisionMaker::executeSequence ()
       for (thr = thread.begin (); thr != thread.end (); thr++) { 
          // We take the l3MissRatio as the reference to be compared to in the
          // next re-executions (if any)
-         (*thr)->computeL3MissRatio ();
-         (*refL3) = (*thr)->getL3MissRatioExec ();
+         (*thr)->computeLLCRatio ();
+         (*refL3) = (*thr)->getLLCRatio ();
          //std::cerr << "#" << (*thr)->getId() << " ratio = " << (*refL3) << std::endl;
          refL3++;
       }
@@ -645,8 +648,8 @@ bool DecisionMaker::executeSequence ()
       for (thr = thread.begin (); thr != thread.end (); thr++) {
          float min = rest_max (0, (*refL3) - 0.05);
          float max = (*refL3) + 0.05;
-         (*thr)->computeL3MissRatio ();
-         float current = (*thr)->getL3MissRatioExec (); 
+         (*thr)->computeLLCRatio ();
+         float current = (*thr)->getLLCRatio (); 
          if ((current < min || current > max)) {
             this->reevaluate = true; // Break and back to evaluation
             break;

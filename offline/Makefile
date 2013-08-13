@@ -16,14 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-CC=gcc
 CFLAGS=-O3 -march=native -Wextra -Wall
-LDFLAGS=
 
-.PHONY: run clean
+PYTHON_FOLDER=Python-2.6.6
 
-all:
-	$(CC) $(CFLAGS) $(LDFLAGS) add.c -o ./add
+.PHONY: add clean
+
+all: add
+
+add: add.c
+	$(CC) $(CFLAGS) $< -o $@
+	make -C lPowerProbe CXX="$(CXX)" LD="$(CXX)"
 
 run:
 	@echo "=== Generate config files for FoREST ==="
@@ -31,5 +34,12 @@ run:
 	sudo modprobe msr
 	sudo python ./usefulFreqs.py 0
 
+
+
 clean:
 	rm -rf ./add
+	make -C lPowerProbe clean
+
+distclean: clean
+	make -C lPowerProbe distclean
+

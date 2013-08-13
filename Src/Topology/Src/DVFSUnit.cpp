@@ -31,12 +31,13 @@
 #include <vector>
 
 #include "glog/logging.h"
-
+#include "ThreadArch.h"
 #include "DVFSUnit.h"
 #include "ThreadContext.h"
 #include "FileUtils.h"
 #include "Common.h"
 #include "Config.h"
+
 
 namespace FoREST {
 
@@ -94,7 +95,7 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
         it++) {
       // Number of cycles needed to achieve ~100ms
       uint64_t cyclesFor100ms = this->freqs [nbFreqs - 1] * 100;
-      Thread *newThread = new Thread (i++, nbFreqs, profiler, cyclesFor100ms);
+      THREADCLASS *newThread = new THREADCLASS (i++, nbFreqs, profiler, cyclesFor100ms);
       this->takeControl (newThread->getId ());
       this->thread.push_back (newThread);
    }
@@ -169,7 +170,7 @@ void DVFSUnit::handOver (unsigned int threadId) {
 DVFSUnit::~DVFSUnit ()
 {
    // restore the former governor for each CPU
-   for (std::vector<Thread*>::iterator it = this->thread.begin ();
+   for (std::vector<THREADCLASS*>::iterator it = this->thread.begin ();
         it != this->thread.end ();
         it++)
    {

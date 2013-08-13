@@ -59,7 +59,7 @@ class Profiler
        * This means the open method has to be called before the read method
        * @param frequencyId the frequencyId to know where to store the results
        */
-      bool read (Counter& counter, unsigned int frequencyId); 
+      bool read (Counter& counter, unsigned int frequencyId = 0); 
 
       /**
        * Opens the HW counter file descriptors for the given thread id

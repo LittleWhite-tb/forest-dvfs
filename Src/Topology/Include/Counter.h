@@ -23,15 +23,65 @@
 
 namespace FoREST {
 
+/**
+ * Structure containing old and current values of a counter
+ */
 struct CounterValues {
    uint64_t current;
    uint64_t old;
 };
 
+/**
+ * Structure representing file descriptors, name and current
+ * values of a hardware counter
+ */
 struct Counter {
    const char *name;
    int fd;
    CounterValues *values;
+
+   Counter () :
+      fd (0),
+      values (NULL) {}
+
+   Counter (const char *n, unsigned int nbFrequencies = 1) :
+      name (n),
+      fd (0),
+      values (NULL)
+   {
+      setNbFrequencies (nbFrequencies);
+   }
+
+   ~Counter () {
+      if (values != NULL) {
+         delete [] values;
+      }
+   }
+
+   void setNbFrequencies (unsigned int nb) {
+      if (values != NULL) {
+         delete [] values;
+      }
+      values = new CounterValues [nb];
+      memset (values, 0, nb*sizeof (*values));
+   }
+
+   float getValue (unsigned int idx = 0) {
+      return this->values [idx].current;
+   }
+
+   void setValue (unsigned int idx, uint64_t v) {
+      CounterValues& values = this->values [idx];
+      if (values.old <= v) {
+         values.current = v - values.old;
+      } else { // Overflow
+         // TODO fix
+         values.current = 0xFFFFFFFFFFFFFFFFUL - values.old + v;
+      }
+
+      // remember this value as the old one
+      values.old = v;
+   }
 };
 
 } // namespace FoREST

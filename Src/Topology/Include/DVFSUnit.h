@@ -33,7 +33,7 @@
 #include <vector>
 
 #include "Mode.h"
-#include "Thread.h"
+#include "ThreadArch.h"
 #include "DecisionMaker.h"
 
 namespace FoREST {
@@ -184,7 +184,7 @@ class DVFSUnit
       /**
        * The set of threads ids under our control.
        */
-      std::vector<Thread*> thread;
+      std::vector<THREADCLASS*> thread;
 
       /**
        * DVFS unit id.

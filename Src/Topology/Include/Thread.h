@@ -20,7 +20,7 @@
 /**
  * @file Thread.h
  * The Thread class header is in this file
- */
+*/
 
 #ifndef H_TOPOTHREAD
 #define H_TOPOTHREAD
@@ -42,52 +42,34 @@ namespace FoREST {
  * Is contained in the Topology and referenced in DVFS units
  */
 class Thread {
-private:
+protected:
    /**
     * Logical thread id
     */
    unsigned int id_;
 
    /**
-    * Counter monitoring the UNHALTED_REFERENCE_CYCLES hwc
-    */
-   Counter refCycles;
-
-   /**
-    * Counter monitoring the INST_RETIRED:ANY_P hwc
-    */
-   Counter retired;
-
-   /**
+    * TODO comment better
     * Values of time (array for each frequency)
     */
-   CounterValues *time;
-
-   Counter execL3misses;
-   Counter execL3total;
-   CounterValues execTime;
-   float execL3MissRatio;
-   uint64_t l3MissesAcc;
-   uint64_t l3TotalAcc;
+   CounterValues *time_;
+ 
+   // TODO comment
+   float llcRatio_;
 
    /**
-    * Time when the last thread usage computation occured
+    * Frequency sequence execution time
     */
-   uint64_t lastUsageComputation;
+   CounterValues execTime_;
+
    
    /**
-    * Difference between the current time and lastUsageComputation
-    * It is used to know how old is the last usage computation
-    */
-   uint64_t diff;
-
-   /**
-    * Threshold under which usage computation is not considered as critical
+    * Threshold under which thread usage is considered as neglictible
     */
    const uint64_t TIME_THRESHOLD;
 
    /**
-    * Array storing ipc values regarding of previous hw counters computation
+    * Array storing ipc values considering previous hw counters computation
     */
    float *ipc_;
 
@@ -119,88 +101,61 @@ public:
     * @param nbFrequencies number of available frequencies on the processor
     * @param profiler The profiler that will be used to monitor the thread
     */
-   Thread (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold);
+   Thread (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold) :
+   id_ (id), 
+   TIME_THRESHOLD (threshold),
+   maxIpc_ (0),
+   nbFrequencies_ (nbFrequencies),
+   profiler_ (profiler),
+   usage_ (0) {
+      ipc_ = new float [nbFrequencies_];
+      time_ = new CounterValues [nbFrequencies_];
+   }
 
-   ~Thread ();
+   virtual ~Thread () {
+      delete [] ipc_;
+      delete [] time_;
+   }
    
    /**
     * Resets HW Counters for a specific frequencyId
     *
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
-   bool reset (unsigned int frequencyId) {
-      Profiler::readTsc (this->time [frequencyId]);
-      return this->profiler_.read (this->retired, frequencyId); 
-   }
- 
-   bool resetExec () {
-      bool ret = this->profiler_.read (this->execL3total, 0);
-      ret |= this->profiler_.read (this->execL3misses, 0);
-      return ret;
-   } 
+   virtual bool reset (unsigned int frequencyId) = 0;
+
    /**
     * Reads HW Counters for a specific frequencyId
     *
     * @param frequencyId the id corresponding to the frequency currently running on the system
     */
-   bool read (unsigned int frequencyId) { 
-      Profiler::readTsc (this->time [frequencyId]); 
-      return this->profiler_.read (this->retired, frequencyId);
-   }
+   virtual bool read (unsigned int frequencyId) = 0;
 
-   bool readExec () {
-      bool ret = this->profiler_.read (this->execL3total, 0);
-      ret |= this->profiler_.read (this->execL3misses, 0);
-      l3MissesAcc += this->execL3misses.values [0].current;
-      l3TotalAcc += this->execL3total.values [0].current;
-      return ret;
-   }
+   // TODO comment
+   virtual bool resetExec ()  = 0;
+
+   // TODO comment
+   virtual bool readExec () = 0; 
 
    /**
     * Returns the id of the current thread given during object
     * construction
     */
-   inline unsigned int getId () const{
+   virtual unsigned int getId () const{
       return this->id_;
-   }
-
-   /**
-    * Returns whether the usage computation has to be updated
-    * e.g usage computation is too old
-    */
-   bool hasToUpdateUsage () {
-      this->diff = rdtsc () - this->lastUsageComputation;
-      return this->diff > TIME_THRESHOLD;
-   }
+   } 
 
    /**
     * Computes and returns the CPU usage with the measurements done with the highest frequency
     * The update is done only if a time threshold is reached
     * Otherwise the method does nothing
     */
-   inline void computeUsage () {
-      if (this->hasToUpdateUsage ()) { // Only updates the usage if necessary
-         float res;
-
-         // Gather refCycles data
-         this->profiler_.read (refCycles, 0); 
-         uint64_t ref = this->refCycles.values [0].current;
-         
-         // NOTE: RDTSC and refCycles run at the same freq
-         res = ref / (1. * this->diff);
-         
-         // Rationalize the usage if it goes beyond a ratio of 1
-         this->usage_ = rest_min (res, 1);
-
-         // Update lastUpdate to new time reference
-         this->lastUsageComputation = rdtsc ();
-      }
-   }
+   virtual void computeUsage () = 0;
 
    /**
     * Returns the CPU usage of the current thread
     */
-   inline float getUsage () const{
+   virtual float getUsage () const{
       return this->usage_;
    }
 
@@ -210,7 +165,7 @@ public:
     *
     * @param the threshold to compare the current thread activity to
     */
-   inline bool isActive (float threshold) {
+   virtual bool isActive (float threshold) {
       return this->usage_ > threshold;
    }
 
@@ -227,27 +182,7 @@ public:
     *
     * @return Whether HW counters returned irrational values (nan or 0 values)
     */
-   inline bool computeIPC (unsigned int frequencyId) const{
-      uint64_t retired = this->retired.values [frequencyId].current;
-      uint64_t time = this->time [frequencyId].current;
-      bool hwcPanic = false;
-
-      if (time == 0) {
-         LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
-         return false;
-      }
-
-      // Computes ipc value
-      float ipc = retired / (1. * time); 
-      this->ipc_ [frequencyId] = ipc;
-
-      // Handle irrational ipc values
-      if (ipc < 0 || isnan (ipc)) {
-         hwcPanic = true;
-      }
-
-      return hwcPanic;
-   } 
+   virtual bool computeIPC (unsigned int frequencyId) = 0;
 
    /**
     * Get an IPC for a specific frequency
@@ -256,39 +191,20 @@ public:
     *
     * @param frequencyId the wanted frequency id
     */
-   inline float getIPC (unsigned int frequencyId) const{
+   virtual float getIPC (unsigned int frequencyId) const{
       return this->ipc_ [frequencyId];
    }
-
-   inline bool hasToComputeRatio () {
-      if (this->l3TotalAcc > 10000 || this->l3MissesAcc > 10000) {
-         return true;
-      }
-      return false;
-   }
-
-   inline void resetAcc () {
-      l3TotalAcc = l3MissesAcc = 0;
-   }
-
-   inline void computeL3MissRatio () {
-      uint64_t l3misses = this->l3MissesAcc;
-      uint64_t l3total = this->l3TotalAcc;
-
-      //std::cerr << "l3 misses = " << l3misses << ", l3total = " << l3total << std::endl;
-      float ratio = l3misses /(1. * l3total);
-      this->execL3MissRatio = ratio;
-      resetAcc ();
-   }
-
-   inline float getL3MissRatioExec () const{
-      return this->execL3MissRatio;
+   
+   // TODO comment
+   virtual void computeLLCRatio () = 0;
+   virtual float getLLCRatio () {
+      return this->llcRatio_;
    }
 
    /**
     * Smooth the IPC to delete measurement noise
     */
-   inline void smoothIPC () {
+   virtual void smoothIPC () {
       unsigned int j = this->nbFrequencies_ - 1;
       for (unsigned int i = this->nbFrequencies_ - 1; i != 0; i--) {
          if (this->ipc_ [i] != 0) {
@@ -300,7 +216,7 @@ public:
       }
    }
 
-   inline void printIPC () {
+   virtual void printIPC () {
       for (unsigned int i = 0; i < this->nbFrequencies_; i++) {
          std::cerr << std::setw (5) << this->ipc_ [i] <<  " ";
       }
@@ -310,7 +226,7 @@ public:
    /**
     * Reset the ipc array at the beginning of the evaluation
     */
-   inline void resetIPC () {
+   virtual void resetIPC () {
       memset (this->ipc_, 0, this->nbFrequencies_*sizeof (*this->ipc_));
    }
 
@@ -319,7 +235,7 @@ public:
     * 
     * This function MUST be called after the IPC has been computed
     */
-   inline void computeMaxIPC () {
+   virtual void computeMaxIPC () {
       this->maxIpc_ = 0;
       for (unsigned int i = 1; i < this->nbFrequencies_; i++) {
          if (this->ipc_ [this->maxIpc_] < this->ipc_ [i]) {
@@ -333,7 +249,7 @@ public:
     *
     * This function MUST be called after the Max IPC has been computed
     */
-   inline float getMaxIPC () const{
+   virtual float getMaxIPC () const{
       return this->ipc_ [this->maxIpc_];
    }
 };

@@ -36,7 +36,7 @@
 #include "TimeProfiler.h"
 #include "FreqSelector.h"
 #include "Mode.h"
-#include "Thread.h"
+#include "ThreadArch.h"
 #include "Counter.h"
 
 #ifdef REST_LOG
@@ -86,7 +86,7 @@ class DecisionMaker
        * @param cfg The current configuration.
        */
       DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
-                     Config *config, std::vector<Thread*>& thread);
+                     Config *config, std::vector<THREADCLASS*>& thread);
 
       /**
        * Destructor
@@ -153,7 +153,7 @@ class DecisionMaker
       /**
        * Threads the handled DVFS unit is holding
        */
-      std::vector<Thread*>& thread;
+      std::vector<THREADCLASS*>& thread;
       
       /**
        * Vector storing l3MissRatio reference values to check whether
@@ -164,7 +164,7 @@ class DecisionMaker
       /**
        * List of threads active for the current evaluation process
        */
-      std::set<Thread*> activeThread;
+      std::set<THREADCLASS*> activeThread;
       /**
        * Time required to evaluate the IPC for one frequency (us).
        */

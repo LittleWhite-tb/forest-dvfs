@@ -61,14 +61,52 @@ void Profiler::open (Counter& counter, unsigned int threadId) {
    res = pfm_get_os_event_encoding (counter.name,  PFM_PLM0 | PFM_PLM1 |
                                                    PFM_PLM2 | PFM_PLM3,
                                     PFM_OS_PERF_EVENT_EXT, &arg);
+   
+   /* Check for errors when calling libpfm */
+   if (res != PFM_SUCCESS) {
+      std::cerr << "Error: ";
+      switch (res) {
+      case PFM_ERR_TOOSMALL:
+         std::cerr << "The code argument is too small for the encoding." << std::endl;
+         break;
+      case PFM_ERR_INVAL:
+         std::cerr << "The code or count argument is NULL." << std::endl;
+         break;
+      case PFM_ERR_NOMEM:
+         std::cerr << "Not enough memory." << std::endl;
+         break; 
+      case PFM_ERR_NOTFOUND:
+         std::cerr << "Event not found." << std::endl;
+         break;
+      case PFM_ERR_ATTR:
+         std::cerr << "Invalid event attribute (unit mask or modifier)" << std::endl;
+         break; 
+      case PFM_ERR_ATTR_VAL:
+         std::cerr << "Invalid modifier value." << std::endl;
+         break; 
+      case PFM_ERR_ATTR_SET:
+         std::cerr << "Attribute already set, cannot be changed." << std::endl;
+         break;
+      }
+   } 
+   
    CHECK (res == PFM_SUCCESS) << "Failed to get counter " << counter.name
       << " on cpu " << threadId << std::endl;
 
    // request scaling in case of shared counters
    arg.attr->read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+   
+   /**
+    * libpfm Xeon Phi Hack:
+    * set the exclude_guest flag to 0 in order to allow perf to open counters
+   */
+   arg.attr->exclude_guest = 0;
 
    // open the corresponding file on the system
    counter.fd = perf_event_open (arg.attr, -1, threadId, -1, 0);
+   if (counter.fd  == -1) {
+      perror ("Error while opening counter");
+   }
    CHECK (counter.fd != -1) << "Cannot open counter "
       << counter.name << " on cpu " << threadId << std::endl;
 
@@ -90,33 +128,27 @@ Profiler::~Profiler ()
 
 bool Profiler::read (Counter& counter, unsigned int frequencyId)
 {
-   CounterValues& values = counter.values [frequencyId];
    int res;
 
-   //DLOG (INFO) << "reading hwc for cpu " << cpu << std::endl; 
-   uint64_t buf [3];
+   //DLOG (INFO) << "reading hwc for cpu " << cpu << std::endl;
+   struct read_format {
+      uint64_t nr;
+      uint64_t time_enabled;
+      uint64_t time_running;
+   } fmt;
    uint64_t value;
 
-   res = ::read (counter.fd, buf, sizeof (buf));
-   if (res != sizeof (buf))
+   res = ::read (counter.fd, &fmt, sizeof (fmt));
+   if (res != sizeof (fmt))
    {
       LOG (ERROR) << "Failed to read counter " << counter.name << std::endl;
       return false;
    }
 
    // handle scaling to allow PMU sharing
-   value = (uint64_t)((double) buf [0] * (double) buf [1] / buf [2]);
-   if (values.old <= value)
-   {
-      values.current = value - values.old;
-   }
-   else  // overflow
-   {
-      values.current = 0xFFFFFFFFFFFFFFFFUL - values.old + value;
-   }
-
-   // remember this value
-   values.old = value;
+   value = (uint64_t)((double) fmt.nr * (double) fmt.time_enabled / fmt.time_running);
+   
+   counter.setValue (frequencyId, value);
 
    return true;
 }
