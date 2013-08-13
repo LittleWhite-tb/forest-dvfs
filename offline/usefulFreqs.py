@@ -225,8 +225,8 @@ def hasTB():
 #----------------------------------
 # Main
 
-if len (sys.argv) != 2:
-   print sys.argv[0] + " {cpuid}"
+if len (sys.argv) != 3:
+   print sys.argv[0] + " {cpuid} {mic|x86}"
    sys.exit (0)
 
 if not os.path.exists("/dev/cpu/0/msr") and not os.path.exists("/dev/msr0"):
@@ -249,6 +249,11 @@ print "!      CLOSE ANY OTHER RUNNING PROGRAM"
 print "!"
 print "!"
 raw_input("press Enter when you are ready...")
+
+if sys.argv [2] == "mic":
+   LIBS=LPP_PATH + "/probes/mic_energy/mic_energy.so;" + LPP_PATH + "/probes/wallclock/wallclock.so"
+else:
+   LIBS=LPP_PATH + "/probes/energy_snb_msr/energy_msr_snb.so;" + LPP_PATH + "/probes/wallclock/wallclock.so"
 
 # Get list of frequencies and sort'em
 freqs = getFreqs (int (sys.argv [1]))

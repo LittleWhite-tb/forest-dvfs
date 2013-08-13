@@ -32,7 +32,7 @@ run:
 	@echo "=== Generate config files for FoREST ==="
 	echo "A prompt (sudo) will ask you, your admin password to run modprobe and our CPU tester"
 	sudo modprobe msr
-	sudo python ./usefulFreqs.py 0
+	sudo python ./usefulFreqs.py 0 x86
 
 
 

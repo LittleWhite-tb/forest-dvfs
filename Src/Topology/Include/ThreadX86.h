@@ -114,8 +114,6 @@ public:
          hwcPanic = true;
       }
 
-      std::cerr << "IPC #" << this->id_ << ": " << this->ipc_ [freqId] << " ";
-
       return hwcPanic;
    }
 
