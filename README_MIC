@@ -1,0 +1,13 @@
+README For INTEL XEON PHI
+
+Please follow these instructions when FoREST is compiled and successfully transfered on the Xeon Phi card. For compilation instructions, please read the README file.
+
+Once the transfer has succeeded, please run the following commands:
+
+1. ./offline_run.sh
+
+You are now all set! You can run FoREST:
+
+./FoREST {energy|performance}
+
+

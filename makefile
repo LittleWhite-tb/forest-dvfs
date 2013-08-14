@@ -38,9 +38,14 @@ mic:
 	# Copy everything on MIC
 	./copyOnMIC.sh
 
+	# Clean Python
+	make -C offline/PythonForMIC clean
+
 clean:
 	$(MAKE) -e --file MakeFoREST clean
 
 distclean:
+	$(MAKE) -C offline/PythonForMIC distclean
 	$(MAKE) -e --file MakeFoREST distclean
+
 
