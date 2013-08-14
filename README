@@ -2,24 +2,26 @@ FoREST - Reactive DVFS Control for Multicore Processors
 
 FoREST is a new DVFS running in background that will control the CPU frequency based on the CPU usage.
 
-Notes :
-
-    Currently the program only correctly supports SandyBridge. The Makefile will check you CPU architecture and avoid you to compile if you does not have a SandyBridge.
+Hardware support:
+- Intel x86: SandyBridge, IvyBridge
+- Intel Xeon Phi (2013)
 
 Dependencies :
+- python (x86)
+- msr-tools
 
-    msr-tools
+Compilation:
+make [x86|mic]
+make [x86-debug|mic-debug]
+Note: On x86, make will ask for your password in order to run an offline script lasting several minutes in order to determine the impact of frequency transition on power consumption. Please do not run anything while running this phase.
+Note: On Xeon Phi, make will ask for your password in order to transfer required data on the Xeon Phi card. Once transfered, you should follow the instructions.
 
-Compilation :
-
-    make [debug|release]
-
-Note that make will run the offline screen to determine the impact of frequency transition on power consumption. The script can take several minutes to run.
-
-Usage :
-
+Usage 
     ./FoREST [performance|energy]
+
+Note: On Xeon Phi, please first connect to your card with ssh (typically: ssh mic0). Once there, please follow the instructions in the README file in the FoRESTOnMIC folder.
 
 Licence :
     GPLv3
     See COPYRIGHT file
+

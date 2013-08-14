@@ -36,7 +36,7 @@ mic:
 	cd offline/PythonForMIC; ./install.sh
 
 	# Copy everything on MIC
-	cd ../; ./copyOnMIC.sh
+	./copyOnMIC.sh
 
 clean:
 	$(MAKE) -e --file MakeFoREST clean
