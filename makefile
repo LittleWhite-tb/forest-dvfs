@@ -34,8 +34,9 @@ mic:
 
 	# Compile PythonForMIC
 	cd offline/PythonForMIC; ./install.sh
-	@echo "============================="
-	@echo "Please now copy the offline/ folder to mic0 and use the following command: ./offline/usefulFreqs.py 0"
+
+	# Copy everything on MIC
+	cd ../; ./copyOnMIC.sh
 
 clean:
 	$(MAKE) -e --file MakeFoREST clean
