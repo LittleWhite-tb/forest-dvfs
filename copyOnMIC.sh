@@ -10,6 +10,7 @@ mkdir $localFolder/offline/lPowerProbe
 sudo cp FoREST $localFolder
 sudo cp config.cfg $localFolder
 sudo cp README_MIC $localFolder/README
+sudo cp offline_run.sh $localFolder
 sudo cp offline/add $localFolder/offline
 sudo cp offline/usefulFreqs.py $localFolder/offline/usefulFreqs.py
 sudo cp offline/lPowerProbe/lPowerProbe $localFolder/offline/lPowerProbe
