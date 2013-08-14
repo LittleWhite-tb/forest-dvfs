@@ -29,6 +29,9 @@ mic:
 		CXX="icpc -mmic" \
 		CC="icc -mmic"
 
+	# Build MIC library
+	$(MAKE) -C offline/lPowerProbe mic-libs
+
 	# Compile PythonForMIC
 	cd offline/PythonForMIC; ./install.sh
 	@echo "============================="
