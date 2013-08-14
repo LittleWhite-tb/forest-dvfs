@@ -10,6 +10,14 @@ Dependencies :
 - python (x86)
 - msr-tools
 
+Pre-Compilation:
+This command is necessary to setup the submodules of the project.
+git submodule update --init
+
+The submodule projects are:
+- lPowerProbe: http://code.google.com/p/lpowerprobe/
+- PythonForMIC: https://github.com/jphalimi/PythonForMIC
+
 Compilation:
 make [x86|mic]
 make [x86-debug|mic-debug]
