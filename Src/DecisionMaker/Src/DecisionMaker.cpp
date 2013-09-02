@@ -475,12 +475,12 @@ bool DecisionMaker::computeSequence ()
 
    // If there is no active cores, we take the smaller frequency available
    if (activeThread.size () == 0) {
-      LOG (INFO) << "No active threads" << std::endl;
+      DLOG (INFO) << "No active threads" << std::endl;
       FreqChunkCouple zero = {{{0,1},{0,0}}};
       bestCouple = zero;
       bestE = 0;
    } else {
-      LOG (INFO) << "There are " << activeThread.size () << " active threads" << std::endl;
+      DLOG (INFO) << "There are " << activeThread.size () << " active threads" << std::endl;
       bool continueLoop = true;
       // else, we test all perfmormance level by steps of 1%
       for (float d = 1; d >= USER_PERF_REQ && continueLoop; d -= 0.01)
