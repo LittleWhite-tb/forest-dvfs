@@ -26,7 +26,7 @@ all: add offline
 
 add: add.c
 	$(CC) $(CFLAGS) $< -o $@
-	$(MAKE) -C ./lPowerProbe/ CXX="$(CXX)"
+	$(MAKE) -C ./lPowerProbe/ CXX="$(CXX)" LD="$(CXX)"
 
 run:
 	@echo "=== Generate config files for FoREST ==="
