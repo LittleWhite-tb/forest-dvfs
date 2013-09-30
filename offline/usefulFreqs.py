@@ -91,25 +91,30 @@ def getIdealNIters (t, cores):
    exectime = 0
    while exectime < t or exectime > 1.5 * t:   
       r = runBench(nr, cores[:1])
-
+      print "nr = " + str (nr)
       if r is None:
          nr = nr * 10
+         print "continue"
          continue
 
       exectime = r[0]
+      print "time = " + str (exectime) + " target = " + str (t)
 
       if exectime < t:
          # small values are not relevant
          if exectime < 0.1 * t:
+            print "<0.1*t"
             nr = nr * 10
          else:
             # assume linear impact of nr on exec time
             # target a little bit above t (1.1 * t)
             nr = nr * (t / exectime)
             nr = int(nr * 1.1)
+            print "*1.1"
       elif exectime > 1.5 * t:
          # assume linear impact of nr on exec time
          nr = int(nr / 2)
+         print ">1.5*t"
 
    return nr
 
@@ -154,6 +159,7 @@ def getPhysicalCores (cpuid):
             myList.append (minMax [0])
       physicalCores.append(int(myList[0]))
 
+   #print physicalCores 
    physicalCores = list(set(physicalCores))
    physicalCores.sort()
 
@@ -290,6 +296,8 @@ if hasTB():
       nr.append(getIdealNIters(1000, cores))
       sys.stdout.write(".")
       sys.stdout.flush()
+      print nr [-1]
+      sys.exit (0)
 
    # target 30 seconds for TurboBoost
    setFreq(freqs[-1])
@@ -304,6 +312,8 @@ else:
       nr.append(getIdealNIters(1000, cores))
       sys.stdout.write(".")
       sys.stdout.flush()
+      print nr [-1]
+      sys.exit (0)
 
 sys.stdout.write(" done " + str(nr) + "\n")
 

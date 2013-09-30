@@ -3,7 +3,6 @@ CFLAGS=-Wall -O3 -DREST_LOG -msse4
 all: x86
 
 x86:
-
 	$(MAKE) --file MakeFoREST release \
 		MCXXFLAGS="-O3 -Wall -Werror -DARCH_X86 -DNDEBUG" \
 		CC="gcc" \
@@ -29,17 +28,10 @@ mic:
 		CXX="icpc -mmic" \
 		CC="icc -mmic"
 
+	$(MAKE) -C offline offline
+
 	# Build MIC library
 	$(MAKE) -C offline/lPowerProbe mic-libs
-
-	# Compile PythonForMIC
-	cd offline/PythonForMIC; ./install.sh
-
-	# Copy everything on MIC
-	./copyOnMIC.sh
-
-	# Clean Python
-	make -C offline/PythonForMIC clean
 
 clean:
 	$(MAKE) -e --file MakeFoREST clean

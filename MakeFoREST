@@ -39,7 +39,7 @@ LOCAL_INC_FLAG=$(addprefix -I, $(dir $(LOCAL_HDR)))
 ALL_OBJ=$(LOCAL_OBJ)
 ALL_INC_FLAGS=$(LOCAL_INC_FLAG) -I$(LIBPFM_INC) -I$(GLOG_INC)
 
-.PHONY: check-arch offline clean distclean distclean $(GLOG_BIN)
+.PHONY: offline clean distclean
 
 # Offline Rules
 offline: offline/add.c

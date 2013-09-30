@@ -101,8 +101,7 @@ int main (int argc, char *argv[]) {
 	atexit (exitCleanup);
 
    // Launch the first unit's thread
-   ThreadContext *newContext = new ThreadContext ();
-   context.threadContext.push_back (newContext);
+   ThreadContext *newContext = new ThreadContext (); 
    newContext->unit = topo->getDVFSUnit (0);
    FoRESTthread (reinterpret_cast <void*> (newContext));
 
@@ -229,6 +228,10 @@ static void exitCleanup () {
         it = context.threadContext.begin ();
         it != context.threadContext.end ();
         it++) {
+      if ((*it) == NULL || (*it)->thr == NULL) {
+         std::cerr << "FUCK OFF, QUITTING";
+         continue;
+      }
 		pthread_cancel ((*it)->thr);
 		pthread_join ((*it)->thr, NULL);
 	}

@@ -1,6 +1,3 @@
 [submodule "offline/lPowerProbe"]
 	path = offline/lPowerProbe
 	url = https://code.google.com/p/lpowerprobe/
-[submodule "offline/PythonForMIC"]
-	path = offline/PythonForMIC
-	url = https://github.com/jphalimi/PythonForMIC.git

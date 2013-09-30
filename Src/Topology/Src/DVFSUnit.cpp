@@ -99,6 +99,7 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
       this->takeControl (newThread->getId ());
       this->thread.push_back (newThread);
    }
+   exit (EXIT_FAILURE);
 
    this->decisionMaker = new DecisionMaker (this, mode, config, thread);
 
@@ -175,6 +176,7 @@ DVFSUnit::~DVFSUnit ()
         it++)
    {
       // Restore previous data to the thread
+      std::cerr << "I HAND OVER TO " << this->formerGov [(*it)->getId ()] << std::endl;
       this->handOver ((*it)->getId ());
       delete *it;
    }
@@ -198,7 +200,7 @@ void DVFSUnit::takeControl (unsigned int threadId)
 
    // We store the former governor of this processor to restore it when
    // DVFSUnit object is destroyed
-   { 
+   {
       std::vector<std::string> filenames;
       std::ostringstream file;
       file << "/sys/devices/system/cpu/cpu" << threadId << "/cpufreq/scaling_governor";
@@ -208,10 +210,11 @@ void DVFSUnit::takeControl (unsigned int threadId)
 
       std::vector<std::string> v;
       FileUtils::readLine <std::string> (v, fs);
+      std::cerr << file.str () << ": " << v [0] << std::endl;
       this->formerGov [threadId] = v[0];
 
       fs.close ();
-   }
+   } 
 
    {
       std::vector<std::string> filenames;
