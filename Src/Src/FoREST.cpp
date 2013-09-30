@@ -227,11 +227,7 @@ static void exitCleanup () {
 	for (std::vector<ThreadContext*>::iterator
         it = context.threadContext.begin ();
         it != context.threadContext.end ();
-        it++) {
-      if ((*it) == NULL || (*it)->thr == NULL) {
-         std::cerr << "FUCK OFF, QUITTING";
-         continue;
-      }
+        it++) { 
 		pthread_cancel ((*it)->thr);
 		pthread_join ((*it)->thr, NULL);
 	}
