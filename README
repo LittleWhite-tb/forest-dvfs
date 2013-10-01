@@ -6,28 +6,21 @@ Hardware support:
 - Intel x86: SandyBridge, IvyBridge
 - Intel Xeon Phi (2013)
 
-Dependencies :
-- python (x86)
-- msr-tools
-
 Pre-Compilation:
 This command is necessary to setup the submodules of the project.
 git submodule update --init
 
 The submodule projects are:
 - lPowerProbe: http://code.google.com/p/lpowerprobe/
-- PythonForMIC: https://github.com/jphalimi/PythonForMIC
 
 Compilation:
 make [x86|mic]
 make [x86-debug|mic-debug]
 Note: On x86, make will ask for your password in order to run an offline script lasting several minutes in order to determine the impact of frequency transition on power consumption. Please do not run anything while running this phase.
-Note: On Xeon Phi, make will ask for your password in order to transfer required data on the Xeon Phi card. Once transfered, you should follow the instructions.
+Note: On Xeon Phi, you will have to run the offline phase manually. Please read the README_MIC file for more details about the procedure.
 
 Usage 
     ./FoREST [performance|energy]
-
-Note: On Xeon Phi, please first connect to your card with ssh (typically: ssh mic0). Once there, please follow the instructions in the README file in the FoRESTOnMIC folder.
 
 Licence :
     GPLv3
