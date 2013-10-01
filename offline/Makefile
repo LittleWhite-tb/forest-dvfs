@@ -20,7 +20,7 @@ CFLAGS=-O3 -march=native -Wextra -Wall
 
 PYTHON_FOLDER=Python-2.6.6
 
-.PHONY: clean
+.PHONY: clean run
 
 all: add offline
 
@@ -28,10 +28,10 @@ add: add.c
 	$(CC) $(CFLAGS) $< -o $@
 	$(MAKE) -C ./lPowerProbe/ CXX="$(CXX)" LD="$(CXX)"
 
-run:
+power_0.cfg:
 	@echo "=== Generate config files for FoREST ==="
-	echo "A prompt (sudo) will ask you, your admin password to run modprobe and our CPU tester"
-	sudo modprobe msr
+	@echo "A prompt (sudo) will ask you, your admin password to run modprobe and our CPU tester"
+	@sudo modprobe msr
 	sudo ./offline 0 x86
 
 offline: offline.cpp

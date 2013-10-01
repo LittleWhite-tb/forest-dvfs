@@ -46,7 +46,7 @@ offline: offline/add.c
 	@$(MAKE) -C offline CXX="$(CXX)" CC="$(CC)"
 
 offline-run:
-	$(MAKE) -C offline run
+	$(MAKE) -C offline power_0.cfg
 
 # FoREST files Rules
 obj/%_debug.o: %.cpp obj/%.d
@@ -75,10 +75,10 @@ $(GLOG_BIN):
 
 clean:
 	@rm -rf obj FoREST
+	
+distclean: clean
 	@$(MAKE) -C ./offline/lPowerProbe/ clean
 	@$(MAKE) -C ./offline clean
-
-distclean: clean
 	$(MAKE) -C $(LIBPFM_FOLDER) distclean
 	$(MAKE) -C $(GLOG_FOLDER) distclean
 

@@ -99,7 +99,6 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
       this->takeControl (newThread->getId ());
       this->thread.push_back (newThread);
    }
-   exit (EXIT_FAILURE);
 
    this->decisionMaker = new DecisionMaker (this, mode, config, thread);
 
@@ -209,8 +208,7 @@ void DVFSUnit::takeControl (unsigned int threadId)
       FileUtils::tryToOpen (filenames, fs, std::fstream::in);
 
       std::vector<std::string> v;
-      FileUtils::readLine <std::string> (v, fs);
-      std::cerr << file.str () << ": " << v [0] << std::endl;
+      FileUtils::readLine <std::string> (v, fs); 
       this->formerGov [threadId] = v[0];
 
       fs.close ();
