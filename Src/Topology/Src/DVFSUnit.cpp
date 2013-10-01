@@ -156,6 +156,14 @@ void DVFSUnit::handOver (unsigned int threadId) {
    std::vector<std::string> filenames;
    std::ostringstream oss;
 
+   // For Intel Xeon Phi, we just have to hand over the first scaling_governor
+   // file, the others will be set back automatically
+#ifdef ARCH_MIC
+   if (threadId != 0) {
+      return;
+   }
+#endif
+
    oss << "/sys/devices/system/cpu/cpu" << threadId << "/cpufreq/scaling_governor";
    filenames.push_back (oss.str ());
 
@@ -178,16 +186,20 @@ DVFSUnit::~DVFSUnit ()
       this->handOver ((*it)->getId ());
       delete *it;
    }
-
+ 
    delete this->decisionMaker;
 
    // close files
+#ifdef ARCH_MIC
+   this->freqFs [0]->close ();
+#else
    for (std::vector<std::fstream*>::iterator it = this->freqFs.begin ();
         it != this->freqFs.end ();
         it++) {
    	(*it)->close ();
 		delete *it;
 	}
+#endif
 }
 
 void DVFSUnit::takeControl (unsigned int threadId)
@@ -195,6 +207,13 @@ void DVFSUnit::takeControl (unsigned int threadId)
    std::string governor;
    std::fstream fs;
 
+   // For Intel Xeon Phi, we just have to take over the first scaling_governor
+   // file, the others will be set to userspace automatically
+#ifdef ARCH_MIC
+   if (threadId != 0) {
+      return;
+   }
+#endif
 
    // We store the former governor of this processor to restore it when
    // DVFSUnit object is destroyed
@@ -241,7 +260,7 @@ void DVFSUnit::takeControl (unsigned int threadId)
 }
 
 void DVFSUnit::setFrequency (unsigned int freqId)
-{ 
+{
    assert (freqId < this->freqs.size ());
 
    // nothing to do?
@@ -249,6 +268,10 @@ void DVFSUnit::setFrequency (unsigned int freqId)
       return;
    }
 
+#ifdef ARCH_MIC
+   *(this->freqFs [0]) << this->freqs [freqId];
+   this->freqFs [0]->flush ();
+#else
 	for (std::vector<std::fstream *>::iterator it = this->freqFs.begin ();
         it != this->freqFs.end ();
         it++)
@@ -259,6 +282,7 @@ void DVFSUnit::setFrequency (unsigned int freqId)
 
 		assert (!(*it)->fail () && !(*it)->bad ());
 	}
+#endif
 
 	this->curFreqId = freqId;
 }

@@ -235,6 +235,7 @@ static void exitCleanup () {
 #ifdef REST_LOG
 	Logger::destroyLog ();
 #endif
+
    delete context.config;
    delete context.topology;
 }
