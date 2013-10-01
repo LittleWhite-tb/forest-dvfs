@@ -35,12 +35,13 @@ run:
 	sudo ./offline 0 x86
 
 offline: offline.cpp
-	$(CC) $(CFLAGS) $< -o $@
+	$(CXX) $(CXXFLAGS) $< -o $@
 
 $(MAKE) -c lPowerProbe CXX="$(CXX)" CXXFLAGS="$(CXXFLAGS)"
 
 clean:
 	rm -rf ./add
+	rm -rf offline
 	make -C lPowerProbe clean
 
 distclean: clean
