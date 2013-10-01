@@ -184,20 +184,24 @@ static inline void runBench (unsigned long int nbRepets, std::set <unsigned int>
    }
 
    cmd << lpp_path << "lPowerProbe -r 5 -d " << coresNb << " -p \"" << taskMask.str ()
-       << "\" -o /tmp/results.csv -l \"" << libraries.str () << "\" ./add " << nbRepets
-       << " 2&>1 > /dev/null";
+       << "\" -o /tmp/results.csv -l \"" << libraries.str () << "\" ./add " << nbRepets; 
    //std::cerr << cmd.str () << std::endl << std::endl;
 
    // Allow the user to cancel the the offline phase with Ctrl+C if needed
    usleep (10);
-   int r = system (cmd.str ().c_str ());
-   if (r == -1) {
+   //int r = system (cmd.str ().c_str ());
+   FILE *stream = popen (cmd.str ().c_str (), "r");
+   if (stream == NULL) {
       std::cerr << "Error: Could not execute command " << cmd.str () << std::endl;
       exit (EXIT_FAILURE);
    }
 
-   std::ifstream ifs ("/tmp/results.csv");
    char buf [256];
+   while (fgets (buf, sizeof (buf), stream));
+   pclose (stream);
+
+   std::ifstream ifs ("/tmp/results.csv");
+   
    if (!ifs.good ()) {
       std::cerr << "Error: Cannot open results file: /tmp/results.csv" << std::endl;
       exit (EXIT_FAILURE);
