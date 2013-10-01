@@ -15,6 +15,11 @@
 static std::string lpp_path("./lPowerProbe/");
 static std::ostringstream libraries;
 
+/**
+ * checkArguments (argc, argv)
+ *
+ * Checks that the given arguments match the ones required by the program
+ */
 static inline unsigned int checkArguments (int argc, char *argv []) {
    // Check appropriate number of arguments
    if (argc != 3) {
@@ -35,6 +40,13 @@ static inline unsigned int checkArguments (int argc, char *argv []) {
    return cpuId;
 }
 
+/**
+ * checkEnvironment ()
+ *
+ * Checks whether the environment can handle the run of the offline phase
+ * - Checks the existence and the rights to read the msr files
+ * - Check that lPowerProbe is compiled
+ */
 static inline void checkEnvironment (void) {
    std::ifstream ifs;
 
@@ -72,6 +84,11 @@ static inline void printNicePrompt (void) {
    fgetc (stdin);
 }
 
+/**
+ * vectorFromFile (vector, filename)
+ *
+ * Stores in vector the content of a space-splitted file
+ */
 template <class T>
 static inline void vectorFromFile (std::vector <T>& vector,
                                    const char *filename) {
@@ -88,6 +105,11 @@ static inline void vectorFromFile (std::vector <T>& vector,
    }
 }
 
+/**
+ * getFreqs (v, cpuId)
+ *
+ * Stores in v all the frequencies that the thread cpuId can achieve
+ */
 static inline void getFreqs (std::vector <unsigned int>& v,
                                       unsigned int cpuId) {
    std::ostringstream oss;
@@ -96,6 +118,12 @@ static inline void getFreqs (std::vector <unsigned int>& v,
    std::sort (v.begin (), v.end ());
 }
 
+/**
+ * getTopology (threads, cores, cpuId)
+ *
+ * Stores a list of core ids on the same frequency domain as the cpu defined by cpuid.
+ * One id is given per core (ignoring Hyperthreading or similar).
+ */
 static inline void getTopology (std::vector <unsigned int>& threads,
                                 std::set <unsigned int>& cores,
                                      unsigned int cpuId) {
@@ -168,6 +196,13 @@ static inline void getTopology (std::vector <unsigned int>& threads,
    }
 }
 
+/**
+ * runBench (nbRepets, cores, coresNb, values)
+ * 
+ * Stores the power and execution time for the benchmark in values
+ * given the number of cores given by the vector cores and coresNb
+ * for a total of nbRepets repetitions
+ */
 static inline void runBench (unsigned long int nbRepets, std::set <unsigned int>& cores,
                              unsigned int coresNb, BenchResult& values) {
    std::ostringstream taskMask, cmd;
@@ -231,6 +266,12 @@ static inline void runBench (unsigned long int nbRepets, std::set <unsigned int>
    values.time = vres [half].time;
 }
 
+/**
+ * getIdealNIters (ms, cores)
+ *
+ * Estimates the number of iterations to use with the benchmark to reach
+ * the "ms" provided execution time, running on a single core
+ */
 static inline unsigned long int getIdealNIters (unsigned int ms,
                                    std::set <unsigned int>& cores) {
    unsigned long int nr = 1;
@@ -321,6 +362,12 @@ static inline void getIdealIters (std::vector <unsigned long int>& nbIters,
    std::cout << "]" << std::endl;
 }
 
+/**
+ * doProfiling (nbIters, freqs, cores, threads, res)
+ *
+ * Profiles the different frequencies with all possible cores usage configuration
+ * from 1 used core to n (cores.size ())
+ */
 static inline void doProfiling (std::vector <unsigned long int>& nbIters,
                                 std::vector <unsigned int>& freqs,
                                 std::set <unsigned int>& cores,
@@ -357,6 +404,12 @@ static inline void freeResult (std::vector <std::vector <BenchResult>*>& res) {
    }
 }
 
+/**
+ * computeResults (cpuId, freqs, cores, res)
+ *
+ * Rather stores the results computed in doProfiling in a formatted file
+ * that FoREST needs to compute Power Ratios
+ */
 static inline void computeResults (unsigned int cpuId,
                                    std::vector <unsigned int>& freqs,
                                    std::set <unsigned int>& cores,
