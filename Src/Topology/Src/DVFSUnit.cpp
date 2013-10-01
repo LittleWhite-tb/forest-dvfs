@@ -175,7 +175,6 @@ DVFSUnit::~DVFSUnit ()
         it++)
    {
       // Restore previous data to the thread
-      std::cerr << "I HAND OVER TO " << this->formerGov [(*it)->getId ()] << std::endl;
       this->handOver ((*it)->getId ());
       delete *it;
    }
