@@ -330,8 +330,7 @@ static inline void getIdealIters (std::vector <unsigned long int>& nbIters,
             it++) {
          setFreq (threads, *it);
          nbIters.push_back (getIdealNIters (1000, cores));
-         std::cerr << nbIters.back () << std::endl;
-         exit (EXIT_SUCCESS);
+         std::cerr << nbIters.back () << std::endl; 
          std::cout << ".";
          fflush (stdout);
       }
