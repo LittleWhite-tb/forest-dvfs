@@ -25,9 +25,20 @@
 #include <sstream>
 #include "glog/logging.h"
 
+/**
+ * Useful functions for reading files in sysfs considering their
+ * format specificities
+ */
 class FileUtils
 {
 public:
+   /**
+    * Try to open a file considering several possible locations
+    * written in the filenames vector, ordered by location preference.
+    *
+    * The opened stream (if any amongst all the locations) is stored in
+    * fs, and flags refers to standard fstream flags for file opening)
+    */
    static void tryToOpen (const std::vector<std::string>& filenames,
                                   std::fstream& fs,
                                   const std::ios_base::openmode& flags) {
@@ -49,6 +60,10 @@ public:
       LOG (FATAL) << err.str () << std::endl;
    }
 
+   /**
+    * Read a line in the ifs file stream and store its space-separated
+    * values in the T-typed v vector.
+    */
    template <typename T>
    static bool readLine (std::vector<T>& v, std::fstream& ifs) {
       T val;

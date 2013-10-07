@@ -29,14 +29,7 @@
 class Config
 {
 public:
-   /**
-    * Default constructor.
-    */
    Config();
-
-   /**
-    * Default destructor.
-    */
    ~Config();
 
    /**

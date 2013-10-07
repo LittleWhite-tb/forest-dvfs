@@ -17,11 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file FreqSelector.h
- * The FreqSelector class header is in this file
- */
-
 #ifndef H_FREQSELECTOR
 #define H_FREQSELECTOR
 
@@ -36,30 +31,28 @@ namespace FoREST {
 /**
  * @class FreqSelector
  *
- * The helper allows one to be less sensitive to measurement noise. It consists
- * in a state based frequency selector.
+ * The FreqSelector class is a helper class that weighs each frequency regarding
+ * of the total time it has been applied on the machine. It helps making sure
+ * we can extend FoREST's execution time depending on how often the considered
+ * frequency has been chosen
  */
-
 class FreqSelector
 {
    public:
       /**
-       * Constructor.
+       * Constructor
        *
        * @param nbFreqs The number of frequencies to handle.
        */
       FreqSelector (unsigned int nbFreqs);
-
-      /**
-       * Destructor.
-       */
       ~FreqSelector ();
 
       /**
        * Add some value to a given frequency, leading it to have more chances to
-       * be selected.
+       * be considered as stable. 
        *
        * @param freqId The identifier of the frequency to promote.
+       * @param ratio Weight to add to the corresponding freqId 
        */
       inline void promote (unsigned int freqId, float ratio)
       {

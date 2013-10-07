@@ -62,8 +62,7 @@ DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
    USER_PERF_REQ_PERF(cfg->getFloat("USER_PERF_REQ_PERF")),
    USER_PERF_REQ_ENERGY(cfg->getFloat("USER_PERF_REQ_ENERGY")),
    USER_PERF_REQ ((mode == MODE_PERFORMANCE ? USER_PERF_REQ_PERF : USER_PERF_REQ_ENERGY)),
-   ACTIVITY_LEVEL(cfg->getFloat("ACTIVITY_LEVEL")),
-   timeProfiler (),
+   ACTIVITY_LEVEL(cfg->getFloat("ACTIVITY_LEVEL")), 
    nbFreqs (dvfsUnit->getNbFreqs ()),
    oldMaxFreqId (0),
    totalSleepWin (DecisionMaker::MIN_SLEEP_WIN),
@@ -369,9 +368,6 @@ void DecisionMaker::initEvaluation ()
    for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->resetIPC ();
    }
-
-   // time the evaluation for debuging purposes
-   //this->timeProfiler.evaluate (EVALUATION_INIT); 
 }
 
 void DecisionMaker::evaluateFrequency () {
@@ -424,9 +420,6 @@ void DecisionMaker::evaluateFrequency () {
       //std::cerr << "Thread #" << (*thr)->getId () <<  " ";
       //(*thr)->printIPC ();
    } 
- 
-   // Evaluate time spent in this evaluation step
-   //this->timeProfiler.evaluate (FREQUENCY_EVALUATION);
 }
 
 void DecisionMaker::checkActiveCores () {
@@ -573,8 +566,6 @@ bool DecisionMaker::computeSequence ()
    DLOG (INFO) << "totalsleepwin = " << this->totalSleepWin << std::endl;
    DLOG (INFO) << "maxRatioFreqId = " << maxRatioFreqId << std::endl;
 	this->oldMaxFreqId = maxRatioFreqId;
-
-   //this->timeProfiler.evaluate (SEQUENCE_COMPUTATION);
    
    return isSpecial;
 }
@@ -659,9 +650,6 @@ bool DecisionMaker::executeSequence ()
    } else {
       this->reevaluate = false;
    }
-
-   // Profiler, remind we leave execution
-   //this->timeProfiler.evaluate (EXECUTION_SLOT);
    
    return this->reevaluate;
 }

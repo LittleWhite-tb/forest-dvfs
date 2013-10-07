@@ -33,7 +33,6 @@
 
 #include "Common.h"
 #include "Config.h"
-#include "TimeProfiler.h"
 #include "FreqSelector.h"
 #include "Mode.h"
 #include "ThreadArch.h"
@@ -262,12 +261,6 @@ class DecisionMaker
        * @param cpu The cpu for which the virtual freq is computed
        */
       FreqChunkCouple getVirtualFreq (float degradedIPC, unsigned int cpu, unsigned int activeCpus) const;
-
-      /**
-       * The timeProfiler is a way to keep track of the overhead of the
-       * different steps in our evaluation and execution processes.
-       */
-      TimeProfiler timeProfiler;
 
       /**
        * Number of frequencies that are available on the processor
