@@ -463,16 +463,19 @@ static inline void computeResults (Data& data) {
       ofs << std::endl;
    }
 
+#ifdef ARCH_MIC
    for (std::vector<RdtscRatioData>::iterator it = data.rdtscData.begin ();
         it != data.rdtscData.end ();
         it++) {
       ofs << (*it).ratio << " ";
    }
    ofs << std::endl;
+#endif
 
    ofs.close ();
 }
 
+#ifdef ARCH_MIC
 static inline void getRdtscData (Data &data) {
    unsigned int nr = 10000000;
    BenchResult res;
@@ -490,6 +493,7 @@ static inline void getRdtscData (Data &data) {
    }
 }
 
+
 static inline void computeRdtscRatios (Data& data) {
    std::vector<RdtscRatioData>::iterator it;
    
@@ -500,6 +504,7 @@ static inline void computeRdtscRatios (Data& data) {
      (*it).ratio = ((((double)(*it).time / max.time) * max.rdtsc_value) / (*it).rdtsc_value);
    }
 }
+#endif
 
 int main (int argc, char *argv []) {
    /*
