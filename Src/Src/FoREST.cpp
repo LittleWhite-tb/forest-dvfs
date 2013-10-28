@@ -176,8 +176,10 @@ static void *FoRESTthread (void *arg) {
 
    // do it as long as we are not getting killed by a signal
 	while (true) {
-      dm->initEvaluation ();
-      dm->evaluateFrequency ();
+      // If there is at least one active core, we evaluate
+      if (dm->initEvaluation ()) {
+         dm->evaluateFrequency ();
+      }
       dm->computeSequence ();
       // While some metric is stable, keep executing the last decision sequence
       while (dm->executeSequence ()) {}

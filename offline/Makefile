@@ -35,7 +35,7 @@ power_0.cfg:
 	sudo ./offline 0 x86
 
 offline: offline.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(MCXXFLAGS) $< -o $@
 
 $(MAKE) -c lPowerProbe CXX="$(CXX)" CXXFLAGS="$(CXXFLAGS)"
 

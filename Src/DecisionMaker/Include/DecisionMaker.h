@@ -97,8 +97,10 @@ class DecisionMaker
        * - Compute the center of the frequency window (see computeFreqWindowCenter)
        * - Compute the frequency Window (see computeFreqWindow)
        * - Reset some values
+       *
+       *  @return Whether there currently are active cores on the machine
        */
-      void initEvaluation ();
+      bool initEvaluation ();
 
       /**
        * Call iteratively the getHWExploitationRatio method to evaluate each
@@ -137,13 +139,7 @@ class DecisionMaker
        * evaluation step
        */
       unsigned int freqWindowCenter;
-      /**
-       * The maximum frequency is always evaluated
-       * This boolean states whether it has been naturally added to the list of
-       * freqs to evalute (eg we really want to evaluate it) or just because
-       * we need it to compute the reference energy ratios
-       */
-      bool addedFreqMax;
+
       /**
        * Which DVFS unit we are handling.
       */

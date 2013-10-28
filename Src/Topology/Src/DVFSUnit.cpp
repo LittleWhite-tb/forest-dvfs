@@ -95,7 +95,7 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
         it++) {
       // Number of cycles needed to achieve ~100ms
       uint64_t cyclesFor100ms = this->freqs [nbFreqs - 1] * 100;
-      THREADCLASS *newThread = new THREADCLASS (i++, nbFreqs, profiler, cyclesFor100ms);
+      THREADCLASS *newThread = new THREADCLASS (i++, nbFreqs, profiler, *this, cyclesFor100ms);
       this->takeControl (newThread->getId ());
       this->thread.push_back (newThread);
    }
@@ -121,23 +121,32 @@ DVFSUnit::DVFSUnit (unsigned int id, const std::set<unsigned int> &cpuIds,
       std::vector<float> data;
       while (FileUtils::readLine<float> (data, ifs))
       {
-         // skip empty lines
-         if (data.size () == 0)
+         if (data.size () != this->freqs.size ())
          {
-            continue;
+            LOG (FATAL) << "Corrupted power configuration file. Consider running again the offline power measurement" << std::endl;
          }
+         
+         // skip empty lines
+         if (data.size () == 0) {
+           continue;
+         }
+
+#ifdef ARCH_MIC
+         // If it is the last line of the file (MIC), then consider it as rdtscRatios
+         if (FileUtils::isLastLine (ifs)) {
+            for (std::vector<float>::iterator it = data.begin ();
+                 it != data.end ();
+                 it++) {
+               this->rdtscRatios.push_back (*it);
+            }
+            break;
+         }
+#endif
 
          for (std::vector<float>::iterator it = data.begin ();
               it != data.end ();
-              it++)
-         {
+              it++) {
             this->power.push_back (*it);
-         }
-
-         if (data.size () != this->freqs.size ())
-         {
-            LOG (FATAL) << "Corrupted power configuration file. Consider running again the offline power measurement"
-               << std::endl;
          }
 
          data.clear ();

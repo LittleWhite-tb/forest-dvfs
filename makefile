@@ -26,7 +26,8 @@ mic:
 	# Build lPowerProbe and offline benchmark
 	$(MAKE) --file MakeFoREST offline \
 		CXX="icpc -mmic" \
-		CC="icc -mmic"
+		CC="icc -mmic" \
+		MCXXFLAGS="-O3 -DARCH_MIC -DNDEBUG" \
 
 	$(MAKE) -C offline offline
 

@@ -27,11 +27,31 @@
 #include <vector>
 #include <set>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "utils.h"
 
 static std::string lpp_path("./lPowerProbe/");
 static std::ostringstream libraries;
+
+struct RdtscRatioData {
+   double ratio;
+   uint64_t rdtsc_value;
+   uint64_t time; 
+};
+
+struct Data {
+   unsigned int cpuId;
+   std::vector <unsigned int> freqs;
+   std::set <unsigned int> cores;
+   std::vector <unsigned int> threads;
+   std::vector <unsigned long int> nbIters;
+   std::vector <std::vector <BenchResult>*> res; 
+#ifdef ARCH_MIC
+   std::vector <RdtscRatioData> rdtscData;
+#endif
+};
+
 
 /**
  * checkArguments (argc, argv)
@@ -48,9 +68,9 @@ static inline unsigned int checkArguments (int argc, char *argv []) {
    // Set appropriate libraries
    libraries.clear ();
    if (!strncmp (argv [2], "mic", 3)) {
-      libraries << lpp_path << "/probes/mic_energy/mic_energy.so;" << lpp_path << "/probes/wallclock/wallclock.so";
+      libraries << lpp_path << "/probes/mic_energy/mic_energy.so;" << lpp_path << "/probes/wallclock/wallclock.so;" << lpp_path << "/probes/timer/timer.so";
    } else {
-      libraries << lpp_path << "/probes/energy_snb_msr/energy_msr_snb.so;" << lpp_path << "/probes/wallclock/wallclock.so";
+      libraries << lpp_path << "/probes/energy_snb_msr/energy_msr_snb.so;" << lpp_path << "/probes/wallclock/wallclock.so;" << lpp_path << "/probes/timer/timer.so";
    }
 
    unsigned int cpuId = strtol (argv[1], NULL, 10);
@@ -128,12 +148,11 @@ static inline void vectorFromFile (std::vector <T>& vector,
  *
  * Stores in v all the frequencies that the thread cpuId can achieve
  */
-static inline void getFreqs (std::vector <unsigned int>& v,
-                                      unsigned int cpuId) {
+static inline void getFreqs (Data& data) {
    std::ostringstream oss;
-   oss << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/scaling_available_frequencies";
-   vectorFromFile <unsigned int> (v, oss.str ().c_str ());
-   std::sort (v.begin (), v.end ());
+   oss << "/sys/devices/system/cpu/cpu" << data.cpuId << "/cpufreq/scaling_available_frequencies";
+   vectorFromFile <unsigned int> (data.freqs, oss.str ().c_str ());
+   std::sort (data.freqs.begin (), data.freqs.end ());
 }
 
 /**
@@ -142,24 +161,22 @@ static inline void getFreqs (std::vector <unsigned int>& v,
  * Stores a list of core ids on the same frequency domain as the cpu defined by cpuid.
  * One id is given per core (ignoring Hyperthreading or similar).
  */
-static inline void getTopology (std::vector <unsigned int>& threads,
-                                std::set <unsigned int>& cores,
-                                     unsigned int cpuId) {
+static inline void getTopology (Data& data) {
    std::ostringstream oss;
    std::ifstream ifs;   
 
    // Get related cores
-   oss << "/sys/devices/system/cpu/cpu" << cpuId << "/cpufreq/related_cpus";
-   vectorFromFile <unsigned int> (threads, oss.str ().c_str ());
+   oss << "/sys/devices/system/cpu/cpu" << data.cpuId << "/cpufreq/related_cpus";
+   vectorFromFile <unsigned int> (data.threads, oss.str ().c_str ());
 
    // Compute physical cores
-   cores.clear ();
+   data.cores.clear ();
 
    // For each core in the related_cpus file, get the first coreId in the
    // according thread_siblings_list file, so that we end up with only one core
    // per physical core
-   for (std::vector <unsigned int>::iterator it = threads.begin ();
-        it != threads.end ();
+   for (std::vector <unsigned int>::iterator it = data.threads.begin ();
+        it != data.threads.end ();
         it++) {
       std::ostringstream oss;
       std::vector <unsigned int> threadSiblings;
@@ -168,8 +185,8 @@ static inline void getTopology (std::vector <unsigned int>& threads,
       
       ifs.open (oss.str ().c_str ());
       if (!ifs.good ()) {
-         std::cerr << "Error: Cannot open thread siblings list for core " << *it << " (file " << oss.str ()
-                   << std::endl;
+         std::cerr << "Error: Cannot open thread siblings list for core " << *it
+            << " (file " << oss.str () << std::endl;
          exit (EXIT_FAILURE);
       }
       
@@ -210,7 +227,7 @@ static inline void getTopology (std::vector <unsigned int>& threads,
          //std::cerr << "myList" << std::endl;
          //printVector <unsigned int> (myList);
       }
-      cores.insert (myList [0]);
+      data.cores.insert (myList [0]);
    }
 }
 
@@ -221,13 +238,15 @@ static inline void getTopology (std::vector <unsigned int>& threads,
  * given the number of cores given by the vector cores and coresNb
  * for a total of nbRepets repetitions
  */
-static inline void runBench (unsigned long int nbRepets, std::set <unsigned int>& cores,
-                             unsigned int coresNb, BenchResult& values) {
+static inline void runBench (unsigned long int nbRepets, Data& data,
+                             unsigned int coresNb, BenchResult& values,
+                             int freqId) {
    std::ostringstream taskMask, cmd;
-
    unsigned int i = 0;
-   for (std::set<unsigned int>::iterator it = cores.begin ();
-        i < coresNb && it != cores.end ();
+
+   // Building the taskMask (for pinning the process on the corresponding cores)
+   for (std::set<unsigned int>::iterator it = data.cores.begin ();
+        i < coresNb && it != data.cores.end ();
         it++) {
       taskMask << *it;
       if (i+1 < coresNb) {
@@ -242,7 +261,7 @@ static inline void runBench (unsigned long int nbRepets, std::set <unsigned int>
 
    // Allow the user to cancel the the offline phase with Ctrl+C if needed
    usleep (10);
-   //int r = system (cmd.str ().c_str ());
+   
    FILE *stream = popen (cmd.str ().c_str (), "r");
    if (stream == NULL) {
       std::cerr << "Error: Could not execute command " << cmd.str () << std::endl;
@@ -264,13 +283,14 @@ static inline void runBench (unsigned long int nbRepets, std::set <unsigned int>
    std::vector <BenchResult> vres;
    while (ifs.getline (buf, sizeof (buf))) {
       std::vector <std::string> elems;
-      split (buf, ';', elems);
-      assert (elems.size () == 2);
+      split (buf, ';', elems); 
+      assert (elems.size () == 3);
       std::vector <double> dElems;
       vectorToDouble (elems, dElems);
       BenchResult bres;
       bres.ratio = dElems [0] / dElems [1] * 1e6;
       bres.time = dElems [1] / 1e3;
+      bres.rdtsc = dElems [2];
 
       vres.push_back (bres);
       i++;
@@ -290,44 +310,36 @@ static inline void runBench (unsigned long int nbRepets, std::set <unsigned int>
  * Estimates the number of iterations to use with the benchmark to reach
  * the "ms" provided execution time, running on a single core
  */
-static inline unsigned long int getIdealNIters (unsigned int ms,
-                                   std::set <unsigned int>& cores) {
+static inline unsigned long int getIdealNIters (unsigned int freqId,
+                                                unsigned int ms,
+                                   Data& data) {
    unsigned long int nr = 1;
    unsigned long int exectime = 0;
    BenchResult values;
 
    while (exectime < ms || exectime > 1.5 * ms) {
-      runBench (nr, cores, 1, values);
+      runBench (nr, data, 1, values, freqId);
 
-      //std::cerr << "nr = " << nr << std::endl;
-      //std::cerr << "exectime = " << exectime << std::endl;
       assert (nr != 0);
       if (values.ratio == 0 || values.time == 0) {
-         nr *= 10;
-         //std::cerr << "x10" << std::endl;
+         nr *= 10;      
          continue;
       }
 
-      //std::cerr << "I was here" << std::endl;
-
       exectime = values.time;
 
-      //std::cerr << "et = " << exectime << " , ms = " << ms << std::endl;
       if (exectime < ms) {
          // Small values are not relevant
          if (exectime < .1*ms) {
             nr *= 10;
-            //std::cerr << "<0.1*t" << std::endl;
          } else {
             // Assume linear impact of nr on exec time
             // target a little bit above t (1.1*t)
-            //std::cerr << "*1.1" << std::endl;
             nr *= ms / exectime;
             nr *= 1.1;
          }
       } else if (exectime > 1.5 * ms) {
          // assume linear impact of nr on exec time
-         //std::cerr << ">1.5*t" << std::endl;
          nr /= 2.;
       }
    }
@@ -335,32 +347,31 @@ static inline unsigned long int getIdealNIters (unsigned int ms,
    return nr;
 }
 
-static inline void getIdealIters (std::vector <unsigned long int>& nbIters,
-                                  std::vector <unsigned int>& freqs,
-                                  std::set <unsigned int>& cores,
-                                  std::vector <unsigned int>& threads) {
+static inline void getIdealIters (Data& data) {
    std::cout << "Determining optimal lPowerProbe configuration";
    fflush (stdout);
    if (hasTB ()) {
       // Target 1 second for all frequencies but TB
-      for  (std::vector <unsigned int>::iterator it = freqs.begin ();
-            it != freqs.end ()-1;
+      unsigned int i = 0;
+      for  (std::vector <unsigned int>::iterator it = data.freqs.begin ();
+            it != data.freqs.end ()-1;
             it++) {
-         setFreq (threads, *it);
-         nbIters.push_back (getIdealNIters (1000, cores));
+         setFreq (data.threads, *it);
+         data.nbIters.push_back (getIdealNIters (i++, 1000, data));
          std::cout << ".";
          fflush (stdout);
       }
-      setFreq (threads, freqs.back ());
-      nbIters.push_back (getIdealNIters (30000, cores));
+      setFreq (data.threads, data.freqs.back ());
+      data.nbIters.push_back (getIdealNIters (data.freqs.size () - 1, 30000, data));
       std::cout << ".";
    } else {
       // Target 1 second for all frequencies
-      for  (std::vector <unsigned int>::iterator it = freqs.begin ();
-            it != freqs.end ();
+      unsigned int i = 0;
+      for  (std::vector <unsigned int>::iterator it = data.freqs.begin ();
+            it != data.freqs.end ();
             it++) {
-         setFreq (threads, *it);
-         nbIters.push_back (getIdealNIters (1000, cores));
+         setFreq (data.threads, *it);
+         data.nbIters.push_back (getIdealNIters (i++, 1000, data));
          std::cout << ".";
          fflush (stdout);
       }
@@ -370,8 +381,8 @@ static inline void getIdealIters (std::vector <unsigned long int>& nbIters,
 
    // Printing nbIters as we did in Python
    std::cout << "[";
-   for (std::vector<unsigned long int>::iterator it = nbIters.begin ();
-        it != nbIters.end ();
+   for (std::vector<unsigned long int>::iterator it = data.nbIters.begin ();
+        it != data.nbIters.end ();
         it++) {
       std::cout << (*it) << ",";
    }
@@ -384,30 +395,26 @@ static inline void getIdealIters (std::vector <unsigned long int>& nbIters,
  * Profiles the different frequencies with all possible cores usage configuration
  * from 1 used core to n (cores.size ())
  */
-static inline void doProfiling (std::vector <unsigned long int>& nbIters,
-                                std::vector <unsigned int>& freqs,
-                                std::set <unsigned int>& cores,
-                                std::vector <unsigned int>& threads,
-                                std::vector <std::vector <BenchResult>*>& res) {
+static inline void doProfiling (Data& data) {
   std::vector <unsigned int>::iterator it; 
-  std::vector <unsigned long int>::iterator jt; 
+  std::vector <unsigned long int>::iterator jt;
    
-   for (it = freqs.begin (), jt = nbIters.begin ();
-        it != freqs.end (),  jt != nbIters.end ();
+   for (it = data.freqs.begin (), jt = data.nbIters.begin ();
+        it != data.freqs.end (),  jt != data.nbIters.end ();
         it++,
         jt++) {
-      setFreq (threads, *it);
+      setFreq (data.threads, *it);
 
       std::vector <BenchResult> *coreVector = new std::vector <BenchResult> ();
-      coreVector->reserve (cores.size ());
-      for (unsigned int k = 1; k <= cores.size (); k++) {
+      coreVector->reserve (data.cores.size ());
+      for (unsigned int k = 1; k <= data.cores.size (); k++) {
          BenchResult currentRes;
-         runBench (*jt, cores, k, currentRes);
+         runBench (*jt, data, k, currentRes, -1);
          coreVector->push_back (currentRes);
          std::cout << ".";
          fflush (stdout);
       }
-      res.push_back (coreVector);
+      data.res.push_back (coreVector);
    }
    std::cout << "done" << std::endl;
 }
@@ -426,17 +433,14 @@ static inline void freeResult (std::vector <std::vector <BenchResult>*>& res) {
  * Rather stores the results computed in doProfiling in a formatted file
  * that FoREST needs to compute Power Ratios
  */
-static inline void computeResults (unsigned int cpuId,
-                                   std::vector <unsigned int>& freqs,
-                                   std::set <unsigned int>& cores,
-                                   std::vector <std::vector <BenchResult>*>& res) {
+static inline void computeResults (Data& data) {
    std::ofstream ofs;
    std::ostringstream oss;
-   oss << "power_" << cpuId << ".cfg";
+   oss << "power_" << data.cpuId << ".cfg";
    ofs.open (oss.str ().c_str ());
    if (!ofs.good ()) {
       std::ostringstream oss;
-      oss << "/tmp/power_" << cpuId << ".cfg";
+      oss << "/tmp/power_" << data.cpuId << ".cfg";
       ofs.open (oss.str ().c_str ());
       if (!ofs.good ()) {
          std::cerr << "Error: Could not open " << oss.str () << std::endl;
@@ -445,23 +449,57 @@ static inline void computeResults (unsigned int cpuId,
       std::cerr << "Warning: Could not create power configuration file in current folder, so it will be saved in " << oss.str () << std::endl;
    }
    
-   for (std::vector <unsigned int>::iterator it = freqs.begin ();
-        it != freqs.end ();
+   for (std::vector <unsigned int>::iterator it = data.freqs.begin ();
+        it != data.freqs.end ();
         it++) {
       ofs << *it << " ";
    }
    ofs << std::endl;
 
-   for (unsigned int i = 0; i < cores.size (); i++) {
-      for (unsigned int j = 0; j < freqs.size (); j++) {
-         ofs << (*(res [j]))[i].ratio << " ";
+   for (unsigned int i = 0; i < data.cores.size (); i++) {
+      for (unsigned int j = 0; j < data.freqs.size (); j++) {
+         ofs << (*(data.res [j]))[i].ratio << " ";
       }
       ofs << std::endl;
    }
 
+   for (std::vector<RdtscRatioData>::iterator it = data.rdtscData.begin ();
+        it != data.rdtscData.end ();
+        it++) {
+      ofs << (*it).ratio << " ";
+   }
+   ofs << std::endl;
+
    ofs.close ();
 }
 
+static inline void getRdtscData (Data &data) {
+   unsigned int nr = 10000000;
+   BenchResult res;
+   for (unsigned int i = 0; i < data.freqs.size (); i++) {
+      setFreq (data.threads, data.freqs [i]);
+      RdtscRatioData dat = {0,0,0};
+      data.rdtscData.push_back (dat);
+      for (unsigned int j = 0; j < 15; j++) {
+         runBench (nr, data, 1, res, i);
+         data.rdtscData [i].rdtsc_value += res.rdtsc;
+         data.rdtscData [i].time += res.time * 1e3;
+      }
+      data.rdtscData [i].rdtsc_value /= 15;
+      data.rdtscData [i].time /= 15;
+   }
+}
+
+static inline void computeRdtscRatios (Data& data) {
+   std::vector<RdtscRatioData>::iterator it;
+   
+   RdtscRatioData max = data.rdtscData.back ();
+   for (it = data.rdtscData.begin ();
+        it != data.rdtscData.end ();
+        it++) {
+     (*it).ratio = ((((double)(*it).time / max.time) * max.rdtsc_value) / (*it).rdtsc_value);
+   }
+}
 
 int main (int argc, char *argv []) {
    /*
@@ -478,31 +516,30 @@ int main (int argc, char *argv []) {
     * 8. Generate configuration file
     * 9. Yey, we're done
     */
-   std::vector <unsigned int> freqs;
-   std::set <unsigned int> cores;
-   std::vector <unsigned int> threads;
-   std::vector <unsigned long int> nbIters;
-   std::vector <std::vector <BenchResult>*> res;
-   std::vector <float> ratios;
+   Data data;
 
-   unsigned cpuId = checkArguments (argc, argv);
+   data.cpuId = checkArguments (argc, argv);
    checkEnvironment ();
-   getFreqs (freqs, cpuId);
-   assert (freqs.size () > 0);
-   if (freqs.size () == 1) {
+   getFreqs (data);
+   assert (data.freqs.size () > 0);
+   if (data.freqs.size () == 1) {
       std::cerr << "FoREST cannot be beneficial for your system because there is only one frequency to choose from." << std::endl;
       exit (EXIT_FAILURE);
    }
-   getTopology (threads, cores, cpuId);
+   getTopology (data);
    printNicePrompt ();
 
-   setStdDVFSPolicy (threads, "userspace");
-   getIdealIters (nbIters, freqs, cores, threads);
-   doProfiling (nbIters, freqs, cores, threads, res);
-   setStdDVFSPolicy (threads, "ondemand");
+   setStdDVFSPolicy (data.threads, "userspace");
+   getIdealIters (data);
+#ifdef ARCH_MIC
+   getRdtscData (data);
+   computeRdtscRatios (data);
+#endif
+   doProfiling (data);
+   setStdDVFSPolicy (data.threads, "ondemand");
 
-   computeResults (cpuId, freqs, cores, res);
-   freeResult (res);
+   computeResults (data);
+   freeResult (data.res);
 
    return EXIT_SUCCESS;
 }

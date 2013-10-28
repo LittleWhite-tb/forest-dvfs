@@ -27,8 +27,8 @@ private:
    uint64_t usageElapsedTime;
 
 public:
-   ThreadX86 (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold) :
-      Thread (id, nbFrequencies, profiler, threshold),
+   ThreadX86 (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, DVFSUnit& unit, uint64_t threshold) :
+      Thread (id, nbFrequencies, profiler, unit, threshold),
       retired ("INST_RETIRED:ANY_P", nbFrequencies),
       unhalted ("UNHALTED_REFERENCE_CYCLES"),
       llcMisses ("LLC_MISSES"),

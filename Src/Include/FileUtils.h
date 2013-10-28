@@ -78,6 +78,20 @@ public:
 
       return ifs;
    }
+
+   static bool isLastLine (std::fstream& ifs) {
+      std::string line;
+      // Read :)
+      std::getline (ifs, line, '\n');
+
+      // Check
+      bool isLast = !ifs;
+
+      // Rollback
+      ifs.seekg (-line.size ()-1, std::ios_base::cur);
+      
+      return isLast;
+   }
 };
 
 #endif

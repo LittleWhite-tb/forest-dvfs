@@ -25,7 +25,6 @@
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
-#include <math.h>
 #include <vector>
 #include <stdint.h>
 #include <cassert>
@@ -48,8 +47,7 @@ namespace FoREST {
 DecisionMaker::DecisionMaker (DVFSUnit *dvfsUnit, const Mode mode,
                               Config *cfg, std::vector<THREADCLASS*>& thr) :
    reevaluate (true),
-   freqWindowCenter (0),
-   addedFreqMax (false),
+   freqWindowCenter (0), 
    unit (dvfsUnit),
    thread (thr),
    referenceL3misses (thr.size ()),
@@ -83,6 +81,7 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
 {
    std::set<unsigned int> smallerIpc;
    std::set<unsigned int> greaterIpc;
+   std::set<THREADCLASS*>::iterator thread;
 
    *isSpecialCase = false;
    unsigned int nbActiveCores = this->activeCores.size ();
@@ -91,23 +90,7 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
    std::set<unsigned int>::iterator endFreq = this->freqsToEvaluate.end ();
    // The last frequency in the set of frequencies we have evaluated
    std::set<unsigned int>::iterator highestFreq = --this->freqsToEvaluate.end ();
-   //std::set<unsigned int>::iterator realHighestFreq = highestFreq;
-   //bool lowerHighestFreq = false, higherHighestFreq = false;
    
-   // If the maximum frequency has been added only to have 
-   // a reference frequency, then we don't take it as a possible
-   // frequency to be applied at this iteration
-   //
-   // This avoids frequency to go suddenly up to max frequency and rather
-   // goes up step by step (as fast as it goes down)
-   //
-   // If this statement is deactivated, it can cause higher energy consumption
-   // because of volative high ipc values
-   /*if (this->addedFreqMax) {
-      --endFreq;
-      --highestFreq;
-   }*/
-
    // split frequencies depending on their IPCs
    for (std::set<unsigned int>::iterator freq = this->freqsToEvaluate.begin ();
         freq != this->freqsToEvaluate.end ();
@@ -117,7 +100,7 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
       DLOG(INFO) << "Freq " << *freq << std::endl;
 
       // For each active thread
-      for (std::set<THREADCLASS*>::iterator thread = this->activeThread.begin ();
+      for (thread = this->activeThread.begin ();
            thread != this->activeThread.end ();
            thread++)
       {
@@ -127,29 +110,18 @@ bool DecisionMaker::getBestCouple (float d, FreqChunkCouple *bestCouple, float *
 
          DLOG(INFO) << "Thread " << (*thread)->getId() << " ipc: " << threadIpc << " max: " << maxIpc <<  " degraded = " << maxIpc*d << std::endl;
          
-         if (threadIpc < d * maxIpc)
-         {
+         if (threadIpc < d * maxIpc) {
             isHigher = false;
-         }
-         else
-         {
+         } else {
             isLower = false;
          }
       }
 
-      /*if (realHighestFreq == freq) {
-         if (isLower) lowerHighestFreq = true;
-         if (isHigher) higherHighestFreq = true;
-      } else {*/
-         if (isLower)
-         {
-            smallerIpc.insert (*freq);
-         }
-         else if (isHigher)
-         {
-            greaterIpc.insert (*freq);
-         }
-      //}
+      if (isLower) {
+         smallerIpc.insert (*freq);
+      } else if (isHigher) {
+         greaterIpc.insert (*freq);
+      } 
    }
 
    // precompute t_i/t_ref * W_i/W_ref for every frequency i
@@ -314,14 +286,12 @@ void DecisionMaker::logFrequency (unsigned int freqId) const
 #endif
 }
 
-void DecisionMaker::initEvaluation ()
+bool DecisionMaker::initEvaluation ()
 {
-   this->addedFreqMax = false;
    std::vector<THREADCLASS*>::iterator thr;
 
    // Reset the list of frequencies to evaluate
    this->freqsToEvaluate.clear ();
-
 
    // Computing the new freq window
    if (this->lastSequence.step [STEP1].timeRatio
@@ -340,34 +310,26 @@ void DecisionMaker::initEvaluation ()
    unsigned int maxFreqId = rest_min (this->nbFreqs - 1,
       this->freqWindowCenter + DecisionMaker::FREQ_WINDOW_SZ);
 
-   for (unsigned int i = minFreqId; i <= maxFreqId; i++)
-   { 
+   for (unsigned int i = minFreqId; i <= maxFreqId; i++) {
       this->freqsToEvaluate.insert (i);
    }
 
-   // Consensus decision
-   //this->freqsToEvaluate.insert ( (this->nbFreqs - 1 + this->freqWindowCenter) / 2);
-
    // also request evaluation for the maximal frequency as it must serve as a
    // reference point to compute the degradation rate
-   if (maxFreqId < this->nbFreqs - 1)
-   {
+   if (maxFreqId < this->nbFreqs - 1) {
       this->freqsToEvaluate.insert (this->nbFreqs - 1);
-      this->addedFreqMax = true;
    }
-
-   /*std::cerr << "Evaluating frequencies: ";
-   for (std::set<unsigned int>::iterator it = this->freqsToEvaluate.begin ();
-        it != this->freqsToEvaluate.end ();
-        it++) {
-      std::cerr << *it << " ";
-   }
-   std::cerr << std::endl;*/
 
    // Reset the IPC for each thread
    for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->resetIPC ();
    }
+
+   // Get active threads / cores
+   this->checkActiveCores ();
+
+   // If there is no active cores, we skip the evaluation (return false)
+   return activeThread.size () != 0;
 }
 
 void DecisionMaker::evaluateFrequency () {
@@ -380,7 +342,7 @@ void DecisionMaker::evaluateFrequency () {
       bool hwcPanic = false;
       
       // Apply the frequency
-      this->unit->setFrequency (*freq);
+      this->unit->setFrequency (*freq); 
 
       // Wait for the frequency to be applied
       nsleep (this->unit->getSwitchLatency ());
@@ -408,17 +370,17 @@ void DecisionMaker::evaluateFrequency () {
             break;
          }
       }
+
       if (!hwcPanic) {
          freq++;
-         //std::cerr << std::endl;
+         
       }
    }
 
-   // Debug information
+   // IPC should be an increasing function, so we smooth its shape to correct
+   // measurement error
    for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->smoothIPC ();
-      //std::cerr << "Thread #" << (*thr)->getId () <<  " ";
-      //(*thr)->printIPC ();
    } 
 }
 
@@ -455,9 +417,6 @@ bool DecisionMaker::computeSequence ()
    float bestD = 0;
    FreqChunkCouple bestCouple = {{{0, 0}, {0, 0}}};
    bool isSpecial = false, isSpecialCase;
-
-   // Get active threads / cores
-   this->checkActiveCores ();
 
    // compute max IPC per thread
    for (std::vector<THREADCLASS*>::iterator it = this->thread.begin ();
@@ -574,27 +533,37 @@ bool DecisionMaker::executeSequence ()
 {
    std::vector<THREADCLASS*>::iterator thr;
 
+   // MIC does not support execution stability
+#ifndef ARCH_MIC
    // Resets the read of the l3MissRatio
    for (thr = thread.begin (); thr != thread.end (); thr++) {
          (*thr)->resetExec ();
    }
+#endif
    
    // Apply steps
    for (unsigned int i = 0; i < 2; i++) {
       if (this->sequence.step [i].timeRatio > 0) {
          unsigned int freqId = this->sequence.step [i].freqId;
+         
+         // Set the frequency
          this->unit->setFrequency (freqId);
    
          // Apply it for some time...
          unsigned int sleepWin = this->sequence.step [i].timeRatio
                            * this->totalSleepWin;
-     
-         //std::cerr << "sleepWin = " << sleepWin << std::endl;
+      
          // Sleep now !
          nsleep (sleepWin*1000);
       }
    }
- 
+
+   // Execution stability mechanism:
+   // 1. Read values
+   // 2. Check whether they are stable accross 2 consecutive sequence executions
+   // 3. If they are, keep going
+   // 4. If not, rollback to the evaluation part and choose a new sequence
+#ifndef ARCH_MIC
    // Read all values l3MissRatio for each thread
    for (thr = thread.begin (); thr != thread.end (); thr++) {
       (*thr)->readExec ();
@@ -606,28 +575,13 @@ bool DecisionMaker::executeSequence ()
       return true; // If any, skip the stability process
    }
 
-   /**
-    * Stability process
-    *
-    * Goal: Reexecute the same frequency decision chosen in the last evaluation
-    * step while there is a stability in some relevant metric.
-    *
-    * In our case, we use the L3missRatio metric to know if we can assume
-    * the decision to be still relevant. If it is, we execute the decision 
-    * again until the metric significantly changes.
-    *
-    * Such mechanism is used to avoid unnecessary evaluation overhead
-    * (especially energy overheead due to useless frequency application
-    * in the evaluation process)
-    */
    if (this->reevaluate) { // If we have just evaluated something
       std::vector<float>::iterator refL3 = this->referenceL3misses.begin ();
       for (thr = thread.begin (); thr != thread.end (); thr++) { 
          // We take the l3MissRatio as the reference to be compared to in the
          // next re-executions (if any)
          (*thr)->computeLLCRatio ();
-         (*refL3) = (*thr)->getLLCRatio ();
-         //std::cerr << "#" << (*thr)->getId() << " ratio = " << (*refL3) << std::endl;
+         (*refL3) = (*thr)->getLLCRatio (); 
          refL3++;
       }
    }
@@ -652,6 +606,9 @@ bool DecisionMaker::executeSequence ()
    }
    
    return this->reevaluate;
+#else
+   return false;
+#endif
 }
 
 } //namespace FoREST

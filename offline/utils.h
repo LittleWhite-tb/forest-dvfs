@@ -24,10 +24,12 @@
 #include <string>
 #include <sstream>
 #include <cassert>
+#include <stdint.h>
 
 struct BenchResult {
    double ratio;
    double time;
+   uint64_t rdtsc;
 };
 
 std::vector<std::string> &split(const char *s, char delim, std::vector<std::string> &elems) {

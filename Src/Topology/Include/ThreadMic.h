@@ -7,29 +7,28 @@
 
 namespace FoREST {
 
+class DVFSUnit;
+
 class ThreadMic : public Thread {
 private:
-   Counter retired;
-   Counter llcMisses;
+   Counter retired; 
    Counter unhalted;
    uint64_t lastUsageComputation;
    uint64_t usageElapsedTime;
 
 public:
-   ThreadMic (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold) :
-      Thread (id, nbFrequencies, profiler, threshold),
+   ThreadMic (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, DVFSUnit& unit, uint64_t threshold) :
+      Thread (id, nbFrequencies, profiler, unit, threshold),
       retired ("INSTRUCTIONS_EXECUTED", nbFrequencies),
-      unhalted ("CPU_CLK_UNHALTED"),
-      llcMisses ("L2_DATA_PF2_MISS")
+      unhalted ("CPU_CLK_UNHALTED")
    {
       this->profiler_.open (this->retired, id);
-      this->profiler_.open (this->llcMisses, id);
       this->profiler_.open (this->unhalted, id);
+      this->usage_ = 1;
    }
 
    virtual ~ThreadMic () {
-      this->profiler_.close (this->retired);
-      this->profiler_.close (this->llcMisses);
+      this->profiler_.close (this->retired); 
       this->profiler_.close (this->unhalted);
    }
 
@@ -43,8 +42,7 @@ public:
    }
 
    inline bool resetExec () {
-      Profiler::readTsc (this->execTime_);
-      return this->profiler_.read (this->llcMisses);
+      return true;
    } 
 
    inline bool readExec () {
@@ -66,41 +64,15 @@ public:
          uint64_t unhalted = this->unhalted.getValue ();
 
          float res = unhalted / (1. * this->usageElapsedTime);
-         
-         //std::cerr << "#" << this->id_ << ": " << std::setw (4) << (int)(res*100) << " ";
-
          this->usage_ = rest_min (res, 1);
-
+         
          this->lastUsageComputation = rdtsc ();
       }
    }
-   inline bool computeIPC (unsigned int freqId) {
-     uint64_t retired = this->retired.getValue (freqId);
-      uint64_t time = this->time_ [freqId].current;
-      bool hwcPanic = false;
+   
+   bool computeIPC (unsigned int freqId);
 
-      if (time == 0) {
-         LOG (WARNING) << "no time elapsed since last measurement" << std::endl;
-         return false;
-      }
-
-      // Computes ipc value
-      float ipc = retired / (1. * time);
-      this->ipc_ [freqId] = ipc;
-
-      // Handle irrational ipc values
-      if (ipc < 0 || isnan (ipc)) {
-         hwcPanic = true;
-      }
-
-      //std::cerr << "IPC #" << this->id_ << ": " << this->ipc_ [freqId] << " ";
-
-      return hwcPanic; 
-   }
-   inline void computeLLCRatio () {
-      uint64_t misses = llcMisses.getValue ();
-      this->llcRatio_ = misses;
-   }
+   inline void computeLLCRatio () {}
 };
 
 } // namespace FoREST

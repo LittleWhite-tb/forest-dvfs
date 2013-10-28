@@ -47,7 +47,8 @@ Topology::Topology (const Mode mode, Config *config) {
    std::set<unsigned int>::iterator it;
 
    // number of plugged processors
-   unsigned int nbCores = sysconf (_SC_NPROCESSORS_ONLN);
+   
+  unsigned int nbCores = sysconf (_SC_NPROCESSORS_ONLN);
 
    // set of all the cores
    for (unsigned int i = 0; i < nbCores; i++)
@@ -102,7 +103,7 @@ void Topology::getRelatedCores (unsigned int cpuId, std::set<unsigned int> &rela
    FileUtils::tryToOpen (filenames, ifs, std::fstream::in);
 
    while (ifs >> val) {
-      related.insert (val);
+     related.insert (val);
    }
 
    ifs.close ();

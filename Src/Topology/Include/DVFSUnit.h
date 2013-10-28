@@ -124,6 +124,13 @@ class DVFSUnit
       }
 
       /**
+       * Return the corresponding rdtsc ratio
+       */
+      inline unsigned int getRdtscRatio (unsigned int freqId) const{
+         return this->rdtscRatios [freqId];
+      }
+
+      /**
        * Sets the DVFS unit to use the frequency with the given id.
        *
        * @param freqId The frequency to use.
@@ -190,6 +197,17 @@ class DVFSUnit
        * DVFS unit id.
        */
       unsigned int id;
+
+#ifdef ARCH_MIC
+      /**
+       * Rdtsc Ratios:
+       * On some architectures, the tsc clock rate is not constant with respect
+       * to frequency transition. Therefore we have to apply some ratio to the
+       * clock so that it provides a better accuracy, as we are comparing clock
+       * values accross the allowed frequency range
+       */
+      std::vector<float> rdtscRatios;
+#endif
 
       /**
        * All the possible frequencies this unit can use.

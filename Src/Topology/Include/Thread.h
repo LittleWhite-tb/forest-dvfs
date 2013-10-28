@@ -34,6 +34,7 @@
 #include "rdtsc.h"
 
 namespace FoREST {
+class DVFSUnit;
 
 /**
  * @class Thread
@@ -83,10 +84,16 @@ protected:
     */
 
    unsigned int nbFrequencies_;
+
    /**
     * The profiler it is attached to
     */
    Profiler& profiler_;
+
+   /**
+    * The DVFS Unit it is attached to
+    */
+   DVFSUnit& unit_;
 
    /**
     * CPU usage (between 0 and 1)
@@ -101,12 +108,13 @@ public:
     * @param nbFrequencies number of available frequencies on the processor
     * @param profiler The profiler that will be used to monitor the thread
     */
-   Thread (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, uint64_t threshold) :
+   Thread (unsigned int id, unsigned int nbFrequencies, Profiler& profiler, DVFSUnit& unit, uint64_t threshold) :
    id_ (id), 
    TIME_THRESHOLD (threshold),
    maxIpc_ (0),
    nbFrequencies_ (nbFrequencies),
    profiler_ (profiler),
+   unit_ (unit),
    usage_ (0) {
       ipc_ = new float [nbFrequencies_];
       time_ = new CounterValues [nbFrequencies_];
