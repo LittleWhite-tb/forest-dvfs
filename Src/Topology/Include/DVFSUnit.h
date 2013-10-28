@@ -123,12 +123,14 @@ class DVFSUnit
       	return this->freqs [this->curFreqId];
       }
 
+#ifdef ARCH_MIC
       /**
        * Return the corresponding rdtsc ratio
        */
       inline unsigned int getRdtscRatio (unsigned int freqId) const{
          return this->rdtscRatios [freqId];
       }
+#endif
 
       /**
        * Sets the DVFS unit to use the frequency with the given id.
