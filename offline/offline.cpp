@@ -257,7 +257,7 @@ static inline void runBench (unsigned long int nbRepets, Data& data,
 
    cmd << lpp_path << "lPowerProbe -r 5 -d " << coresNb << " -p \"" << taskMask.str ()
        << "\" -o /tmp/results.csv -l \"" << libraries.str () << "\" ./add " << nbRepets; 
-   std::cerr << cmd.str () << std::endl << std::endl;
+   //std::cerr << cmd.str () << std::endl << std::endl;
 
    // Allow the user to cancel the the offline phase with Ctrl+C if needed
    usleep (10);

@@ -571,8 +571,8 @@ bool DecisionMaker::executeSequence ()
 
    // Is there any active cores ?
    this->checkActiveCores ();
-   if (this->activeCores.size () == 0) {
-      return true; // If any, skip the stability process
+   if (this->activeCores.size () == 0) { 
+      return false; // If any, skip the stability process
    }
 
    if (this->reevaluate) { // If we have just evaluated something
