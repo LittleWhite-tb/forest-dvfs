@@ -4,7 +4,7 @@ all: x86
 
 x86:
 	$(MAKE) --file MakeFoREST release \
-		MCXXFLAGS="-O3 -Wall -Werror -DARCH_X86 -DNDEBUG" \
+		MCXXFLAGS="-O3 -Wall -Werror -DARCH_X86 -DNDEBUG -lglog" \
 		CC="gcc" \
 		CXX="g++" \
 		GLOG_CONFIGURE=""
@@ -20,7 +20,7 @@ mic:
 	$(MAKE) --file MakeFoREST release \
 		CXX="icpc -mmic" \
 		CC="icc -mmic" \
-		MCXXFLAGS="-O3 -DARCH_MIC -DNDEBUG" \
+		MCXXFLAGS="-O3 -DARCH_MIC -DNDEBUG -lglog" \
 		GLOG_CONFIGURE="CC=icc CXX=icpc CXXFLAGS=-mmic LDFLAGS=-mmic CFLAGS=-mmic --host --host-alias x86_64"
 	
 	# Build lPowerProbe and offline benchmark
