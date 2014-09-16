@@ -1,4 +1,9 @@
-// TODO comment / add blahblah
+/**
+ * @file ThreadArch.h
+ *
+ * Includes the Thread-derived class header corresponding to the
+ * target architecture.
+ */
 
 #ifdef ARCH_MIC
    #include "ThreadMic.h"

@@ -50,12 +50,11 @@ protected:
    unsigned int id_;
 
    /**
-    * TODO comment better
     * Values of time (array for each frequency)
     */
    CounterValues *time_;
  
-   // TODO comment
+   // Last-level-of-cache ratio
    float llcRatio_;
 
    /**
@@ -139,10 +138,14 @@ public:
     */
    virtual bool read (unsigned int frequencyId) = 0;
 
-   // TODO comment
+   /**
+    * Resets the thread counter values
+    */
    virtual bool resetExec ()  = 0;
 
-   // TODO comment
+   /**
+    * Read the thread counter values
+    */
    virtual bool readExec () = 0; 
 
    /**
@@ -203,8 +206,16 @@ public:
       return this->ipc_ [frequencyId];
    }
    
-   // TODO comment
+   /**
+    * Computes the last-level-of-cache ratio
+    */
    virtual void computeLLCRatio () = 0;
+
+   /**
+    * @return The Last-level-of-cache ratio
+    *
+    * \sa Thread::llcRatio_, Thread::computeLLCRatio
+    */
    virtual float getLLCRatio () {
       return this->llcRatio_;
    }

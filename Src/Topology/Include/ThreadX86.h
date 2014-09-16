@@ -7,13 +7,29 @@
 
 namespace FoREST {
 
-// TODO comment class !! :)
+/**
+ * Implements the Thread class for x86 architectures
+ */
 class ThreadX86 : public Thread {
 private:
-   // TODO comment
+   /**
+    * Counter representing the number of cycles executed per unit of time.
+    */
    Counter retired;
+
+   /**
+    * Counter representing the number of unhalted cycles executed per unit of time.
+    */
    Counter unhalted;
+
+   /**
+    * Counter representing the number of misses in the last level of cache.
+    */
    Counter llcMisses;
+
+   /**
+    * Counter representing the number of llc references.
+    */
    Counter llcReferences;
 
    /**
