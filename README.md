@@ -25,6 +25,7 @@ FoREST also features third-party libraries:
    make [x86-debug|mic-debug]
 ```
 Note: On x86, make will ask for your password in order to run an offline script lasting several minutes in order to determine the impact of frequency transition on power consumption. Please do not run anything while running this phase.
+
 Note: On Xeon Phi, you will have to run the offline phase manually. Please read [README_MIC](https://github.com/LittleWhite-tb/forest-dvfs/blob/master/README_MIC) for more details about the procedure.
 
 # Usage 
