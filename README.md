@@ -34,5 +34,6 @@ Note: On Xeon Phi, you will have to run the offline phase manually. Please read 
 
 # Licence
 GPLv3
+
 See [COPYRIGHT](https://github.com/LittleWhite-tb/forest-dvfs/blob/master/COPYRIGHT)
 
